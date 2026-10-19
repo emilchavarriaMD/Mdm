@@ -22,7 +22,7 @@ FRASES_A = ["Se explican los signos de alarma y se indica acudir de inmediato si
             "Debe consultar de inmediato ante {}.",
             "Se educa sobre signos de alarma: acudir sin demora si presenta {}.",
             "Se indica acudir a un centro de salud de inmediato si presenta {}."]
-FRASES_S = ["Se indica {}.", "Se programa {}.", "Seguimiento: {}."]  # {} = uno o dos controles unidos con «y»
+FRASES_S = ["Se indica {}.", "Se programa {}.", "Seguimiento: {}."]  
 
 
 class _Primero:
@@ -63,15 +63,19 @@ def tiene_plan(descripcion):
     return _registro(descripcion) is not None
 
 
-def _repartir(pools, total, rng):
-    """Toma frases de cada reserva por turnos (sin repetir) hasta `total`."""
-    pools = [list(p) for p in pools if p]
+def _repartir(pools, total, rng, must=2, top=8):
+    """Toma frases por turnos de cada diagnóstico, sin repetir ideas parecidas. Las listas vienen ordenadas de mayor a
+    menor importancia: siempre entran las `must` primeras de cada una y el resto se elige al azar entre las `top` primeras."""
+    armados = []
     for p in pools:
-        rng.shuffle(p)
+        p = list(p)[:top]
+        resto = p[must:]
+        rng.shuffle(resto)
+        armados.append(p[:must] + resto)
     out, vistos, palabras = [], set(), []
     i = 0
-    while len(out) < total and any(pools):
-        p = pools[i % len(pools)]
+    while len(out) < total and any(armados):
+        p = armados[i % len(armados)]
         i += 1
         while p:
             x = p.pop(0)
@@ -98,9 +102,10 @@ def compose(descripciones, rng=None):
     if not reg:
         return ""
     n = len(reg)
-    m = _repartir([r["m"] for r in reg], min(6, 4 + n), rng)
-    a = _repartir([r["a"] for r in reg], min(5, 3 + n), rng)
-    s = _repartir([r["s"] for r in reg], min(2, n), rng)
+    # un párrafo corto: con varios diagnósticos solo lo de mayor peso de cada uno (las ideas repetidas se descartan)
+    m = _repartir([r["m"] for r in reg], 3 if n == 1 else 4, rng, must=1, top=6)
+    a = _repartir([r["a"] for r in reg], 3 if n == 1 else 4, rng, must=1, top=5)
+    s = _repartir([r["s"] for r in reg], 1, rng, must=1, top=2)
     partes = []
     if m:
         partes.append(rng.choice(FRASES_M).format(_lista(m)))
