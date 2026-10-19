@@ -137,4 +137,4 @@ vitales/peso de SSR, medicamentos, lista de verificación de embarazo y los otro
 
 
 ## 2.7
-- La HEA de APS ahora usa solo los diagnósticos de APS y la de SSR solo los de SSR (cada una con su botón de otra versión). El examen físico es el mismo en ambas fichas.
+- La HEA de APS ahora usa solo los diagnósticos de APS y la de SSR solo los de SSR (cada una con su botón de otra versión). El examen físico es el mismo en ambas fichas. El plan y las recomendaciones generales también se separan: el plan de APS usa solo los diagnósticos de APS y el de SSR solo los de SSR.

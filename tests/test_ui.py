@@ -443,6 +443,10 @@ class UITests(unittest.TestCase):
         self.assertIn("Genitourinario", ex)
         self.assertRegex(ex, "No se realiza inspección genital")                              # vaginosis → hallazgo propio en genitourinario
         self.assertRegex(dlg.ssr_plan.get("1.0", "end"), "alarma")     # plan general según los diagnósticos
+        # planes distintos: APS solo con hipertensión (dieta baja en sal), SSR solo con vaginosis (higiene genital)
+        pl_aps, pl_ssr = dlg.plan.get("1.0", "end"), dlg.ssr_plan.get("1.0", "end")
+        self.assertIn("sal", pl_aps); self.assertNotIn("genital", pl_aps)
+        self.assertIn("genital", pl_ssr); self.assertNotIn("sal ", pl_ssr)
         self.assertFalse(dlg.ssr_its_x.winfo_manager())
         self.assertEqual(dlg.ssr_larga.winfo_manager(), "pack")            # ficha larga: menarquía, citología…
         self.assertEqual(dlg._ssr_larga_mujer.winfo_manager(), "pack")
