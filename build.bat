@@ -28,7 +28,7 @@ python -m pip install -r requirements.txt
 if errorlevel 1 goto :error
 
 echo [3/4] Ejecutando pruebas automaticas...
-python -m unittest tests.test_all
+python -m unittest tests.test_all tests.test_hea
 if errorlevel 1 (
     echo [ERROR] Las pruebas fallaron. No se genera el .exe.
     pause
