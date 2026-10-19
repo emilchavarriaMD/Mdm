@@ -1,5 +1,7 @@
 # MDm – Registro Clínico de Brigadas Médicas (Honduras)
 
+**Versión 1.1**
+
 Programa de escritorio para Windows (Python + **Tkinter** + SQLite) que registra pacientes de brigadas
 médicas con tres fichas vinculadas por un único expediente: **Ficha Integral**, **Atención Primaria
 en Salud (APS)** y **Salud Sexual y Reproductiva (SSR)**. Funciona sin internet; los datos quedan en
