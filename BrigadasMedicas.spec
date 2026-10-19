@@ -8,8 +8,7 @@ a = Analysis(
     binaries=[],
     datas=[],
     hiddenimports=[
-        'ui.page_home', 'ui.page_patient', 'ui.page_search', 'ui.page_visit', 'ui.page_history',
-        'ui.page_brigades', 'ui.page_ata', 'services.ata', 'ui.page_reports', 'ui.page_backup', 'ui.page_settings',
+        'ui.page_ata', 'ui.page_pacientes', 'ui.page_backup', 'ui.page_settings', 'services.ata', 'services.activityinfo',
     ],
     hookspath=[],
     runtime_hooks=[],

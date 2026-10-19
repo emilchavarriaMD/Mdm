@@ -41,13 +41,16 @@ class AtaPage(Page):
         self.combo.pack(side="left", padx=(6, 8))
         self.combo.bind("<<ComboboxSelected>>", lambda e: self._on_pick())
         ttk.Button(bar, text="+ Nueva hoja", command=self.new).pack(side="left")
-        ttk.Button(bar, text="Cargar foto", command=self.load_image).pack(side="left", padx=8)
-        ttk.Button(bar, text="Guardar", style="Accent.TButton", command=self.save).pack(side="left")
+        ttk.Button(bar, text="Subir foto", command=self.load_image).pack(side="left", padx=(8, 0))
+        ttk.Button(bar, text="Subir Excel", command=self.load_excel).pack(side="left", padx=8)
+        ttk.Button(bar, text="Guardar en la base", style="Accent.TButton", command=self.save).pack(side="left")
         ttk.Button(bar, text="Exportar Excel", command=self.export).pack(side="left", padx=8)
         self.btn_delete = ttk.Button(bar, text="Eliminar", style="Danger.TButton", command=self.delete)
         self.btn_delete.pack(side="left")
         self.status = ttk.Label(bar, text="", style="Saved.TLabel")
         self.status.pack(side="left", padx=10)
+        self.hint = ttk.Label(self, text="", style="Hint.TLabel")
+        self.hint.pack(anchor="w", pady=(4, 0))
 
         pane = ttk.PanedWindow(self, orient="vertical")
         pane.pack(fill="both", expand=True, pady=(8, 0))
@@ -73,7 +76,7 @@ class AtaPage(Page):
         hs.pack(side="bottom", fill="x")
         self.canvas.pack(side="left", fill="both", expand=True)
         self.canvas.create_text(20, 20, anchor="nw", fill="#bbbbbb", tags="hint",
-                                text="Aún no hay foto. Use «Cargar foto…» (JPG o PNG).")
+                                text="Aún no hay foto. Use «Subir foto» (JPG o PNG).")
 
         # --- datos ---
         bottom = ttk.Frame(pane)
@@ -252,12 +255,12 @@ class AtaPage(Page):
         if not rows:
             dialogs.info(self, "La hoja no tiene ningún paciente escrito.")
             return False
-        sid = ata_svc.save_sheet(self.db, header, rows, self.sheet_id, self.image_name,
-                                 self.app.current_brigade_id())
+        sid = ata_svc.save_sheet(self.db, header, rows, self.sheet_id, self.image_name, None)
         self.sheet_id = sid
         self._open(sid)
         self.refresh()
-        self.status.configure(text=f"Hoja guardada a las {common.now_hhmm()} ({len(rows)} pacientes)")
+        self.status.configure(text=f"Guardada a las {common.now_hhmm()}: {len(rows)} pacientes en la base")
+        self.hint.configure(text="Los pacientes ya están en la pestaña «Pacientes», con su botón «Añadir registro».")
         return True
 
     def delete(self):
@@ -293,6 +296,36 @@ class AtaPage(Page):
             return
         if dialogs.confirm(self, "Excel generado", f"Se guardó:\n{path}", yes="Abrir", no="Cerrar"):
             widgets.open_path(path)
+
+    # -- Excel -------------------------------------------------------------------
+    def load_excel(self):
+        if not self.can_leave():
+            return
+        path = dialogs.ask_open_path(self, "Elegir el ATA en Excel",
+                                     [("Excel", "*.xlsx *.xlsm"), ("Todos", "*.*")])
+        if not path:
+            return
+        try:
+            header, rows, warns = ata_svc.import_excel(path)
+        except Exception as exc:  # noqa: BLE001
+            dialogs.error(self, f"No se pudo leer el Excel:\n{exc}")
+            return
+        self.sheet_id = None
+        self.image_name = None
+        self._show_image(None)
+        self.btn_delete.state(["disabled"])
+        self.combo.set_value("")
+        for k, v in self.h.items():
+            v.set(header.get(k, ""))
+        self._clear_rows()
+        for r in rows:
+            self._add_row(r)
+        while len(self.cells) < START_ROWS:
+            self._add_row()
+        self._clean = ""  # sin guardar: pregunta antes de salir
+        self.status.configure(text="")
+        self.hint.configure(text=f"Se leyeron {len(rows)} filas del Excel. Revíselas y pulse "
+                            "«Guardar en la base» para confirmarlas." + (" " + " ".join(warns) if warns else ""))
 
     # -- foto --------------------------------------------------------------------
     def load_image(self):

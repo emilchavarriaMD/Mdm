@@ -66,6 +66,8 @@ def validate_backup(path) -> dict:
             "pacientes": con.execute("SELECT COUNT(*) FROM patients").fetchone()[0],
             "aps": con.execute("SELECT COUNT(*) FROM aps_visits").fetchone()[0],
             "ssr": con.execute("SELECT COUNT(*) FROM ssr_visits").fetchone()[0],
+            "ata": (con.execute("SELECT COUNT(*) FROM ata_rows").fetchone()[0]
+                    if con.execute("SELECT 1 FROM sqlite_master WHERE name='ata_rows'").fetchone() else 0),
         }
     finally:
         con.close()

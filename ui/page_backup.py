@@ -111,8 +111,7 @@ class BackupPage(Page):
             return
         if not dialogs.confirm(
                 self, "Restaurar copia de seguridad",
-                f"La copia contiene {stats['pacientes']} paciente(s), {stats['aps']} atención(es) APS "
-                f"y {stats['ssr']} atención(es) SSR.\n\nSe reemplazarán los datos actuales. "
+                f"La copia contiene {stats['ata']} paciente(s) de hojas ATA.\n\nSe reemplazarán los datos actuales. "
                 "¿Desea continuar?", yes="Restaurar", no="Cancelar", danger=True):
             return
         try:
@@ -120,7 +119,6 @@ class BackupPage(Page):
         except Exception as exc:  # noqa: BLE001
             dialogs.error(self, f"No se pudo restaurar:\n{exc}")
             return
-        self.app.active_pid = None
         self.app.refresh_all()
         self.refresh()
         dialogs.info(self, "Copia restaurada correctamente.", title="Restauración")

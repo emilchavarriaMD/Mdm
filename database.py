@@ -326,6 +326,10 @@ class Database:
         cols = [r["name"] for r in self.conn.execute("PRAGMA table_info(patients)").fetchall()]
         if "identidad" not in cols:
             self.conn.execute("ALTER TABLE patients ADD COLUMN identidad TEXT")
+        acols = [r["name"] for r in self.conn.execute("PRAGMA table_info(ata_rows)").fetchall()]
+        if "ai_estado" not in acols:
+            self.conn.execute("ALTER TABLE ata_rows ADD COLUMN ai_estado TEXT NOT NULL DEFAULT 'Pendiente'")
+            self.conn.execute("ALTER TABLE ata_rows ADD COLUMN ai_fecha TEXT")
         self.conn.execute(f"PRAGMA user_version = {SCHEMA_VERSION}")
         with self.transaction():
             for key, value in DEFAULT_SETTINGS.items():
