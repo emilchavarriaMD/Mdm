@@ -69,6 +69,8 @@ class ActivityInfoDialog(_Modal):
 
         E = lambda: widgets.EntryField(gf, width=26)  # noqa: E731
         C = lambda vals, ro=True: widgets.ComboField(gf, [""] + list(vals), readonly=ro, width=26)  # noqa: E731
+        add("lugar", "Lugar de atención (si es «…-Otro», escriba abajo cuál)", E())
+        add("punto_especifico", "Especifique punto de atención (solo si el lugar es «Otro»)", E())
         add("donante", "Proyecto: Donante Nombre", E())
         add("proyecto", "Proyecto: Título del proyecto", E())
         add("perfin", "Proyecto: PERFIN", E())
@@ -85,7 +87,6 @@ class ActivityInfoDialog(_Modal):
         add("discapacidad", "¿Tiene alguna discapacidad?", C(ai.DISCAPACIDAD))
         add("perfil", "Perfil de población", C(ai.PERFILES))
         add("derivado", "¿Ha sido derivado/a?", C(ai.DERIVADO))
-        add("lugar", "Lugar de atención", E())
         add("nacionalidad", "País de nacionalidad", E())
         add("idioma", "Idioma", E())
         add("consultas", "Consulta a realizar (puede marcar más de una)", ChecksField(gf, ai.CONSULTAS), span=3)

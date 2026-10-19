@@ -1,6 +1,6 @@
 /* Llena el formulario de ActivityInfo. NUNCA pulsa Guardar registro ni Guardar como borrador. */
 (function () {
-  const VERSION = 10;
+  const VERSION = 11;
   if (window.__mdm && window.__mdm.version === VERSION) return;   // una versión vieja en la pestaña se reemplaza
   const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
   const norm = (s) => (s || "").replace(/\s+/g, " ").replace(/\*/g, "").replace(/OBLIGATORIO/g, "").trim().toLowerCase();
@@ -112,6 +112,14 @@
     if (d.lugar) {
       await S("Lugar de atención", () => lk("Puntos de atención sanitaria", d.lugar));
       await waitFor(() => val("Centroamérica País"), 4000); await sleep(600);
+    }
+    // Con un lugar «… - Otro» aparece «Especifique punto de atención» (justo debajo, antes del proyecto)
+    if (d.punto_especifico) {
+      await S("Especifique punto de atención", async () => {
+        const ok = await waitFor(() => findLabel("Especifique punto de atención"), 4000);
+        if (!ok) throw new Error("no apareció el campo (solo sale si el lugar de atención es «… - Otro»)");
+        await setText("Especifique punto de atención", d.punto_especifico);
+      });
     }
     // 2) Proyecto
     if (d.donante) { await S("Proyecto: Donante", () => lk("Donante Nombre", d.donante)); await sleep(500); }
