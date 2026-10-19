@@ -99,7 +99,9 @@ class ActivityInfoDialog(_Modal):
         ttk.Label(body, text="Diagnósticos — lista de ActivityInfo (descripción y código)",
                   style="H2.TLabel").pack(anchor="w", pady=(10, 2))
         self.dx_rows = []
+        self.dx_tags = []
         labels = [cat.label(d) for d in cat.descriptions()]
+        self._labels = labels
         if dxs:
             for i, d in enumerate(dxs):
                 row = ttk.Frame(body)
@@ -114,9 +116,14 @@ class ActivityInfoDialog(_Modal):
                 cb.pack(side="left", fill="x", expand=True)
                 cb.bind("<<ComboboxSelected>>", lambda e: self._regen_hea(True))
                 cb.bind("<FocusOut>", lambda e: self._regen_hea(True))
+                cb.bind("<KeyRelease>", lambda e, c=cb: self._filtrar(c, e))
+                tag = ttk.Label(body, text="", style="Muted.TLabel")
+                tag.pack(anchor="w", padx=(170, 0))
+                self.dx_tags.append(tag)
                 self.dx_rows.append((d["abrev"], cb))
             ttk.Label(body, text="Elija en la lista de ActivityInfo (puede escribir para buscar). Al elegir la "
-                      "descripción, ActivityInfo pone el código solo. Si deja una vacía, ese diagnóstico no se llena.",
+                      "descripción, ActivityInfo pone el código solo. Si uno no está en la lista, déjelo vacío: no se llena en "
+                      "ActivityInfo, pero la HEA sí lo incluye (vea «HEA usa» debajo de cada uno).",
                       style="Muted.TLabel", wraplength=780, justify="left").pack(anchor="w")
             self.recordar = tk.BooleanVar(value=True)
             ttk.Checkbutton(body, text="Recordar estas equivalencias para los próximos pacientes",
@@ -140,9 +147,28 @@ class ActivityInfoDialog(_Modal):
         self.hea_aviso.pack(anchor="w")
         self._hea_auto = defaults.get("hea", "")      # último texto generado: si la persona lo cambia, se respeta
         self._dx_vistos = self._dx_actuales()
+        self._marcar_fuentes()
         ttk.Button(bar, text="Cancelar", command=self.cancel).pack(side="right")
         ttk.Button(bar, text="Abrir Chrome y llenar", style="Accent.TButton", command=self._ok).pack(
             side="right", padx=8)
+
+    def _filtrar(self, cb, event):
+        """Al escribir en un diagnóstico, la lista desplegable muestra solo las opciones que contienen ese texto."""
+        if event.keysym in ("Up", "Down", "Return", "Escape", "Tab"):
+            return
+        q = cat.plain(cb.get_value())
+        cb.set_values([x for x in self._labels if q in cat.plain(x)] or self._labels if q else self._labels)
+
+    def _marcar_fuentes(self):
+        """Debajo de cada diagnóstico: qué HEA del banco se está usando (o que no hay una preparada)."""
+        for tag, fuente in zip(self.dx_tags, self._dx_actuales()):
+            n = hea_banco.bank_id(fuente) if fuente else None
+            if not fuente:
+                tag.configure(text="HEA: (sin diagnóstico)")
+            elif n is None:
+                tag.configure(text="HEA: no hay una preparada para este diagnóstico; complétela a mano")
+            else:
+                tag.configure(text="HEA usa: " + hea_banco.BANK[n]["n"])
 
     def _dx_actuales(self):
         # descripción elegida en la lista de ActivityInfo; si se dejó vacía, el texto del ATA (la HEA lo incluye igual)
@@ -152,6 +178,7 @@ class ActivityInfoDialog(_Modal):
         """Vuelve a armar la HEA con los diagnósticos elegidos. Si la persona editó el texto a mano, no lo pisa
         (salvo con «Otra versión»)."""
         dxs = self._dx_actuales()
+        self._marcar_fuentes()
         if solo_si_cambio:
             if dxs == self._dx_vistos:
                 return
