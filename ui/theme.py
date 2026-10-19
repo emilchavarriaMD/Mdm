@@ -3,22 +3,28 @@ import tkinter as tk
 from tkinter import font as tkfont
 from tkinter import ttk
 
-PRIMARY = "#0F6E7C"
-PRIMARY_DARK = "#0A525D"
-PRIMARY_LIGHT = "#E3F1F4"
-BG = "#F3F6F7"
-CARD = "#FFFFFF"
-TEXT = "#1F2A30"
-MUTED = "#5F6B70"
-BORDER = "#C5D1D6"
-DANGER = "#B3261E"
-WARN = "#9A5B00"
-WARN_BG = "#FFF3D6"
-OK = "#1B7F4B"
-OK_BG = "#DDF3E6"
-SIDEBAR = "#0B3C45"
-SIDEBAR_HOVER = "#12525D"
-SUGGEST_BG = "#FFFBEA"
+CLARO = dict(
+    PRIMARY="#0F6E7C", PRIMARY_DARK="#0A525D", PRIMARY_LIGHT="#E3F1F4", PRIMARY_LIGHT2="#D5E8EC",
+    BG="#F3F6F7", CARD="#FFFFFF", FIELD="#FFFFFF", FIELD_DIS="#EDF0F1", TEXT="#1F2A30", MUTED="#5F6B70",
+    BORDER="#C5D1D6", DANGER="#B3261E", DANGER_BG="#F8E3E1", DANGER_ACT="#F1CBC7", BAD_BG="#FDECEA",
+    WARN="#9A5B00", WARN_BG="#FFF3D6", OK="#1B7F4B", OK_BG="#DDF3E6",
+    SIDEBAR="#0B3C45", SIDEBAR_HOVER="#12525D", SUGGEST_BG="#FFFBEA",
+    BTN="#E6ECEE", BTN_ACT="#D5DFE2", BTN_DIS="#EEF1F2", BTN_DIS_FG="#9AA5A9", TROUGH="#E4EAEC",
+    ODD="#F4F8F9", ACCENT_HOVER="#0A525D", ACCENT_DIS="#9DBFC5", TAB_BG="#DCE5E8", HEAD_ACT="#CFE6EA",
+    ENTRY_DIS_FG="#7C878B", DASH="#9DB7BD", HINT_ICON="#7FA3AB")
+OSCURO = dict(
+    PRIMARY="#1D8596", PRIMARY_DARK="#8FD3DE", PRIMARY_LIGHT="#1E3A41", PRIMARY_LIGHT2="#27474F",
+    BG="#182125", CARD="#212C31", FIELD="#2A363C", FIELD_DIS="#222C30", TEXT="#E5ECEE", MUTED="#9FB0B5",
+    BORDER="#3B4B52", DANGER="#FF8A80", DANGER_BG="#4A2624", DANGER_ACT="#5E2F2C", BAD_BG="#4A2624",
+    WARN="#F0B24A", WARN_BG="#3A2F14", OK="#63D597", OK_BG="#143528",
+    SIDEBAR="#0C2429", SIDEBAR_HOVER="#143840", SUGGEST_BG="#33301C",
+    BTN="#2F3D43", BTN_ACT="#3B4D55", BTN_DIS="#263137", BTN_DIS_FG="#6B7B80", TROUGH="#26323A",
+    ODD="#26323A", ACCENT_HOVER="#166B79", ACCENT_DIS="#35575E", TAB_BG="#2A363C", HEAD_ACT="#2F5760",
+    ENTRY_DIS_FG="#7F9096", DASH="#4A6A72", HINT_ICON="#5E8790")
+globals().update(CLARO)                  # valores por defecto (los de setup() los reemplazan según la preferencia)
+
+LETRAS = {"Normal": 11, "Grande": 13, "Muy grande": 15}
+PREFS_FILE = "ui_prefs.json"
 
 FAMILY = "TkDefaultFont"
 FONT = (FAMILY, 11)
@@ -28,6 +34,25 @@ FONT_H2 = (FAMILY, 14, "bold")
 FONT_SMALL = (FAMILY, 9)
 FONT_TEXT = (FAMILY, 11)
 FONT_BIG = (FAMILY, 30, "bold")
+
+
+def cargar_prefs():
+    """Preferencias de apariencia (tema y tamaño de letra); archivo ui_prefs.json en la carpeta de datos."""
+    import json
+    base = {"tema": "Claro", "letra": "Normal"}
+    try:
+        import config
+        d = json.loads((config.data_dir() / PREFS_FILE).read_text(encoding="utf-8"))
+        base.update({k: d[k] for k in base if d.get(k)})
+    except Exception:  # noqa: BLE001
+        pass
+    return base
+
+
+def guardar_prefs(tema, letra):
+    import json
+    import config
+    (config.data_dir() / PREFS_FILE).write_text(json.dumps({"tema": tema, "letra": letra}), encoding="utf-8")
 
 
 def _pick_family(root):
@@ -41,29 +66,39 @@ def _pick_family(root):
 
 def setup(root: tk.Tk):
     global FAMILY, FONT, FONT_B, FONT_H1, FONT_H2, FONT_SMALL, FONT_TEXT, FONT_BIG
+    prefs = cargar_prefs()
+    globals().update(OSCURO if prefs["tema"] == "Oscuro" else CLARO)
+    base = LETRAS.get(prefs["letra"], 11)
     FAMILY = _pick_family(root)
-    FONT = (FAMILY, 11)
-    FONT_B = (FAMILY, 11, "bold")
-    FONT_H1 = (FAMILY, 20, "bold")
-    FONT_H2 = (FAMILY, 14, "bold")
-    FONT_SMALL = (FAMILY, 9)
-    FONT_TEXT = (FAMILY, 11)
-    FONT_BIG = (FAMILY, 30, "bold")
+    FONT = (FAMILY, base)
+    FONT_B = (FAMILY, base, "bold")
+    FONT_H1 = (FAMILY, base + 9, "bold")
+    FONT_H2 = (FAMILY, base + 3, "bold")
+    FONT_SMALL = (FAMILY, base - 2)
+    FONT_TEXT = (FAMILY, base)
+    FONT_BIG = (FAMILY, base + 19, "bold")
 
     for name in ("TkDefaultFont", "TkTextFont", "TkMenuFont", "TkHeadingFont", "TkCaptionFont",
                  "TkTooltipFont"):
         try:
-            tkfont.nametofont(name).configure(family=FAMILY, size=11)
+            tkfont.nametofont(name).configure(family=FAMILY, size=base)
         except tk.TclError:
             pass
     root.configure(bg=BG)
     root.option_add("*TCombobox*Listbox.font", FONT)
     root.option_add("*TCombobox*Listbox.selectBackground", PRIMARY)
+    root.option_add("*TCombobox*Listbox.background", FIELD)
+    root.option_add("*TCombobox*Listbox.foreground", TEXT)
+    root.option_add("*Text.background", FIELD)
+    root.option_add("*Text.foreground", TEXT)
+    root.option_add("*Text.insertBackground", TEXT)
+    root.option_add("*Text.selectBackground", PRIMARY)
+    root.option_add("*Text.selectForeground", "white")
 
     s = ttk.Style(root)
     s.theme_use("clam")
     s.configure(".", background=BG, foreground=TEXT, font=FONT, bordercolor=BORDER,
-                lightcolor=BG, darkcolor=BG, troughcolor="#E4EAEC", focuscolor=PRIMARY)
+                lightcolor=BG, darkcolor=BG, troughcolor=TROUGH, focuscolor=PRIMARY)
 
     s.configure("TFrame", background=BG)
     s.configure("Card.TFrame", background=CARD, relief="solid", borderwidth=1, bordercolor=BORDER,
@@ -78,6 +113,9 @@ def setup(root: tk.Tk):
     s.configure("CardMuted.TLabel", background=CARD, foreground=MUTED)
     s.configure("Strip.TLabel", background=PRIMARY_LIGHT)
     s.configure("StripB.TLabel", background=PRIMARY_LIGHT, font=FONT_B)
+    s.configure("StripOk.TLabel", background=PRIMARY_LIGHT, foreground=OK, font=FONT_B)
+    s.configure("StripWarn.TLabel", background=PRIMARY_LIGHT, foreground=WARN, font=FONT_B)
+    s.configure("NavItem.TLabel", background=CARD, foreground=TEXT, font=FONT)
     s.configure("H1.TLabel", font=FONT_H1, foreground=PRIMARY_DARK)
     s.configure("H2.TLabel", font=FONT_H2, foreground=PRIMARY_DARK)
     s.configure("Field.TLabel", font=(FAMILY, 10, "bold"), foreground=MUTED)
@@ -94,16 +132,16 @@ def setup(root: tk.Tk):
     s.configure("Warn.TLabel", foreground=WARN, font=FONT_B)
     s.configure("Error.TLabel", foreground=DANGER, font=FONT_B)
 
-    s.configure("TButton", padding=(14, 7), font=FONT, background="#E6ECEE", foreground=TEXT,
+    s.configure("TButton", padding=(14, 7), font=FONT, background=BTN, foreground=TEXT,
                 bordercolor=BORDER, relief="flat", focusthickness=2, width=0)
-    s.map("TButton", background=[("disabled", "#EEF1F2"), ("active", "#D5DFE2")],
-          foreground=[("disabled", "#9AA5A9")])
+    s.map("TButton", background=[("disabled", BTN_DIS), ("active", BTN_ACT)],
+          foreground=[("disabled", BTN_DIS_FG)])
     s.configure("Accent.TButton", background=PRIMARY, foreground="white", font=FONT_B,
                 bordercolor=PRIMARY_DARK)
-    s.map("Accent.TButton", background=[("disabled", "#9DBFC5"), ("active", PRIMARY_DARK)],
+    s.map("Accent.TButton", background=[("disabled", ACCENT_DIS), ("active", ACCENT_HOVER)],
           foreground=[("disabled", "#F0F5F6")])
-    s.configure("Danger.TButton", background="#F8E3E1", foreground=DANGER, font=FONT_B)
-    s.map("Danger.TButton", background=[("disabled", "#F4ECEB"), ("active", "#F1CBC7")])
+    s.configure("Danger.TButton", background=DANGER_BG, foreground=DANGER, font=FONT_B)
+    s.map("Danger.TButton", background=[("disabled", BTN_DIS), ("active", DANGER_ACT)])
     s.configure("Small.TButton", padding=(8, 3), font=(FAMILY, 10))
     s.configure("Nav.TButton", background=SIDEBAR, foreground="white", anchor="w", padding=(18, 11),
                 font=FONT, relief="flat", borderwidth=0)
@@ -111,38 +149,41 @@ def setup(root: tk.Tk):
     s.configure("NavActive.TButton", background=PRIMARY, foreground="white", anchor="w",
                 padding=(18, 11), font=FONT_B, relief="flat", borderwidth=0)
     s.map("NavActive.TButton", background=[("active", PRIMARY)])
-    s.configure("Strip.TButton", background="#FFFFFF", padding=(10, 5), font=(FAMILY, 10, "bold"))
-    s.map("Strip.TButton", background=[("active", "#D5E8EC")])
+    s.configure("Strip.TButton", background=CARD, padding=(10, 5), font=(FAMILY, 10, "bold"))
+    s.map("Strip.TButton", background=[("active", PRIMARY_LIGHT2)])
 
-    s.configure("TEntry", fieldbackground="white", padding=6, bordercolor=BORDER, lightcolor="white",
-                darkcolor="white")
-    s.map("TEntry", bordercolor=[("focus", PRIMARY)], fieldbackground=[("disabled", "#EDF0F1"),
-                                                                       ("readonly", "#EDF0F1")])
-    s.configure("Bad.TEntry", fieldbackground="#FDECEA", foreground=DANGER, padding=6,
-                bordercolor=DANGER, lightcolor="#FDECEA", darkcolor="#FDECEA")
+    s.configure("TEntry", fieldbackground=FIELD, foreground=TEXT, padding=6, bordercolor=BORDER, lightcolor=FIELD,
+                darkcolor=FIELD)
+    s.map("TEntry", bordercolor=[("focus", PRIMARY)], fieldbackground=[("disabled", FIELD_DIS),
+                                                                       ("readonly", FIELD_DIS)])
+    s.configure("Bad.TEntry", fieldbackground=BAD_BG, foreground=DANGER, padding=6,
+                bordercolor=DANGER, lightcolor=BAD_BG, darkcolor=BAD_BG)
     s.configure("Hint.TLabel", foreground=MUTED, font=FONT_SMALL)
     s.configure("Note.TLabel", foreground=WARN, background=WARN_BG, font=FONT, padding=(10, 6))
-    s.configure("TCombobox", fieldbackground="white", padding=6, bordercolor=BORDER,
-                lightcolor="white", darkcolor="white", arrowsize=16, background="#E6ECEE")
+    s.configure("TCombobox", fieldbackground=FIELD, foreground=TEXT, padding=6, bordercolor=BORDER,
+                lightcolor=FIELD, darkcolor=FIELD, arrowsize=16, background=BTN)
+    s.configure("Bad.TCombobox", fieldbackground=BAD_BG, foreground=DANGER, padding=6, bordercolor=DANGER,
+                lightcolor=BAD_BG, darkcolor=BAD_BG, arrowsize=16, background=BTN)
+    s.map("Bad.TCombobox", fieldbackground=[("readonly", BAD_BG)])
     s.map("TCombobox", bordercolor=[("focus", PRIMARY)],
-          fieldbackground=[("disabled", "#EDF0F1"), ("readonly", "white")],
-          foreground=[("disabled", "#7C878B")])
+          fieldbackground=[("disabled", FIELD_DIS), ("readonly", FIELD)],
+          foreground=[("disabled", ENTRY_DIS_FG)])
     s.configure("TCheckbutton", background=BG, font=FONT)
     s.configure("Card.TCheckbutton", background=CARD)
     s.configure("TRadiobutton", background=BG, font=FONT)
     s.configure("Card.TRadiobutton", background=CARD)
 
     s.configure("TNotebook", background=BG, borderwidth=0, tabmargins=(0, 4, 0, 0))
-    s.configure("TNotebook.Tab", padding=(14, 8), font=FONT_B, background="#DCE5E8", foreground=MUTED,
+    s.configure("TNotebook.Tab", padding=(14, 8), font=FONT_B, background=TAB_BG, foreground=MUTED,
                 bordercolor=BORDER)
     s.map("TNotebook.Tab", background=[("selected", CARD)], foreground=[("selected", PRIMARY_DARK)],
           expand=[("selected", (0, 2, 0, 0))])
 
-    s.configure("Treeview", rowheight=30, font=FONT, background="white", fieldbackground="white",
+    s.configure("Treeview", rowheight=base * 3 - 3, font=FONT, background=FIELD, foreground=TEXT, fieldbackground=FIELD,
                 bordercolor=BORDER)
     s.configure("Treeview.Heading", font=FONT_B, background=PRIMARY_LIGHT, foreground=PRIMARY_DARK,
                 padding=(8, 7), relief="flat")
-    s.map("Treeview.Heading", background=[("active", "#CFE6EA")])
+    s.map("Treeview.Heading", background=[("active", HEAD_ACT)])
     s.map("Treeview", background=[("selected", PRIMARY)], foreground=[("selected", "white")])
 
     s.configure("TLabelframe", background=BG, bordercolor=BORDER, relief="solid", borderwidth=1,

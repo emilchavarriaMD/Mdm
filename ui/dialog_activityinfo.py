@@ -8,7 +8,7 @@ from services import cie11_catalog as cat
 from services import cie11_ssr as ssr_cat
 from services import hea_banco
 from services import examen_fisico, plan_banco
-from ui import dialogs, widgets
+from ui import dialogs, theme, widgets
 from ui.dialogs import _Modal
 
 
@@ -64,8 +64,8 @@ class ActivityInfoDialog(_Modal):
                   "en ActivityInfo cuando termine de revisar.\nLo que deje vacío no se toca. Los datos que "
                   "el ATA no trae (estado civil, escolaridad…) los elige usted.",
                   style="Muted.TLabel", justify="left", wraplength=760).pack(anchor="w", pady=(2, 8))
-        gf = ttk.Frame(body)
-        gf.pack(fill="x")
+        self.secciones = {}
+        gf = self._sec(body, "datos", "Datos de la ficha y de la consulta")
         g = widgets.FormGrid(gf, 3)
 
         def add(key, label, w, span=1):
@@ -100,20 +100,14 @@ class ActivityInfoDialog(_Modal):
         add("profesional", "Profesional que atiende (APS)", E())
         add("tipo_consulta", "Tipo de consulta (APS)", C(ai.TIPOS_CONSULTA))
         # Orden de la página de ActivityInfo (subformulario APS): HEA, signos vitales y peso, examen físico, diagnósticos
-        f_hea = ttk.Frame(body)
-        f_hea.pack(fill="x")
-        f_vit = ttk.Frame(body)
-        f_vit.pack(fill="x")
-        f_exa = ttk.Frame(body)
-        f_exa.pack(fill="x")
-        f_dx = ttk.Frame(body)
-        f_dx.pack(fill="x")
-        f_plan = ttk.Frame(body)
-        f_plan.pack(fill="x")
-        f_der = ttk.Frame(body)
-        f_der.pack(fill="x")
+        f_hea = self._sec(body, "hea", "Historia de la enfermedad actual (HEA)")
+        f_vit = self._sec(body, "vit", "Signos vitales y peso")
+        f_exa = self._sec(body, "exa", "Examen físico")
+        f_dx = self._sec(body, "dx", "Diagnósticos")
+        f_plan = self._sec(body, "plan", "Plan")
+        f_der = self._sec(body, "der", "Derivación y servicio brindado")
         self.f_ssr = ttk.Frame(body)           # al final de todo; solo se ve si se marca Salud Sexual y Reproductiva
-        ttk.Label(f_vit, text="Signos vitales y peso (frecuencia respiratoria: en niños, elíjala; vacío = no se llena)", style="H2.TLabel").pack(anchor="w", pady=(12, 2))
+        ttk.Label(f_vit, text="Frecuencia respiratoria: en niños, elíjala; vacío = no se llena.", style="Muted.TLabel").pack(anchor="w")
         gf2 = ttk.Frame(f_vit)
         gf2.pack(fill="x")
         g2 = widgets.FormGrid(gf2, 3)
@@ -135,8 +129,8 @@ class ActivityInfoDialog(_Modal):
         self._vit_grupo = ai.grupo_vitales(_p0.get("sexo"), _p0.get("edad"), _p0.get("unidad", "años"))
 
         dxs = defaults.get("dx") or []
-        ttk.Label(f_dx, text="Diagnósticos — lista de ActivityInfo (descripción y código)",
-                  style="H2.TLabel").pack(anchor="w", pady=(10, 2))
+        ttk.Label(f_dx, text="Lista de ActivityInfo (descripción y código).",
+                  style="Muted.TLabel").pack(anchor="w")
         self.dx_rows = []
         self.dx_tags = []
         labels = [cat.label(d) for d in cat.descriptions()]
@@ -171,37 +165,36 @@ class ActivityInfoDialog(_Modal):
             ttk.Label(f_dx, text="El ATA no trae diagnósticos para este paciente.",
                       style="Muted.TLabel").pack(anchor="w")
         hh = ttk.Frame(f_hea)
-        hh.pack(fill="x", pady=(10, 2))
-        ttk.Label(hh, text="HEA — se escribe en «Historia de la enfermedad actual» de APS", style="H2.TLabel").pack(
+        hh.pack(fill="x")
+        ttk.Label(hh, text="Se escribe en «Historia de la enfermedad actual» de APS.", style="Muted.TLabel").pack(
             side="left")
         ttk.Button(hh, text="Otra versión", command=lambda: self._regen_hea(False)).pack(side="right")
         ttk.Label(f_hea, text="Una sola historia con los diagnósticos elegidos (crónicos como antecedente, el agudo como cuadro "
                   "actual, los demás como síntomas). Revísela y corríjala con lo que el paciente refirió; si la edita a "
                   "mano, ya no se reemplaza sola.", style="Muted.TLabel", wraplength=780, justify="left").pack(anchor="w")
-        self.hea = tk.Text(f_hea, height=6, wrap="word", font=("Segoe UI", 10), relief="solid", bd=1)
+        self.hea = tk.Text(f_hea, height=6, wrap="word", font=theme.FONT_TEXT, relief="solid", bd=1)
         self.hea.insert("1.0", defaults.get("hea", ""))
         self.hea.pack(fill="x")
         self.hea_aviso = ttk.Label(f_hea, text="", style="Muted.TLabel", wraplength=780, justify="left")
         self.hea_aviso.pack(anchor="w")
-        ttk.Label(f_exa, text="Examen físico — se escribe en «Examen Físico» de APS", style="H2.TLabel").pack(
-            anchor="w", pady=(12, 2))
+        ttk.Label(f_exa, text="Se escribe en «Examen Físico» de APS.", style="Muted.TLabel").pack(anchor="w")
         ttk.Label(f_exa, text="Examen céfalo-caudal normal; cada sección cambia según los diagnósticos elegidos "
                   "(genitourinario solo si algún diagnóstico lo requiere). Puede corregir el texto; vacío = no se llena.", style="Muted.TLabel", wraplength=780,
                   justify="left").pack(anchor="w")
         ttk.Button(f_exa, text="Otra versión del examen", command=lambda: self._regen_examen(True)).pack(anchor="e")
-        self.examen = tk.Text(f_exa, height=11, wrap="word", font=("Segoe UI", 10), relief="solid", bd=1)
+        self.examen = tk.Text(f_exa, height=11, wrap="word", font=theme.FONT_TEXT, relief="solid", bd=1)
         self.examen.insert("1.0", defaults.get("examen_fisico", ""))
         self._exa_auto = defaults.get("examen_fisico", "")
         self.examen.pack(fill="x")
-        ttk.Label(f_plan, text="Plan — se escribe en «Plan» de APS", style="H2.TLabel").pack(anchor="w", pady=(12, 2))
-        ttk.Label(f_plan, text="Medidas generales, signos de alarma y seguimiento según los diagnósticos (sin medicamentos: "
+        ttk.Label(f_plan, text="Se escribe en «Plan» de APS.", style="Muted.TLabel").pack(anchor="w")
+        ttk.Label(f_plan, text="Medidas generales y signos de alarma según los diagnósticos (sin medicamentos: "
                   "esos se agregan a mano). Puede corregir el texto; vacío = no se llena.", style="Muted.TLabel", wraplength=780, justify="left").pack(anchor="w")
-        self.plan = tk.Text(f_plan, height=8, wrap="word", font=("Segoe UI", 10), relief="solid", bd=1)
+        self.plan = tk.Text(f_plan, height=8, wrap="word", font=theme.FONT_TEXT, relief="solid", bd=1)
         self.plan.insert("1.0", defaults.get("plan", ""))
         self._plan_auto = defaults.get("plan", "")
         ttk.Button(f_plan, text="Otra versión del plan", command=lambda: self._regen_plan(True)).pack(anchor="e")
         self.plan.pack(fill="x")
-        ttk.Label(f_der, text="Derivación (hacia) y servicio brindado", style="H2.TLabel").pack(anchor="w", pady=(12, 2))
+        ttk.Label(f_der, text="Derivación (hacia) y servicio brindado.", style="Muted.TLabel").pack(anchor="w")
         ttk.Label(f_der, text="Si elige Sí en «¿Va a ser derivado?» se muestran los demás campos, como en ActivityInfo "
                   "(recapitulativo interno de MdM). El servicio brindado siempre es Salud.", style="Muted.TLabel",
                   wraplength=780, justify="left").pack(anchor="w")
@@ -268,40 +261,132 @@ class ActivityInfoDialog(_Modal):
             else:
                 tag.configure(text="HEA usa: " + hea_banco.BANK[n]["n"])
 
-    def _panel_paciente(self, antes_de):
-        """Resumen fijo a la izquierda (no se desplaza): nombre, edad, sexo y diagnósticos, siempre a la vista."""
+    CLAVES = [("nombres", "Nombres"), ("apellidos", "Apellidos"), ("genero", "Género"),
+              ("fecha", "Fecha de consulta"), ("edad", "Edad")] + list(ai.OBLIGATORIOS)
+    NAV = [("datos", "Datos de la ficha"), ("hea", "HEA"), ("vit", "Signos vitales"), ("exa", "Examen físico"),
+           ("dx", "Diagnósticos"), ("plan", "Plan"), ("der", "Derivación")]
+
+    def _sec(self, parent, clave, titulo):
+        sec = widgets.Seccion(parent, titulo)
+        self.secciones[clave] = sec
+        return sec.cuerpo
+
+    def _panel_paciente(self, sf):
+        """Panel fijo a la izquierda (no se desplaza): paciente, estado de cada sección y acceso directo a ellas."""
+        self._sf = sf
         side = ttk.Frame(self, style="Card.TFrame", padding=(12, 12))
-        side.pack(side="left", fill="y", padx=(10, 0), pady=10, before=antes_de)
+        side.pack(side="left", fill="y", padx=(10, 0), pady=10, before=sf)
         side.pack_propagate(False)
-        side.configure(width=190)
+        ancho = int(200 * theme.FONT[1] / 11)
+        side.configure(width=ancho)
         ttk.Label(side, text="PACIENTE", style="CardField.TLabel").pack(anchor="w")
-        self._p_nombre = ttk.Label(side, style="Card.TLabel", font=("Segoe UI", 11, "bold"), wraplength=165, justify="left")
-        self._p_nombre.pack(anchor="w", pady=(2, 8))
-        self._p_edad = ttk.Label(side, style="Card.TLabel", wraplength=165, justify="left")
+        self._p_nombre = ttk.Label(side, style="Card.TLabel", font=theme.FONT_B, wraplength=ancho - 35, justify="left")
+        self._p_nombre.pack(anchor="w", pady=(2, 6))
+        self._p_edad = ttk.Label(side, style="Card.TLabel", wraplength=ancho - 35, justify="left")
         self._p_edad.pack(anchor="w")
-        ttk.Separator(side).pack(fill="x", pady=10)
+        ttk.Separator(side).pack(fill="x", pady=8)
         ttk.Label(side, text="DIAGNÓSTICOS", style="CardField.TLabel").pack(anchor="w")
-        self._p_dx = ttk.Label(side, style="Card.TLabel", wraplength=165, justify="left")
+        self._p_dx = ttk.Label(side, style="Card.TLabel", wraplength=ancho - 35, justify="left")
         self._p_dx.pack(anchor="w", pady=(2, 0))
+        ttk.Separator(side).pack(fill="x", pady=8)
+        ttk.Label(side, text="IR A", style="CardField.TLabel").pack(anchor="w")
+        self._nav = {}
+        for clave, nombre in self.NAV + [("ssr", "Salud sexual y reproductiva")]:
+            lb = ttk.Label(side, text=nombre, style="NavItem.TLabel", cursor="hand2", wraplength=ancho - 35)
+            lb.bind("<Button-1>", lambda e, c=clave: self._ir(c))
+            self._nav[clave] = lb
+            if clave != "ssr":
+                lb.pack(anchor="w", pady=1)
+        self._p_falta = ttk.Label(side, style="Card.TLabel", foreground=theme.DANGER, wraplength=ancho - 35, justify="left")
+        self._p_falta.pack(anchor="w", pady=(8, 0))
+        self.bind("<Control-Return>", lambda e: self._ok())
         self._refrescar_panel()
+
+    def _ir(self, clave):
+        """Despliega la sección y la lleva a la vista."""
+        sec = self.secciones.get(clave)
+        w = sec if sec is not None else (self.f_ssr if clave == "ssr" and self.f_ssr.winfo_manager() else None)
+        if w is None:
+            return
+        if sec is not None:
+            sec.abrir()
+        self.update_idletasks()
+        body = self._sf.body
+        y = w.winfo_rooty() - body.winfo_rooty()
+        self._sf.canvas.yview_moveto(max(0.0, y / max(1, body.winfo_height())))
+
+    def _valor(self, k):
+        try:
+            return (self.w[k].get_value() or "").strip()
+        except Exception:  # noqa: BLE001
+            return ""
+
+    def _faltantes(self):
+        """[(sección, etiqueta, clave del campo o None)] de lo importante que está vacío."""
+        out = [("datos", t, k) for k, t in self.CLAVES if not self._valor(k)]
+        consultas = self.w["consultas"].get_value() if "consultas" in self.w else []
+        if not consultas:
+            out.append(("datos", "Consulta a realizar", None))
+        elif ai.CONSULTA_APS in consultas:
+            if not self._valor("tipo_consulta"):
+                out.append(("datos", "Tipo de consulta (APS)", "tipo_consulta"))
+            if not any(cat.from_label(cb.get_value())[0] for _a, cb in self.dx_rows):
+                out.append(("dx", "Diagnóstico", None))
+        return out
+
+    def _texto(self, t):
+        return t.get("1.0", "end").strip()
 
     def _refrescar_panel(self):
         try:
-            nom = " ".join(x for x in ((self.w["nombres"].get_value() or "").strip(),
-                                        (self.w["apellidos"].get_value() or "").strip()) if x)
+            nom = " ".join(x for x in (self._valor("nombres"), self._valor("apellidos")) if x)
             p = self._persona()
-            sexo = {"M": "Mujer", "H": "Hombre"}.get(p.get("sexo"), (self.w["genero"].get_value() or ""))
-            edad = (self.w["edad"].get_value() or "").strip()
+            sexo = {"M": "Mujer", "H": "Hombre"}.get(p.get("sexo"), self._valor("genero"))
+            edad = self._valor("edad")
             u = "año" if edad == "1" else "años"
             self._p_nombre.configure(text=nom or "—")
             self._p_edad.configure(text=" · ".join(x for x in ((f"{edad} {u}" if edad else ""), sexo) if x) or "—")
             dx = [d for d in self._dx_hea() if d]
             self._p_dx.configure(text="\n".join("• " + d for d in dx) if dx else "—")
-            self.after(800, self._refrescar_panel)
+            # lo importante que falta: campos en rojo, marca en cada sección y lista en el panel
+            falt = self._faltantes()
+            malos = {k for _s, _t, k in falt if k}
+            for k, _t in self.CLAVES + [("tipo_consulta", "")]:
+                w = self.w.get(k)
+                if w is None:
+                    continue
+                combo = isinstance(w, ttk.Combobox)
+                w.configure(style=("Bad." if k in malos else "") + ("TCombobox" if combo else "TEntry"))
+            por_sec = {}
+            for s_, _t, _k in falt:
+                por_sec[s_] = por_sec.get(s_, 0) + 1
+            vit = all(self._valor(k) for k in ("sistolica", "diastolica", "fc", "fr", "temperatura", "peso"))
+            estado = {
+                "datos": (not por_sec.get("datos"), f"faltan {por_sec.get('datos', 0)}"),
+                "hea": (bool(self._texto(self.hea)), "vacía"),
+                "vit": (vit, "incompletos"),
+                "exa": (bool(self._texto(self.examen)), "vacío"),
+                "dx": (not por_sec.get("dx"), "sin elegir"),
+                "plan": (bool(self._texto(self.plan)), "vacío"),
+                "der": (bool(self._valor("va_derivado")), "sin elegir"),
+            }
+            for clave, (ok, aviso) in estado.items():
+                self.secciones[clave].marcar(True if ok else False, "listo" if ok else aviso)
+                self._nav[clave].configure(text=("✓ " if ok else "● ") + dict(self.NAV)[clave],
+                                           foreground=theme.OK if ok else theme.WARN)
+            ssr_visible = bool(self.f_ssr.winfo_manager())
+            if ssr_visible:
+                self._nav["ssr"].pack(anchor="w", pady=1)
+                self._nav["ssr"].configure(text="• Salud sexual y reproductiva", foreground=theme.TEXT)
+            else:
+                self._nav["ssr"].pack_forget()
+            self._p_falta.configure(text=("Falta:\n" + "\n".join("• " + t for _s, t, _k in falt[:5])
+                                          + ("\n…" if len(falt) > 5 else "")) if falt else "")
+            self.after(700, self._refrescar_panel)
         except tk.TclError:          # la ventana ya se cerró
             pass
-        except Exception:
-            self.after(800, self._refrescar_panel)
+        except Exception:  # noqa: BLE001
+            self.after(700, self._refrescar_panel)
 
     def _dx_actuales(self):
         # descripción elegida en la lista de ActivityInfo; si se dejó vacía, el texto del ATA (la HEA lo incluye igual)
@@ -357,7 +442,7 @@ class ActivityInfoDialog(_Modal):
             return w
 
         def caja(txt, alto, valor):
-            t = tk.Text(f, height=alto, wrap="word", font=("Segoe UI", 10), relief="solid", bd=1)
+            t = tk.Text(f, height=alto, wrap="word", font=theme.FONT_TEXT, relief="solid", bd=1)
             t.insert("1.0", valor or "")
             t.pack(fill="x")
             return t
@@ -726,13 +811,16 @@ class ActivityInfoDialog(_Modal):
         if not data["consultas"]:
             dialogs.info(self, "Marque al menos una consulta a realizar.")
             return
-        falta = [t for k, t in ai.OBLIGATORIOS if not data.get(k)]
+        falta = [t for k, t in self.CLAVES if not data.get(k)]
         if "Atención Primaria de Salud" in data["consultas"] and not data.get("tipo_consulta"):
             falta.append("Tipo de consulta (APS)")
+        if ai.CONSULTA_APS in data["consultas"] and not any(cat.from_label(cb.get_value())[0] for _a, cb in self.dx_rows):
+            falta.append("Diagnóstico (ninguno elegido de la lista)")
         if falta and not dialogs.confirm(
                 self, "Faltan datos obligatorios", "Estos campos obligatorios están vacíos y quedarán sin llenar "
                 "en ActivityInfo:\n\n" + "\n".join(f"• {t}" for t in falta) + "\n\n¿Abrir Chrome de todos modos?",
                 yes="Abrir de todos modos", no="Volver y elegir"):
+            self._ir("datos" if any(s_ == "datos" for s_, _t, _k in self._faltantes()) else "dx")
             return
         dx, malos = [], []
         for a, cb in self.dx_rows:

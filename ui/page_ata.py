@@ -75,7 +75,7 @@ class AtaPage(Page):
         self.photo_hint.pack_forget()
         holder = ttk.Frame(card, style="Flat.TFrame")
         holder.pack(fill="x", pady=(8, 0))
-        self.canvas = tk.Canvas(holder, background="#EEF3F4", highlightthickness=1, highlightbackground=theme.BORDER,
+        self.canvas = tk.Canvas(holder, background=theme.ODD, highlightthickness=1, highlightbackground=theme.BORDER,
                                 height=340, cursor="arrow")
         self.vs = ttk.Scrollbar(holder, orient="vertical", command=self.canvas.yview)
         self.hs = ttk.Scrollbar(holder, orient="horizontal", command=self.canvas.xview)
@@ -134,8 +134,8 @@ class AtaPage(Page):
             return
         w = max(self.canvas.winfo_width(), 400)
         h = int(self.canvas["height"])
-        self.canvas.create_rectangle(24, 24, w - 24, h - 24, outline="#9DB7BD", dash=(6, 5), width=2, tags="hint")
-        self.canvas.create_text(w / 2, h / 2 - 34, text="\U0001F4F7", font=(theme.FAMILY, 34), fill="#7FA3AB", tags="hint")
+        self.canvas.create_rectangle(24, 24, w - 24, h - 24, outline=theme.DASH, dash=(6, 5), width=2, tags="hint")
+        self.canvas.create_text(w / 2, h / 2 - 34, text="\U0001F4F7", font=(theme.FAMILY, 34), fill=theme.HINT_ICON, tags="hint")
         self.canvas.create_text(w / 2, h / 2 + 18, text="Haga clic aquí para subir la foto de la hoja",
                                 font=theme.FONT_B, fill=theme.PRIMARY_DARK, tags="hint")
         self.canvas.create_text(w / 2, h / 2 + 44, text="JPG o PNG", font=theme.FONT_SMALL, fill=theme.MUTED, tags="hint")

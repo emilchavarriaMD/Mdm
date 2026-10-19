@@ -35,9 +35,11 @@ class App:
         self._build()
         self.root.protocol("WM_DELETE_WINDOW", self.close)
         self.root.bind_all("<Control-s>", lambda e: self._shortcut())
+        for i, (key, _t) in enumerate(NAV, 1):             # Ctrl+1…4: cambiar de pantalla
+            self.root.bind_all(f"<Control-Key-{i}>", lambda e, k=key: self.show(k))
 
     def _build(self):
-        side = ttk.Frame(self.root, style="Sidebar.TFrame", width=240)
+        side = ttk.Frame(self.root, style="Sidebar.TFrame", width=int(240 * theme.FONT[1] / 11))
         side.pack(side="left", fill="y")
         side.pack_propagate(False)
         ttk.Label(side, text="Brigadas Médicas", style="SidebarTitle.TLabel").pack(
@@ -49,8 +51,8 @@ class App:
             b.pack(fill="x")
             self._nav_buttons[key] = b
         ttk.Frame(side, style="Sidebar.TFrame").pack(fill="both", expand=True)
-        ttk.Label(side, text="Ctrl+S  guardar hoja", style="SidebarSub.TLabel").pack(
-            anchor="w", padx=18, pady=(0, 6))
+        ttk.Label(side, text="Ctrl+S  guardar hoja\nCtrl+1…4  cambiar de pantalla", style="SidebarSub.TLabel",
+                  justify="left").pack(anchor="w", padx=18, pady=(0, 6))
         ttk.Button(side, text="Salir", style="Nav.TButton", command=self.close).pack(fill="x", pady=(0, 10))
         main = ttk.Frame(self.root)
         main.pack(side="left", fill="both", expand=True)

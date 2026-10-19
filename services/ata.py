@@ -135,7 +135,7 @@ def list_records(db, texto="", estado="Todos"):
     for tok in texto.lower().split():
         where.append("(LOWER(r.nombre) LIKE ? OR LOWER(r.hc) LIKE ? OR r.identidad LIKE ?)")
         params += [f"%{tok}%"] * 3
-    if estado in ("Pendiente", "Registrado"):
+    if estado in ("Pendiente", "Llenado", "Registrado"):
         where.append("r.ai_estado = ?")
         params.append(estado)
     sql = ("SELECT r.*, s.fecha, s.establecimiento, s.profesional, s.codigo AS cod_establecimiento, "
@@ -152,6 +152,14 @@ def get_record(db, rid):
                     "s.departamento AS dep_hoja, s.municipio AS mun_hoja "
                     "FROM ata_rows r JOIN ata_sheets s ON s.id = r.sheet_id WHERE r.id=?", (rid,))
     return rows[0] if rows else None
+
+
+def set_llenado(db, rid):
+    """El formulario ya se llenó en Chrome (falta crear la ficha a mano). No pisa un «Registrado»."""
+    with db.transaction():
+        db.execute("UPDATE ata_rows SET ai_estado='Llenado', ai_fecha=? WHERE id=? AND ai_estado<>'Registrado'",
+                   (now_iso(), rid))
+        db.audit("ata", rid, "ActivityInfo", "Formulario llenado")
 
 
 def set_registered(db, rid, registered=True):

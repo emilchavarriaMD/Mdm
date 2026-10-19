@@ -5,7 +5,7 @@ from tkinter import ttk
 from services import activityinfo
 from services import ata as ata_svc
 from services.validators import fmt_date
-from ui import dialogs, widgets
+from ui import dialogs, theme, widgets
 from ui.dialog_activityinfo import ActivityInfoDialog
 from ui.page import Page
 
@@ -32,7 +32,7 @@ class PacientesPage(Page):
         self.q.pack(side="left", padx=(6, 12))
         self.q.var.trace_add("write", lambda *a: self._schedule())
         ttk.Label(bar, text="Estado:").pack(side="left")
-        self.estado = widgets.ComboField(bar, ["Todos", "Pendiente", "Registrado"], readonly=True, width=14)
+        self.estado = widgets.ComboField(bar, ["Todos", "Pendiente", "Llenado", "Registrado"], readonly=True, width=14)
         self.estado.set_value("Todos")
         self.estado.pack(side="left", padx=(6, 12))
         self.estado.bind("<<ComboboxSelected>>", lambda e: self.load())
@@ -49,11 +49,15 @@ class PacientesPage(Page):
 
         frame, self.tree = widgets.make_tree(self, [
             ("sel", "", 46, "center"), ("fecha", "Fecha", 108), ("nombre", "Paciente", 270), ("accion", "Acción", 160, "center"),
-            ("estado", "ActivityInfo", 95, "center"), ("sexo", "Sexo", 50, "center"),
+            ("estado", "ActivityInfo", 120, "center"), ("sexo", "Sexo", 50, "center"),
             ("edad", "Edad", 70), ("dx", "Diagnósticos", 340)], height=16)
         frame.pack(fill="both", expand=True, pady=(8, 0))
+        self.tree.tag_configure("e_Pendiente", foreground=theme.TEXT)
+        self.tree.tag_configure("e_Llenado", foreground=theme.WARN)
+        self.tree.tag_configure("e_Registrado", foreground=theme.OK)
         self.tree.bind("<Button-1>", self._click)
         self.tree.bind("<Return>", lambda e: self.add_record())
+        self.bind_all("<Control-f>", lambda e: self.q.focus_set() if self.winfo_ismapped() else None)
         bot = ttk.Frame(self)
         bot.pack(fill="x", pady=(10, 0))
         ttk.Button(bot, text="Añadir registro al seleccionado", style="Accent.TButton",
@@ -80,13 +84,16 @@ class PacientesPage(Page):
         rows = ata_svc.list_records(self.db, self.q.get_value(), self.estado.get_value())
         self._rows = {r["id"]: r for r in rows}
         self._checked &= set(self._rows)
+        marca = {"Pendiente": "○ Pendiente", "Llenado": "◐ Llenado", "Registrado": "● Registrado"}
         widgets.fill_tree(self.tree, [(
             r["id"], ("☑" if r["id"] in self._checked else "☐", fmt_date(r["fecha"]), r["nombre"],
                       ACTION if r["ai_estado"] != "Registrado" else "Registrado ✔",
-                      r["ai_estado"], r["sexo"], ata_svc.age_text(r),
-                      " · ".join(x for x in (r["dx1"], r["dx2"], r["dx3"]) if x))) for r in rows])
-        pend = sum(1 for r in rows if r["ai_estado"] != "Registrado")
-        self.count.configure(text=f"{len(rows)} paciente(s) · {pend} pendiente(s)")
+                      marca.get(r["ai_estado"], r["ai_estado"]), r["sexo"], ata_svc.age_text(r),
+                      " · ".join(x for x in (r["dx1"], r["dx2"], r["dx3"]) if x)),
+            ["e_" + r["ai_estado"]]) for r in rows])
+        pend = sum(1 for r in rows if r["ai_estado"] == "Pendiente")
+        llen = sum(1 for r in rows if r["ai_estado"] == "Llenado")
+        self.count.configure(text=f"{len(rows)} paciente(s) · {pend} pendiente(s) · {llen} llenado(s) sin registrar")
         self._update_buttons()
 
     # -- selección y borrado ---------------------------------------------------
@@ -177,6 +184,8 @@ class PacientesPage(Page):
             return
         rid, nombre, data, report, exc = self._result
         self._result = None
+        if exc is None:
+            ata_svc.set_llenado(self.db, rid)
         self.load()
         if exc is not None:
             dialogs.error(self, f"No se pudo llenar el formulario:\n{exc}")

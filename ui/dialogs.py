@@ -59,7 +59,7 @@ def choose(parent, title, message, buttons, default=None, cancel=None, details=N
     ttk.Label(body, text=message, wraplength=520, justify="left", font=theme.FONT).pack(anchor="w")
     if details:
         txt = tk.Text(body, width=70, height=min(12, max(3, len(details) + 1)), wrap="word",
-                      font=theme.FONT, relief="solid", bd=1, padx=8, pady=6, bg="white")
+                      font=theme.FONT, relief="solid", bd=1, padx=8, pady=6, bg=theme.FIELD, fg=theme.TEXT)
         txt.insert("1.0", "\n".join(f"•  {d}" for d in details))
         txt.configure(state="disabled")
         txt.pack(fill="x", pady=(10, 0))

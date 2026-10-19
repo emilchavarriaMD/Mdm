@@ -4,7 +4,7 @@ from tkinter import ttk
 import security
 from services import activityinfo as ai
 from services import cie11_catalog as cat
-from ui import dialogs, widgets
+from ui import dialogs, theme, widgets
 from ui.page import Page
 
 
@@ -29,6 +29,22 @@ class SettingsPage(Page):
         self.h_status = ttk.Label(row, text="", style="Saved.TLabel")
         self.h_status.pack(side="left", padx=10)
         g.full(row, pady=(12, 0))
+
+        sa = widgets.section(body, "Apariencia")
+        ga = widgets.FormGrid(sa, 2)
+        pref = theme.cargar_prefs()
+        self.tema = widgets.ComboField(sa, ["Claro", "Oscuro"], readonly=True)
+        self.tema.set_value(pref["tema"])
+        ga.add("Tema", self.tema)
+        self.letra = widgets.ComboField(sa, list(theme.LETRAS), readonly=True)
+        self.letra.set_value(pref["letra"])
+        ga.add("Tamaño de letra", self.letra)
+        rowa = ttk.Frame(sa)
+        ttk.Button(rowa, text="Guardar apariencia", style="Accent.TButton", command=self.save_apariencia).pack(side="left")
+        self.ap_status = ttk.Label(rowa, text="", style="Saved.TLabel")
+        self.ap_status.pack(side="left", padx=10)
+        ga.full(rowa, pady=(12, 0))
+        ga.full(ttk.Label(sa, text="El cambio se aplica al reiniciar el programa.", style="Hint.TLabel"), pady=(4, 0))
 
         s2 = widgets.section(body, "ActivityInfo: valores fijos")
         g2 = widgets.FormGrid(s2, 2)
@@ -93,6 +109,10 @@ class SettingsPage(Page):
             w.set_value(self.db.get_setting(k, ""))
         self._pw_state()
         self.h_status.configure(text="")
+
+    def save_apariencia(self):
+        theme.guardar_prefs(self.tema.get_value(), self.letra.get_value())
+        self.ap_status.configure(text="Guardado: se aplicará al reiniciar el programa")
 
     def save_header(self):
         for k, w in self.f.items():

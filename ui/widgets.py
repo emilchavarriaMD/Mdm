@@ -126,7 +126,7 @@ class TextBox(ttk.Frame):
         self.text = tk.Text(self, height=height, wrap="word", font=theme.FONT_TEXT, undo=True,
                             relief="solid", bd=1, padx=6, pady=4, highlightthickness=1,
                             highlightcolor=theme.PRIMARY, highlightbackground=theme.BORDER,
-                            bg="white", fg=theme.TEXT, insertbackground=theme.TEXT)
+                            bg=theme.FIELD, fg=theme.TEXT, insertbackground=theme.TEXT)
         self.text.pack(fill="both", expand=True)
         self.text.bind("<Tab>", _tab_next)
         self.text.bind("<Shift-Tab>", _tab_prev)
@@ -444,6 +444,50 @@ def section(parent, title, pady=(0, 12)):
     return box
 
 
+class Seccion(ttk.Frame):
+    """Bloque plegable: barra con el título (clic para plegar/desplegar) y una marca de estado; el contenido va en `.cuerpo`."""
+
+    def __init__(self, parent, titulo, abierta=True, pady=(0, 8)):
+        super().__init__(parent)
+        self.pack(fill="x", pady=pady)
+        self.titulo, self.abierta = titulo, abierta
+        self.barra = ttk.Frame(self, style="Strip.TFrame", cursor="hand2")
+        self.barra.pack(fill="x")
+        self.flecha = ttk.Label(self.barra, text="▾" if abierta else "▸", style="StripB.TLabel", width=2)
+        self.flecha.pack(side="left", padx=(8, 0), pady=6)
+        self.lbl = ttk.Label(self.barra, text=titulo, style="StripB.TLabel")
+        self.lbl.pack(side="left", pady=6)
+        self.estado = ttk.Label(self.barra, text="", style="Strip.TLabel")
+        self.estado.pack(side="right", padx=10)
+        for w in (self.barra, self.flecha, self.lbl, self.estado):
+            w.bind("<Button-1>", lambda e: self.alternar())
+        self.cuerpo = ttk.Frame(self, padding=(6, 4, 6, 6))
+        if abierta:
+            self.cuerpo.pack(fill="x")
+
+    def alternar(self):
+        (self.plegar if self.abierta else self.abrir)()
+
+    def abrir(self):
+        if not self.abierta:
+            self.cuerpo.pack(fill="x")
+            self.flecha.configure(text="▾")
+            self.abierta = True
+
+    def plegar(self):
+        if self.abierta:
+            self.cuerpo.pack_forget()
+            self.flecha.configure(text="▸")
+            self.abierta = False
+
+    def marcar(self, ok, texto=""):
+        """ok=True: «✓ …» en verde; ok=False: texto de aviso en ámbar; ok=None: sin marca."""
+        if ok is None:
+            self.estado.configure(text="", style="Strip.TLabel")
+        else:
+            self.estado.configure(text=("✓ " if ok else "● ") + texto, style="StripOk.TLabel" if ok else "StripWarn.TLabel")
+
+
 def button_row(parent, items, pady=(8, 0)):
     """items: [(texto, comando, estilo)] en una fila horizontal."""
     row = ttk.Frame(parent)
@@ -552,8 +596,8 @@ def make_tree(parent, columns, height=10, selectmode="browse"):
     hsb.grid(row=1, column=0, sticky="ew")
     frame.rowconfigure(0, weight=1)
     frame.columnconfigure(0, weight=1)
-    tree.tag_configure("odd", background="#F4F8F9")
-    tree.tag_configure("even", background="white")
+    tree.tag_configure("odd", background=theme.ODD)
+    tree.tag_configure("even", background=theme.FIELD)
     tree.tag_configure("draft", foreground=theme.WARN)
     return frame, tree
 
@@ -580,7 +624,7 @@ def set_locked(widget, locked):
     for child in widget.winfo_children():
         if isinstance(child, tk.Text):
             child.configure(state="disabled" if locked else "normal",
-                            bg="#EDF0F1" if locked else "white")
+                            bg=theme.FIELD_DIS if locked else theme.FIELD)
         elif isinstance(child, (ttk.Entry, ttk.Combobox, ttk.Checkbutton, ttk.Radiobutton,
                                 ttk.Button)):
             if not getattr(child, "_keep_enabled", False):

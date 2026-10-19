@@ -123,6 +123,13 @@ class UITests(unittest.TestCase):
         self.assertEqual(rows[0]["sexo"], "M")
         self.assertEqual(rows[2]["dx1"], "")
         self.assertEqual(rows[0]["ai_estado"], "Pendiente")
+        A.set_llenado(db, rows[2]["id"])                              # formulario llenado, ficha aún sin crear
+        self.assertEqual(A.get_record(db, rows[2]["id"])["ai_estado"], "Llenado")
+        self.assertEqual(len(A.list_records(db, "", "Llenado")), 1)
+        A.set_registered(db, rows[2]["id"], True)
+        A.set_llenado(db, rows[2]["id"])                              # no pisa un «Registrado»
+        self.assertEqual(A.get_record(db, rows[2]["id"])["ai_estado"], "Registrado")
+        A.set_registered(db, rows[2]["id"], False)
 
         # lista de pacientes y estado de ActivityInfo
         app.show("pacientes")
