@@ -1,6 +1,6 @@
 # MDm – Registro Clínico de Brigadas Médicas (Honduras)
 
-**Versión 1.1**
+**Versión 1.2**
 
 Programa de escritorio para Windows (Python + **Tkinter** + SQLite) que registra pacientes de brigadas
 médicas con tres fichas vinculadas por un único expediente: **Ficha Integral**, **Atención Primaria
@@ -42,8 +42,12 @@ Menú **Configuración → Seguridad**. Se guarda cifrada (PBKDF2). Si se olvida
 · `reports/` (PDF con ReportLab, Excel con OpenPyXL) · `ui/` (pantallas Tkinter) · `tests/`.
 
 ## Pruebas
-`python -m unittest tests.test_all` (datos, PDF, Excel, respaldos) y
-`python -m unittest tests.test_ui` (interfaz; requiere pantalla).
+`python -m unittest discover -s tests`:
+- `test_all` (datos, PDF, Excel, respaldos), `test_ui` (interfaz; requiere pantalla),
+- `test_hea` (banco de HEA: 3,000 combinaciones al azar de 1–3 diagnósticos, edad y sexo),
+- `test_ai_fill` (llenado de ActivityInfo contra una réplica local del formulario, `tests/mock_activityinfo.html`;
+  comprueba el orden, el punto de atención «Otro», la HEA, los diagnósticos y que **nunca** se pulse guardar;
+  se omite si no está instalado Playwright).
 
 ## Limitaciones conocidas
 - No incluye OCR de la hoja ATA (escritura manuscrita poco fiable); la importación desde foto sigue pendiente.
@@ -72,6 +76,21 @@ propio del programa) abre el formulario y **lo llena**. El programa **nunca guar
 «Guardar registro», «Guardar como borrador» ni «Está hecho»; la ficha la crea usted a mano después de revisar.
 - Si ActivityInfo pide iniciar sesión, hágalo en esa ventana (el programa no escribe contraseñas).
 - Lo que el ATA no trae (estado civil, escolaridad, ocupación…) lo elige usted en la ventana; vacío = no se toca.
-- Valores fijos (lugar de atención, nacionalidad, profesional) y equivalencias abreviatura → CIE-11 se
-  configuran en **Configuración**. Los diagnósticos CIE-11 se eligen a mano en ActivityInfo.
+- Valores fijos (lugar de atención, proyecto, nacionalidad, idioma, profesional) se configuran en **Configuración**.
+- Si el lugar de atención es uno de los «… - Otro», escriba en «Especifique punto de atención» cuál es.
+- **Diagnósticos**: cada diagnóstico del ATA se elige de la lista de ActivityInfo (260 opciones con su código,
+  guardadas en el programa; se puede escribir para buscar). El programa escribe la descripción y ActivityInfo pone
+  el código. Nunca elige una opción que no coincida: si no la encuentra, la deja vacía y lo avisa.
+- **HEA**: se arma sola con sexo, edad y diagnósticos (banco de 324 diagnósticos con 5–10 versiones cada uno) y se
+  escribe en «Historia de la enfermedad actual» del subformulario APS. Con 2–3 diagnósticos se escribe una sola
+  historia: los crónicos como «antecedente de…», el agudo como cuadro actual y los demás como «Además refiere…».
+  Respeta edad y sexo, avisa si un diagnóstico no corresponde, y el botón «Otra versión» cambia la redacción.
+  Siempre se puede corregir a mano antes de abrir Chrome.
 - Necesita internet y Google Chrome.
+
+## Cambios
+- **1.2** — HEA según edad y sexo; abreviaturas del ATA (PF, RC, FAB, FAV, tiña pedis, cervicalgia, vaginosis…);
+  búsqueda al escribir en los diagnósticos y «HEA usa» por diagnóstico; «11» como comillas de ídem en el ATA;
+  pruebas del banco de HEA y del llenado.
+- **1.1** — Lista de diagnósticos de ActivityInfo, HEA en el subformulario APS, punto de atención «Otro»,
+  ventana de registro con desplazamiento y maximizable.
