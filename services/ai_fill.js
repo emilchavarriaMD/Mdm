@@ -1,6 +1,6 @@
 /* Llena el formulario de ActivityInfo. NUNCA pulsa Guardar registro ni Guardar como borrador. */
 (function () {
-  const VERSION = 6;
+  const VERSION = 7;
   if (window.__mdm && window.__mdm.version === VERSION) return;   // una versión vieja en la pestaña se reemplaza
   const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
   const norm = (s) => (s || "").replace(/\s+/g, " ").replace(/\*/g, "").replace(/OBLIGATORIO/g, "").trim().toLowerCase();
@@ -146,6 +146,7 @@
     if (d.discapacidad) await S("Discapacidad", () => setRadio("¿Tiene algún tipo de discapacidad?", d.discapacidad));
     if (d.perfil) await S("Perfil de población", () => setAuto("Perfil de población", d.perfil));
     if (d.derivado) await S("¿Ha sido derivado/a?", () => setRadio("¿Ha sido derivado/a?", d.derivado));
+    if (d.hea_a_observaciones && d.hea) await S("Observaciones (HEA)", () => setText("Observaciones", d.hea));
     if ((d.consultas || []).length) await S("Consulta a realizar", () => setChecks("Consulta a realizar", d.consultas));
     return log;
   }

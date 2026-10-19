@@ -11,6 +11,7 @@ import webbrowser
 from pathlib import Path
 
 import config
+from services.hea import generate_hea
 
 FORM_URL = "https://www.activityinfo.org/app#form/cgagdtzm4cnphz5kmo/newRecord"
 
@@ -118,7 +119,9 @@ def build_defaults(db, rec: dict) -> dict:
         cie = (rec.get(f"cie{i}") or "").strip()
         dxs.append({"abrev": txt, "descripcion": m["descripcion"] if m else "",
                     "cie11": (m["cie11"] if m else "") or cie})
+    desc = {k: v["descripcion"] for k, v in dxmap.items() if v["descripcion"]}
     return {
+        "hea": generate_hea(rec, desc), "hea_a_observaciones": "",
         "lugar": st["ai_lugar"], "fecha": (rec.get("fecha") or "")[:10], "genero": genero,
         "donante": st["ai_donante"], "proyecto": st["ai_proyecto"], "perfin": st["ai_perfin"],
         "lgtbiq": "", "pueblo": "", "nacionalidad": st["ai_nacionalidad"], "idioma": st["ai_idioma"],

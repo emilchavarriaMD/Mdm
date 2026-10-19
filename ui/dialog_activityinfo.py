@@ -86,6 +86,16 @@ class ActivityInfoDialog(_Modal):
         else:
             ttk.Label(body, text="El ATA no trae diagnósticos para este paciente.",
                       style="Muted.TLabel").pack(anchor="w")
+        ttk.Label(body, text="HEA (historia de la enfermedad actual) — armada con sexo, edad y diagnósticos del ATA; "
+                  "revísela y corríjala con lo que el paciente refirió", style="H2.TLabel",
+                  wraplength=780, justify="left").pack(anchor="w", pady=(10, 2))
+        self.hea = tk.Text(body, height=5, wrap="word", font=("Segoe UI", 10), relief="solid", bd=1)
+        self.hea.insert("1.0", defaults.get("hea", ""))
+        self.hea.pack(fill="x")
+        self.hea_obs = tk.BooleanVar(value=False)
+        ttk.Checkbutton(body, text="Escribir esta HEA en el campo «Observaciones» de la ficha de ActivityInfo "
+                        "(el subformulario de APS no tiene campo de HEA)", variable=self.hea_obs).pack(
+            anchor="w", pady=(4, 0))
         bar = ttk.Frame(body)
         bar.pack(fill="x", pady=(14, 0))
         ttk.Button(bar, text="Cancelar", command=self.cancel).pack(side="right")
@@ -106,6 +116,8 @@ class ActivityInfoDialog(_Modal):
                 "en ActivityInfo:\n\n" + "\n".join(f"• {t}" for t in falta) + "\n\n¿Abrir Chrome de todos modos?",
                 yes="Abrir de todos modos", no="Volver y elegir"):
             return
+        data["hea"] = self.hea.get("1.0", "end").strip()
+        data["hea_a_observaciones"] = "Si" if self.hea_obs.get() and data["hea"] else ""
         data["tiene_fecha_nac"] = "No"  # siempre se usa la edad
         data["dx"] = self.defaults.get("dx") or []
         self.result = data
