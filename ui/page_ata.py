@@ -6,7 +6,7 @@ from tkinter import ttk
 
 from services import ata as ata_svc
 from services.validators import fmt_date
-from ui import common, dialogs, widgets
+from ui import common, dialogs, theme, widgets
 from ui.page import Page
 
 START_ROWS = 20
@@ -55,65 +55,115 @@ class AtaPage(Page):
         self.hint = ttk.Label(self, text="", style="Hint.TLabel")
         self.hint.pack(anchor="w", pady=(4, 0))
 
-        pane = ttk.PanedWindow(self, orient="vertical")
-        pane.pack(fill="both", expand=True, pady=(8, 0))
+        # Todo lo de abajo se desliza junto, como una sola pantalla (no hay barras internas verticales)
+        self.scroller = widgets.ScrollFrame(self)
+        self.scroller.pack(fill="both", expand=True, pady=(8, 0))
+        body = self.scroller.body
 
         # --- foto ---
-        top = ttk.Frame(pane)
-        pane.add(top, weight=2)
-        zb = ttk.Frame(top)
+        card = ttk.Frame(body, style="Card.TFrame", padding=(14, 10, 14, 12))
+        card.pack(fill="x", padx=(0, 6), pady=(0, 12))
+        zb = ttk.Frame(card, style="Flat.TFrame")
         zb.pack(fill="x")
-        ttk.Label(zb, text="Foto de la hoja", style="H2.TLabel").pack(side="left")
-        ttk.Button(zb, text="Acercar +", command=lambda: self._set_zoom(self._zoom * 1.25)).pack(
-            side="right")
-        ttk.Button(zb, text="Alejar –", command=lambda: self._set_zoom(self._zoom / 1.25)).pack(
-            side="right", padx=6)
+        ttk.Label(zb, text="Foto de la hoja", style="H2.TLabel", background=theme.CARD).pack(side="left")
+        ttk.Button(zb, text="Acercar +", command=lambda: self._set_zoom(self._zoom * 1.25)).pack(side="right")
+        ttk.Button(zb, text="Alejar –", command=lambda: self._set_zoom(self._zoom / 1.25)).pack(side="right", padx=6)
         ttk.Button(zb, text="Ajustar al ancho", command=self._fit).pack(side="right")
-        holder = ttk.Frame(top)
-        holder.pack(fill="both", expand=True, pady=(4, 0))
-        self.canvas = tk.Canvas(holder, background="#2b2b2b", highlightthickness=0, height=260)
-        vs = ttk.Scrollbar(holder, orient="vertical", command=self.canvas.yview)
-        hs = ttk.Scrollbar(holder, orient="horizontal", command=self.canvas.xview)
-        self.canvas.configure(yscrollcommand=vs.set, xscrollcommand=hs.set)
-        vs.pack(side="right", fill="y")
-        hs.pack(side="bottom", fill="x")
-        self.canvas.pack(side="left", fill="both", expand=True)
-        self.canvas.create_text(20, 20, anchor="nw", fill="#bbbbbb", tags="hint",
-                                text="Aún no hay foto. Use «Subir foto» (JPG o PNG).")
+        self.photo_hint = ttk.Label(zb, text="Ctrl + rueda: acercar o alejar · arrastre para mover",
+                                    style="CardMuted.TLabel")
+        self.photo_hint.pack(side="right", padx=12)
+        self.photo_hint.pack_forget()
+        holder = ttk.Frame(card, style="Flat.TFrame")
+        holder.pack(fill="x", pady=(8, 0))
+        self.canvas = tk.Canvas(holder, background="#EEF3F4", highlightthickness=1, highlightbackground=theme.BORDER,
+                                height=340, cursor="arrow")
+        self.vs = ttk.Scrollbar(holder, orient="vertical", command=self.canvas.yview)
+        self.hs = ttk.Scrollbar(holder, orient="horizontal", command=self.canvas.xview)
+        self.canvas.configure(yscrollcommand=self.vs.set, xscrollcommand=self.hs.set)
+        self.canvas.pack(side="left", fill="x", expand=True)
+        self.canvas.bind("<Configure>", lambda e: self._draw_empty())
+        self.canvas.bind("<Button-1>", self._canvas_click)
+        self.canvas.bind("<B1-Motion>", self._canvas_drag)
+        self.canvas.bind("<ButtonPress-1>", lambda e: (self.canvas.scan_mark(e.x, e.y), self._canvas_click(e)))
+        self.canvas.bind("<Control-MouseWheel>", self._canvas_zoom)
+        self._draw_empty()
 
-        # --- datos ---
-        bottom = ttk.Frame(pane)
-        pane.add(bottom, weight=3)
-        hb = ttk.LabelFrame(bottom, text=" Encabezado de la hoja ", padding=(8, 2, 8, 6))
-        hb.pack(fill="x")
+        # --- encabezado ---
+        hb = ttk.Frame(body, style="Card.TFrame", padding=(14, 10, 14, 12))
+        hb.pack(fill="x", padx=(0, 6), pady=(0, 12))
+        ttk.Label(hb, text="Encabezado de la hoja", style="H2.TLabel", background=theme.CARD).grid(
+            row=0, column=0, columnspan=len(ata_svc.HEADER_FIELDS), sticky="w", pady=(0, 6))
         for i, (k, label) in enumerate(ata_svc.HEADER_FIELDS):
             self.h[k] = tk.StringVar()
-            ttk.Label(hb, text=label, style="Muted.TLabel").grid(row=0, column=i, sticky="w", padx=3)
+            ttk.Label(hb, text=label, style="CardMuted.TLabel").grid(row=1, column=i, sticky="w", padx=3)
             ttk.Entry(hb, textvariable=self.h[k], width=18 if k != "fecha" else 14).grid(
-                row=1, column=i, sticky="we", padx=3)
+                row=2, column=i, sticky="we", padx=3)
             hb.columnconfigure(i, weight=1)
-        gb = ttk.Frame(bottom)
-        gb.pack(fill="x", pady=(6, 2))
-        ttk.Label(gb, text="Pacientes de la hoja", style="H2.TLabel").pack(side="left")
+
+        # --- pacientes ---
+        pc = ttk.Frame(body, style="Card.TFrame", padding=(14, 10, 14, 12))
+        pc.pack(fill="x", padx=(0, 6), pady=(0, 12))
+        gb = ttk.Frame(pc, style="Flat.TFrame")
+        gb.pack(fill="x", pady=(0, 6))
+        ttk.Label(gb, text="Pacientes de la hoja", style="H2.TLabel", background=theme.CARD).pack(side="left")
         ttk.Button(gb, text="+ Añadir fila", command=lambda: self._add_row()).pack(side="left", padx=10)
         ttk.Label(gb, text="Puede pegar (Ctrl+V) filas copiadas de Excel en cualquier celda.",
-                  style="Hint.TLabel").pack(side="left")
-        gh = ttk.Frame(bottom)
-        gh.pack(fill="both", expand=True)
-        self.gcanvas = tk.Canvas(gh, highlightthickness=0, background="#ffffff")
-        gvs = ttk.Scrollbar(gh, orient="vertical", command=self.gcanvas.yview)
+                  style="CardMuted.TLabel").pack(side="left")
+        gh = ttk.Frame(pc, style="Flat.TFrame")
+        gh.pack(fill="x")
+        self.gcanvas = tk.Canvas(gh, highlightthickness=0, background=theme.CARD, height=200)
         ghs = ttk.Scrollbar(gh, orient="horizontal", command=self.gcanvas.xview)
-        self.gcanvas.configure(yscrollcommand=gvs.set, xscrollcommand=ghs.set)
-        gvs.pack(side="right", fill="y")
+        self.gcanvas.configure(xscrollcommand=ghs.set)
         ghs.pack(side="bottom", fill="x")
-        self.gcanvas.pack(side="left", fill="both", expand=True)
-        self.grid_frame = ttk.Frame(self.gcanvas)
+        self.gcanvas.pack(side="top", fill="x")
+        self.grid_frame = ttk.Frame(self.gcanvas, style="Flat.TFrame")
         self.gcanvas.create_window((0, 0), window=self.grid_frame, anchor="nw")
-        self.grid_frame.bind("<Configure>", lambda e: self.gcanvas.configure(
-            scrollregion=self.gcanvas.bbox("all")))
+        self.grid_frame.bind("<Configure>", self._grid_resized)
         for c, (_, label, w) in enumerate(ata_svc.COLUMNS):
-            ttk.Label(self.grid_frame, text=label, style="Muted.TLabel", wraplength=max(w * 8, 60)
+            ttk.Label(self.grid_frame, text=label, style="CardMuted.TLabel", wraplength=max(w * 8, 60)
                       ).grid(row=0, column=c, sticky="w", padx=2)
+
+    def _grid_resized(self, _event=None):
+        """La tabla crece con sus filas: solo se desliza hacia los lados; hacia abajo se desliza toda la pantalla."""
+        self.gcanvas.configure(scrollregion=self.gcanvas.bbox("all"), height=self.grid_frame.winfo_reqheight())
+
+    # -- zona de la foto ---------------------------------------------------------
+    def _draw_empty(self):
+        self.canvas.delete("hint")
+        if self._pil is not None:
+            return
+        w = max(self.canvas.winfo_width(), 400)
+        h = int(self.canvas["height"])
+        self.canvas.create_rectangle(24, 24, w - 24, h - 24, outline="#9DB7BD", dash=(6, 5), width=2, tags="hint")
+        self.canvas.create_text(w / 2, h / 2 - 34, text="\U0001F4F7", font=(theme.FAMILY, 34), fill="#7FA3AB", tags="hint")
+        self.canvas.create_text(w / 2, h / 2 + 18, text="Haga clic aquí para subir la foto de la hoja",
+                                font=theme.FONT_B, fill=theme.PRIMARY_DARK, tags="hint")
+        self.canvas.create_text(w / 2, h / 2 + 44, text="JPG o PNG", font=theme.FONT_SMALL, fill=theme.MUTED, tags="hint")
+
+    def _canvas_click(self, event):
+        if self._pil is None:
+            self.load_image()
+
+    def _canvas_drag(self, event):
+        if self._pil is not None:
+            self.canvas.scan_dragto(event.x, event.y, gain=1)
+
+    def _canvas_zoom(self, event):
+        if self._pil is not None:
+            self._set_zoom(self._zoom * (1.15 if event.delta > 0 else 1 / 1.15))
+        return "break"
+
+    def _toggle_photo_bars(self, on):
+        if on:
+            self.vs.pack(side="right", fill="y", before=self.canvas)
+            self.hs.pack(side="bottom", fill="x", before=self.canvas)
+            self.canvas.configure(cursor="fleur")
+            self.photo_hint.pack(side="right", padx=12)
+        else:
+            self.vs.pack_forget()
+            self.hs.pack_forget()
+            self.canvas.configure(cursor="arrow")
+            self.photo_hint.pack_forget()
 
     # ------------------------------------------------------------------
     def on_show(self, **kw):
@@ -346,20 +396,22 @@ class AtaPage(Page):
         self._pil = None
         self.canvas.delete("img")
         if not path:
-            self.canvas.itemconfigure("hint", state="normal")
+            self._toggle_photo_bars(False)
             self.canvas.configure(scrollregion=(0, 0, 0, 0))
+            self._draw_empty()
             return
         try:
             from PIL import Image
             img = Image.open(path)
             img.load()
         except Exception:  # noqa: BLE001
-            self.canvas.itemconfigure("hint", state="normal")
+            self._draw_empty()
             return
         if img.width > 3200:
             img = img.resize((3200, int(img.height * 3200 / img.width)))
         self._pil = img.convert("RGB")
-        self.canvas.itemconfigure("hint", state="hidden")
+        self.canvas.delete("hint")
+        self._toggle_photo_bars(True)
         self.after(150, self._fit)
 
     def _fit(self):

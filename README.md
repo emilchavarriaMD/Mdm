@@ -113,6 +113,7 @@ que dependen de otro aparecen al elegirlo (violencia → tipo; ITS «Sí» → �
 vitales/peso de SSR, medicamentos, lista de verificación de embarazo y los otros campos condicionales de SSR.
 
 ## Cambios
+- **1.8** — Pantalla «Cargar ATA» rediseñada: tarjetas para foto, encabezado y pacientes; zona de foto con área para hacer clic y subirla, zoom con Ctrl + rueda y arrastre para mover; toda la pantalla se desliza en conjunto (la tabla ya no tiene barra vertical propia, solo horizontal).
 - **1.7** — Respaldo: segunda ubicación configurable (OneDrive, USB, disco externo) donde se deja una copia de cada respaldo automático, y copia automática cada 30 minutos mientras el programa está abierto (desactivable). Si la segunda ubicación no está disponible, la copia local se hace igual y se muestra un aviso. La base de pacientes nunca se sube a GitHub.
 - **1.6** — Examen físico por secciones (General, Cabeza, ORL, Cuello, Tórax, Corazón, Pulmones, Abdomen, Extremidades, Genitourinario) que cambia según los diagnósticos elegidos (APS y SSR). Genitourinario: siempre en SSR; en APS solo si un diagnóstico lo requiere. El abdomen siempre dice que no se explora. Se regenera al cambiar diagnósticos salvo que se edite a mano.
 - **1.5** — HEA nueva: banco ampliado y rehecho para las listas de APS (326) y de SSR (todas con HEA propia, p. ej. vaginosis bacteriana, cervicitis,
