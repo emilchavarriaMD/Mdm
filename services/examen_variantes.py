@@ -135,6 +135,20 @@ VARIANTES = {'adenopatías cervicales anteriores dolorosas': ['adenopatías cerv
                                                                                                                                                    'musculatura paravertebral cervical y trapecio '
                                                                                                                                                    'contracturados y dolorosos a la palpación, con '
                                                                                                                                                    'limitación de la rotación y flexión'],
+ 'cuello uterino sin lesiones, con hilos del dispositivo intrauterino visibles en el orificio cervical y sin dolor a la movilización': ['cuello uterino sin lesiones, con hilos del dispositivo '
+                                                                                                                                        'intrauterino visibles en el orificio cervical y sin dolor a '
+                                                                                                                                        'la movilización',
+                                                                                                                                        'cérvix sin lesiones, con hilos del DIU visibles a través del '
+                                                                                                                                        'orificio cervical, sin dolor a la movilización cervical',
+                                                                                                                                        'orificio cervical con hilos del dispositivo intrauterino '
+                                                                                                                                        'visibles, cuello uterino sin lesiones y movilización cervical '
+                                                                                                                                        'indolora',
+                                                                                                                                        'se observan los hilos del dispositivo intrauterino en el '
+                                                                                                                                        'orificio cervical, cuello uterino sin lesiones y sin dolor al '
+                                                                                                                                        'movilizarlo',
+                                                                                                                                        'cuello uterino de aspecto normal, sin lesiones, con hilos del '
+                                                                                                                                        'DIU visibles en el orificio cervical externo y sin dolor a la '
+                                                                                                                                        'movilización'],
  'cuerpo extraño visible en conducto auditivo externo con eritema local': ['cuerpo extraño visible en conducto auditivo externo con eritema local',
                                                                            'cuerpo extraño visible en el conducto auditivo externo, con eritema local',
                                                                            'eritema local con cuerpo extraño visible en conducto auditivo externo',
@@ -437,6 +451,13 @@ VARIANTES = {'adenopatías cervicales anteriores dolorosas': ['adenopatías cerv
                                                                               'sin lesiones ni signos de infección; genitales externos sin alteraciones',
                                                                               'genitales externos sin alteraciones evidentes, sin lesiones ni signos de infección',
                                                                               'genitales externos sin alteraciones, sin signos de infección ni lesiones'],
+ 'genitales externos sin lesiones ni signos de infección, sin secreción ni sangrado anormal': ['genitales externos sin lesiones ni signos de infección, sin secreción ni sangrado anormal',
+                                                                                               'genitales externos sin lesiones ni datos de infección, sin flujo ni sangrado anormales',
+                                                                                               'genitales externos de aspecto normal, sin signos de infección, sin secreción anormal ni sangrado',
+                                                                                               'región genital externa sin lesiones, sin signos infecciosos y sin secreción ni sangrado fuera de lo '
+                                                                                               'normal',
+                                                                                               'sin lesiones ni signos de infección en genitales externos, ausencia de secreción y de sangrado '
+                                                                                               'anormal'],
  'genitales externos sin lesiones; cuello uterino de aspecto normal si se explora': ['genitales externos sin lesiones; cuello uterino de aspecto normal si se explora',
                                                                                      'genitales externos sin lesiones; cuello uterino con aspecto normal si se explora',
                                                                                      'sin lesiones en genitales externos; si se explora, cuello uterino de aspecto normal',
@@ -447,6 +468,134 @@ VARIANTES = {'adenopatías cervicales anteriores dolorosas': ['adenopatías cerv
                                                                                        'eritema y edema en glande y prepucio, con erosiones y secreción blanquecina',
                                                                                        'prepucio y glande eritematosos y edematosos, con erosiones y secreción blanquecina',
                                                                                        'glande y prepucio edematosos y eritematosos, con erosiones y secreción de aspecto blanquecino'],
+ 'habones eritematosos, pruriginosos y migratorios, de bordes bien definidos, con dermografismo y excoriaciones por rascado; sin edema de labios ni lengua y sin compromiso de la vía aérea': ['habones '
+                                                                                                                                                                                               'eritematosos, '
+                                                                                                                                                                                               'pruriginosos '
+                                                                                                                                                                                               'y '
+                                                                                                                                                                                               'migratorios, '
+                                                                                                                                                                                               'de '
+                                                                                                                                                                                               'bordes '
+                                                                                                                                                                                               'bien '
+                                                                                                                                                                                               'definidos, '
+                                                                                                                                                                                               'con '
+                                                                                                                                                                                               'dermografismo '
+                                                                                                                                                                                               'y '
+                                                                                                                                                                                               'excoriaciones '
+                                                                                                                                                                                               'por '
+                                                                                                                                                                                               'rascado; '
+                                                                                                                                                                                               'sin '
+                                                                                                                                                                                               'edema '
+                                                                                                                                                                                               'de '
+                                                                                                                                                                                               'labios '
+                                                                                                                                                                                               'ni '
+                                                                                                                                                                                               'lengua '
+                                                                                                                                                                                               'y sin '
+                                                                                                                                                                                               'compromiso '
+                                                                                                                                                                                               'de la '
+                                                                                                                                                                                               'vía '
+                                                                                                                                                                                               'aérea',
+                                                                                                                                                                                               'lesiones '
+                                                                                                                                                                                               'habonosas '
+                                                                                                                                                                                               'eritematosas, '
+                                                                                                                                                                                               'pruriginosas '
+                                                                                                                                                                                               'y de '
+                                                                                                                                                                                               'carácter '
+                                                                                                                                                                                               'migratorio, '
+                                                                                                                                                                                               'con '
+                                                                                                                                                                                               'bordes '
+                                                                                                                                                                                               'bien '
+                                                                                                                                                                                               'delimitados, '
+                                                                                                                                                                                               'dermografismo '
+                                                                                                                                                                                               'y '
+                                                                                                                                                                                               'excoriaciones '
+                                                                                                                                                                                               'por '
+                                                                                                                                                                                               'rascado; '
+                                                                                                                                                                                               'sin '
+                                                                                                                                                                                               'edema '
+                                                                                                                                                                                               'labial '
+                                                                                                                                                                                               'ni '
+                                                                                                                                                                                               'lingual '
+                                                                                                                                                                                               'y con '
+                                                                                                                                                                                               'vía '
+                                                                                                                                                                                               'aérea '
+                                                                                                                                                                                               'permeable',
+                                                                                                                                                                                               'ronchas '
+                                                                                                                                                                                               'eritematosas, '
+                                                                                                                                                                                               'muy '
+                                                                                                                                                                                               'pruriginosas, '
+                                                                                                                                                                                               'migratorias '
+                                                                                                                                                                                               'y de '
+                                                                                                                                                                                               'bordes '
+                                                                                                                                                                                               'netos, '
+                                                                                                                                                                                               'con '
+                                                                                                                                                                                               'dermografismo '
+                                                                                                                                                                                               'positivo '
+                                                                                                                                                                                               'y '
+                                                                                                                                                                                               'excoriaciones '
+                                                                                                                                                                                               'por '
+                                                                                                                                                                                               'rascado; '
+                                                                                                                                                                                               'labios '
+                                                                                                                                                                                               'y '
+                                                                                                                                                                                               'lengua '
+                                                                                                                                                                                               'sin '
+                                                                                                                                                                                               'edema, '
+                                                                                                                                                                                               'sin '
+                                                                                                                                                                                               'compromiso '
+                                                                                                                                                                                               'de la '
+                                                                                                                                                                                               'vía '
+                                                                                                                                                                                               'aérea',
+                                                                                                                                                                                               'habones '
+                                                                                                                                                                                               'de '
+                                                                                                                                                                                               'bordes '
+                                                                                                                                                                                               'bien '
+                                                                                                                                                                                               'definidos, '
+                                                                                                                                                                                               'eritematosos, '
+                                                                                                                                                                                               'pruriginosos '
+                                                                                                                                                                                               'y que '
+                                                                                                                                                                                               'migran, '
+                                                                                                                                                                                               'con '
+                                                                                                                                                                                               'dermografismo '
+                                                                                                                                                                                               'y '
+                                                                                                                                                                                               'huellas '
+                                                                                                                                                                                               'de '
+                                                                                                                                                                                               'rascado; '
+                                                                                                                                                                                               'sin '
+                                                                                                                                                                                               'angioedema '
+                                                                                                                                                                                               'de '
+                                                                                                                                                                                               'labios '
+                                                                                                                                                                                               'o '
+                                                                                                                                                                                               'lengua '
+                                                                                                                                                                                               'ni '
+                                                                                                                                                                                               'afectación '
+                                                                                                                                                                                               'de la '
+                                                                                                                                                                                               'vía '
+                                                                                                                                                                                               'aérea',
+                                                                                                                                                                                               'placas '
+                                                                                                                                                                                               'urticarianas '
+                                                                                                                                                                                               'eritematosas '
+                                                                                                                                                                                               'y '
+                                                                                                                                                                                               'pruriginosas, '
+                                                                                                                                                                                               'migratorias, '
+                                                                                                                                                                                               'de '
+                                                                                                                                                                                               'bordes '
+                                                                                                                                                                                               'definidos, '
+                                                                                                                                                                                               'con '
+                                                                                                                                                                                               'dermografismo '
+                                                                                                                                                                                               'y '
+                                                                                                                                                                                               'excoriaciones '
+                                                                                                                                                                                               'por '
+                                                                                                                                                                                               'rascado; '
+                                                                                                                                                                                               'sin '
+                                                                                                                                                                                               'edema '
+                                                                                                                                                                                               'de '
+                                                                                                                                                                                               'labios '
+                                                                                                                                                                                               'ni '
+                                                                                                                                                                                               'lengua, '
+                                                                                                                                                                                               'con '
+                                                                                                                                                                                               'vía '
+                                                                                                                                                                                               'aérea '
+                                                                                                                                                                                               'sin '
+                                                                                                                                                                                               'compromiso'],
  'hematoma o aumento de volumen en región traumatizada, sin heridas penetrantes': ['hematoma o aumento de volumen en región traumatizada, sin heridas penetrantes',
                                                                                    'hematoma o aumento de volumen en la región traumatizada, sin heridas penetrantes',
                                                                                    'sin heridas penetrantes; hematoma o aumento de volumen en región traumatizada',
@@ -792,11 +941,23 @@ VARIANTES = {'adenopatías cervicales anteriores dolorosas': ['adenopatías cerv
                                                                                                                'Dix-Hallpike positiva',
                                                                                                                'oídos sin hallazgos anormales; nistagmo horizontal-rotatorio, marcha inestable y '
                                                                                                                'Dix-Hallpike positivo'],
+ 'paciente alerta y colaboradora/o, con lenguaje expresivo disminuido y comprensión conservada': ['paciente alerta y colaboradora/o, con lenguaje expresivo disminuido y comprensión conservada',
+                                                                                                  'paciente despierta/o y colaboradora/o, con disminución del lenguaje expresivo y comprensión '
+                                                                                                  'conservada',
+                                                                                                  'paciente alerta, colaboradora/o, con comprensión conservada y lenguaje expresivo disminuido',
+                                                                                                  'paciente colaboradora/o y alerta, con comprensión del lenguaje conservada y expresión verbal '
+                                                                                                  'disminuida',
+                                                                                                  'paciente en estado de alerta, cooperadora/o, con habla expresiva pobre y comprensión adecuada'],
  'paciente ansiosa/o, con dolor': ['paciente ansiosa/o, con dolor',
                                    'paciente con dolor, ansiosa/o',
                                    'paciente ansiosa/o y con dolor',
                                    'paciente con dolor y ansiedad evidente',
                                    'paciente con expresión de dolor, ansiosa/o'],
+ 'paciente ansiosa/o, con facies de dolor y taquicardia leve': ['paciente ansiosa/o, con facies de dolor y taquicardia leve',
+                                                                'paciente ansiosa/o, con gesto de dolor y frecuencia cardíaca ligeramente aumentada',
+                                                                'paciente con facies álgica, ansiosa/o y con taquicardia leve',
+                                                                'paciente inquieta/o, con expresión facial de dolor y discreta taquicardia',
+                                                                'paciente con ansiedad, facies dolorosa y leve aumento de la frecuencia cardíaca'],
  'paciente ansiosa/o, con ánimo decaído': ['paciente ansiosa/o, con ánimo decaído',
                                            'paciente con ánimo decaído, ansiosa/o',
                                            'paciente ansiosa/o y de ánimo decaído',
@@ -892,6 +1053,11 @@ VARIANTES = {'adenopatías cervicales anteriores dolorosas': ['adenopatías cerv
                                             'paciente pálida/o, con edema palpebral',
                                             'edema palpebral y palidez en la/el paciente',
                                             'paciente que presenta edema palpebral y palidez'],
+ 'paciente con rasgos físicos que sugieren alteración del desarrollo, a valorar': ['paciente con rasgos físicos que sugieren alteración del desarrollo, a valorar',
+                                                                                   'paciente con características físicas sugestivas de trastorno del desarrollo, a valorar',
+                                                                                   'paciente con fenotipo que sugiere alteración del desarrollo, pendiente de valoración',
+                                                                                   'paciente con hallazgos físicos compatibles con posible alteración del desarrollo, a valorar',
+                                                                                   'paciente que presenta rasgos físicos sugerentes de un trastorno del desarrollo, por valorar'],
  'paciente con sobrepeso; sin xantomas ni xantelasmas': ['paciente con sobrepeso; sin xantomas ni xantelasmas',
                                                          'paciente con sobrepeso, sin xantomas ni xantelasmas',
                                                          'sobrepeso, sin presencia de xantomas ni xantelasmas',
@@ -922,6 +1088,16 @@ VARIANTES = {'adenopatías cervicales anteriores dolorosas': ['adenopatías cerv
                                                                                    'paciente en aceptable estado general, con presión arterial elevada',
                                                                                    'en aceptable estado general, con cifras tensionales elevadas',
                                                                                    'paciente con aceptable estado general y cifras de presión arterial elevadas'],
+ 'paciente en aceptable estado general, con facies de molestia y dolor abdominal referido, sin datos de abdomen agudo': ['paciente en aceptable estado general, con facies de molestia y dolor '
+                                                                                                                         'abdominal referido, sin datos de abdomen agudo',
+                                                                                                                         'paciente en aceptables condiciones generales, con gesto de molestia, que '
+                                                                                                                         'refiere dolor abdominal, sin datos de abdomen agudo',
+                                                                                                                         'paciente con aceptable estado general, facies de incomodidad y dolor '
+                                                                                                                         'abdominal referido, sin signos de abdomen agudo',
+                                                                                                                         'paciente en aceptable estado general, con expresión de molestia y dolor '
+                                                                                                                         'abdominal referido, sin evidencia de abdomen agudo',
+                                                                                                                         'paciente en buen estado general, con facies de malestar y dolor abdominal '
+                                                                                                                         'referido, sin datos que sugieran abdomen agudo'],
  'paciente en aceptable estado general, con fiebre': ['paciente en aceptable estado general, con fiebre',
                                                       'paciente con fiebre y aceptable estado general',
                                                       'paciente febril, en aceptable estado general',
@@ -937,16 +1113,61 @@ VARIANTES = {'adenopatías cervicales anteriores dolorosas': ['adenopatías cerv
                                                                        'paciente en aceptables condiciones generales, con ganancia de peso acorde',
                                                                        'paciente con aceptable estado general y ganancia de peso acorde',
                                                                        'paciente con ganancia de peso acorde, en aceptable estado general'],
+ 'paciente en aceptable estado general, con mucosas orales levemente secas y sin datos de deshidratación severa': ['paciente en aceptable estado general, con mucosas orales levemente secas y sin '
+                                                                                                                   'datos de deshidratación severa',
+                                                                                                                   'paciente en aceptables condiciones generales, con mucosa oral ligeramente seca, '
+                                                                                                                   'sin signos de deshidratación severa',
+                                                                                                                   'paciente con aceptable estado general, mucosas orales discretamente secas y sin '
+                                                                                                                   'datos de deshidratación grave',
+                                                                                                                   'paciente en aceptable estado general, con leve sequedad de mucosas orales, sin '
+                                                                                                                   'signos de deshidratación severa',
+                                                                                                                   'paciente en buen estado general, mucosas orales algo secas, sin evidencia de '
+                                                                                                                   'deshidratación severa'],
  'paciente en aceptable estado general, con pérdida de peso a valorar': ['paciente en aceptable estado general, con pérdida de peso a valorar',
                                                                          'paciente con pérdida de peso a valorar, en aceptable estado general',
                                                                          'paciente en aceptable estado general; pérdida de peso por valorar',
                                                                          'en aceptable estado general, con posible pérdida de peso a valorar',
                                                                          'paciente con aceptable estado general y pérdida de peso a valorar'],
+ 'paciente en aceptable estado general, con signos vitales estables y sin datos de compromiso hemodinámico': ['paciente en aceptable estado general, con signos vitales estables y sin datos de '
+                                                                                                              'compromiso hemodinámico',
+                                                                                                              'paciente en aceptables condiciones generales, signos vitales estables, sin datos de '
+                                                                                                              'compromiso hemodinámico',
+                                                                                                              'paciente con aceptable estado general, hemodinámicamente estable y con signos vitales '
+                                                                                                              'estables',
+                                                                                                              'paciente en aceptable estado general, signos vitales dentro de parámetros estables, sin '
+                                                                                                              'evidencia de compromiso hemodinámico',
+                                                                                                              'paciente en buen estado general, con constantes vitales estables y sin signos de '
+                                                                                                              'compromiso hemodinámico'],
  'paciente en aceptable estado general, febril, con malestar general': ['paciente en aceptable estado general, febril, con malestar general',
                                                                         'paciente febril, con malestar general y aceptable estado general',
                                                                         'paciente en aceptable estado general, con fiebre y malestar general',
                                                                         'paciente con malestar general y fiebre, en aceptable estado general',
                                                                         'paciente febril y con malestar general, en aceptable estado general'],
+ 'paciente en aceptable estado general, que refiere ardor o dolor epigástrico, sin datos de deshidratación': ['paciente en aceptable estado general, que refiere ardor o dolor epigástrico, sin datos '
+                                                                                                              'de deshidratación',
+                                                                                                              'paciente en aceptables condiciones generales, que refiere dolor o ardor en epigastrio, '
+                                                                                                              'sin signos de deshidratación',
+                                                                                                              'paciente con aceptable estado general, refiere ardor o dolor epigástrico y no presenta '
+                                                                                                              'datos de deshidratación',
+                                                                                                              'paciente en aceptable estado general, con ardor o dolor epigástrico referido, sin '
+                                                                                                              'evidencia de deshidratación',
+                                                                                                              'paciente en buen estado general, que refiere dolor o ardor epigástrico, hidratada/o y '
+                                                                                                              'sin signos de deshidratación'],
+ 'paciente en aceptable estado general, sin datos de infección activa': ['paciente en aceptable estado general, sin datos de infección activa',
+                                                                         'paciente en aceptables condiciones generales, sin signos de infección activa',
+                                                                         'paciente con aceptable estado general y sin evidencia de infección activa',
+                                                                         'paciente en aceptable estado general, afebril y sin datos de proceso infeccioso activo',
+                                                                         'paciente en buen estado general, sin signos clínicos de infección activa'],
+ 'paciente en aceptable estado general, sin signos de descompensación aguda, con piel y mucosas hidratadas': ['paciente en aceptable estado general, sin signos de descompensación aguda, con piel y '
+                                                                                                              'mucosas hidratadas',
+                                                                                                              'paciente en aceptables condiciones generales, sin datos de descompensación aguda, piel '
+                                                                                                              'y mucosas hidratadas',
+                                                                                                              'paciente con aceptable estado general, piel y mucosas hidratadas, sin signos de '
+                                                                                                              'descompensación aguda',
+                                                                                                              'paciente en aceptable estado general, con adecuada hidratación de piel y mucosas y sin '
+                                                                                                              'datos de descompensación aguda',
+                                                                                                              'paciente en buen estado general, sin evidencia de descompensación aguda, con piel y '
+                                                                                                              'mucosas bien hidratadas'],
  'paciente en buen estado general, activo, con peso y talla acordes para la edad': ['paciente en buen estado general, activo, con peso y talla acordes para la edad',
                                                                                     'paciente activo/a, en buen estado general, con peso y talla acordes a la edad',
                                                                                     'paciente en buenas condiciones generales, activo/a, con peso y talla adecuados para la edad',
@@ -1146,11 +1367,6 @@ VARIANTES = {'adenopatías cervicales anteriores dolorosas': ['adenopatías cerv
                                                                        'frecuencia cardíaca normal, con ruidos cardíacos rítmicos y sin soplos',
                                                                        'ruidos cardíacos rítmicos y sin soplos; frecuencia cardíaca dentro de límites normales',
                                                                        'ritmo cardíaco regular, sin soplos, con frecuencia cardíaca normal'],
- 'ruidos cardíacos rítmicos, sin soplos; sin ingurgitación yugular': ['ruidos cardíacos rítmicos, sin soplos; sin ingurgitación yugular',
-                                                                      'ruidos cardíacos rítmicos, sin soplos, y sin ingurgitación yugular',
-                                                                      'sin ingurgitación yugular; ruidos cardíacos rítmicos, sin soplos',
-                                                                      'ruidos cardíacos rítmicos y sin soplos; no hay ingurgitación yugular',
-                                                                      'ruidos cardíacos rítmicos, sin soplos audibles, sin ingurgitación yugular'],
  'ruidos respiratorios con roncus escasos': ['ruidos respiratorios con roncus escasos',
                                              'ruidos respiratorios con escasos roncus',
                                              'roncus escasos a la auscultación de los ruidos respiratorios',

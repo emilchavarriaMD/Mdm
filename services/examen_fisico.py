@@ -11,6 +11,7 @@ from services import cie11_catalog as cat
 
 SECCIONES = [
     ("General", [("general", "paciente consciente, orientada/o, hidratada/o, afebril y en aceptable estado general")]),
+    ("Piel", [("piel", "")]),
     ("Cabeza", [("cabeza", "normocéfala, sin masas ni lesiones")]),
     ("ORL", [("ojos", "ojos con pupilas isocóricas normorreactivas, conjuntivas rosadas y escleras anictéricas"),
              ("oidos", "oídos con conductos auditivos permeables y membranas timpánicas íntegras"),
@@ -22,7 +23,7 @@ SECCIONES = [
     ("Pulmones", [("pulmones", "murmullo vesicular conservado en ambos campos, sin ruidos agregados")]),
     ("Abdomen", [("abdomen", "no se explora de forma adecuada por falta de espacio clínico apropiado")]),
     ("Extremidades", [("extremidades", "simétricas, sin edema ni deformidades, con movilidad y fuerza conservadas, "
-                                       "llenado capilar menor de 2 segundos"), ("piel", "")]),
+                                       "llenado capilar menor de 2 segundos")]),
     ("Genitourinario", [("genital", "genitales externos sin alteraciones evidentes"),
                         ("lumbar", "puño percusión lumbar negativa")]),
 ]
@@ -41,12 +42,12 @@ RULES = [
     (r"traumatismo superficial|excoriacion", {"piel": "excoriaciones y abrasiones superficiales con eritema y costras hemáticas"}),
     (r"quemadura solar", {"piel": "eritema intenso con ampollas y descamación en áreas expuestas, dolorosas al tacto"}),
     (r"otras quemaduras", {"piel": "quemadura de espesor parcial con eritema, flictenas y dolor intenso"}),
-    (r"dermatitis y eccema|dermatitis seborreica|prurigo|erupcion|afecciones alergicas|enfermedades de la piel|prurito|lesiones de la piel|otros sintomas o signos especificados que involucran a la piel", {"piel": "lesiones eritematosas, pruriginosas y descamativas, con excoriaciones por rascado"}),
+    (r"dermatitis y eccema|dermatitis seborreica|prurigo|erupcion|enfermedades de la piel|prurito|lesiones de la piel|otros sintomas o signos especificados que involucran a la piel", {"piel": "lesiones eritematosas, pruriginosas y descamativas, con excoriaciones por rascado"}),
     (r"dermatofitosis del pie", {"piel": "descamación, maceración y fisuras en espacios interdigitales de los pies, con eritema"}),
     (r"dermatofitosis", {"piel": "lesiones anulares eritematosas con borde elevado y descamativo, centro más claro"}),
     (r"pitiriasis", {"piel": "máculas hipopigmentadas con descamación fina en tronco y cuello"}),
     (r"onicomicosis", {"piel": "uñas engrosadas, amarillentas, quebradizas, con onicólisis"}),
-    (r"onicocriptosis", {"piel": "borde ungueal del dedo gordo del pie con eritema, edema, dolor y tejido de granulación"}),
+    (r"onicocriptosis|una encarnada", {"piel": "borde ungueal del dedo gordo del pie con eritema, edema, dolor y tejido de granulación"}),
     (r"sarna|escabiasis", {"piel": "pápulas excoriadas y trayectos lineales en espacios interdigitales y muñecas, con costras por rascado"}),
     (r"pediculosis", {"cabeza": "liendres y pediculos visibles en cuero cabelludo, con excoriaciones y costras en región occipital"}),
     (r"molusco", {"piel": "pápulas pequeñas, color piel, perladas, con umbilicación central"}),
@@ -107,7 +108,7 @@ RULES = [
     (r"angina|cardiopatia isquemica|dolor toracico", {"corazon": "ruidos cardíacos rítmicos, sin soplos; frecuencia cardíaca normal", "torax": "sin dolor a la palpación de la pared torácica"}),
     (r"arritmia|palpitaciones", {"corazon": "ruidos cardíacos arrítmicos o taquicárdicos, sin soplos"}),
     (r"enfermedad de chagas|sistema circulatorio", {"corazon": "ruidos cardíacos rítmicos, con posible desdoblamiento o soplo sistólico suave", "extremidades": "edema leve de miembros inferiores"}),
-    (r"hipertension esencial|hipertension gestacional|preeclam|edema, proteinuria", {"general": "paciente en aceptable estado general, con cifras de presión arterial elevadas", "corazon": "ruidos cardíacos rítmicos, sin soplos; sin ingurgitación yugular"}),
+    (r"hipertension esencial|hipertension gestacional|preeclam|edema, proteinuria", {"general": "paciente en aceptable estado general, con cifras de presión arterial elevadas"}),
     (r"insuficiencia venosa|linfedema|edema$|^edema\b|edema gestacional", {"extremidades": "edema de miembros inferiores con fóvea, várices visibles, hiperpigmentación y cambios tróficos de la piel"}),
     (r"aterosclerosis|arterial oclusiva|oclusiva arterial", {"extremidades": "pulsos distales disminuidos o ausentes, piel fría, pálida y con disminución del vello; llenado capilar prolongado"}),
     # --- extremidades / osteomuscular
@@ -127,7 +128,7 @@ RULES = [
     (r"cefalea|migrana", {"cabeza": "sin lesiones; dolor a la palpación de musculatura pericraneal y temporal, sin signos meníngeos", "cuello": "contractura de la musculatura cervical posterior"}),
     (r"epilepsia|convulsion", {"general": "paciente somnolienta/o o en periodo postcrítico, sin déficit neurológico focal"}),
     (r"parkinson", {"extremidades": "temblor de reposo, rigidez en rueda dentada y bradicinesia; marcha con pasos cortos"}),
-    (r"polineuropatia|dolor neuropatico|nervioso", {"extremidades": "disminución de la sensibilidad en guante y calcetín, con reflejos osteotendinosos disminuidos"}),
+    (r"polineuropatia|dolor neuropatico|relativos al sistema nervioso|enfermedades del sistema nervioso", {"extremidades": "disminución de la sensibilidad en guante y calcetín, con reflejos osteotendinosos disminuidos"}),
     (r"nervio facial", {"cabeza": "asimetría facial con desviación de la comisura labial, borramiento del surco nasolabial e imposibilidad para cerrar el ojo del lado afectado"}),
     (r"trigemino", {"cabeza": "dolor desencadenado por la palpación de puntos gatillo en la distribución del trigémino"}),
     (r"autonomo|hipotension", {"general": "paciente con tendencia a la hipotensión ortostática"}),
@@ -143,12 +144,12 @@ RULES = [
     (r"paludismo", {"general": "paciente febril, con escalofríos, palidez y esplenomegalia a valorar"}),
     (r"deshidratacion", {"general": "paciente con mucosas secas, turgencia de la piel disminuida, llenado capilar prolongado y ojos hundidos"}),
     (r"desnutricion|anorexia|falta del desarrollo|trastornos nutricionales|nutricion", {"general": "paciente con bajo peso, disminución del tejido celular subcutáneo y masa muscular, y palidez"}),
-    (r"anemia|anemias|sangre|hematopoy", {"general": "paciente con palidez de piel y mucosas, taquicárdica leve", "ojos": "conjuntivas pálidas"}),
+    (r"anemia|eritrocitos|enfermedades de la sangre", {"general": "paciente con palidez de piel y mucosas, taquicárdica leve", "ojos": "conjuntivas pálidas"}),
     (r"obesidad", {"general": "paciente con obesidad, IMC elevado, acantosis nigricans a valorar"}),
-    (r"diabetes", {"extremidades": "sensibilidad conservada o disminuida en monofilamento, pulsos distales presentes, sin úlceras"}),
+    (r"diabetes mellitus, tipo|diabetes mellitus tipo", {"extremidades": "sensibilidad conservada o disminuida en monofilamento, pulsos distales presentes, sin úlceras"}),
     (r"hipoglucemia", {"general": "paciente sudorosa/o, con temblor y palidez"}),
     (r"hiperbilirrubinemia|hepatitis|ictericia", {"general": "paciente con tinte ictérico en piel", "ojos": "escleras ictéricas"}),
-    (r"enfermedad renal|insuficiencia renal|nefritico|nefrotico", {"general": "paciente con palidez y edema palpebral", "extremidades": "edema de miembros inferiores con fóvea"}),
+    (r"enfermedad renal|insuficiencia renal|sindrome nefritico|sindrome nefrotico", {"general": "paciente con palidez y edema palpebral", "extremidades": "edema de miembros inferiores con fóvea"}),
     (r"vih|inmunodeficiencia", {"general": "paciente en aceptable estado general, con pérdida de peso a valorar", "orofaringe": "mucosa oral sin candidiasis"}),
     (r"kaposi", {"piel": "máculas y nódulos violáceos en piel y mucosas"}),
     (r"neoplasias malignas de la orofaringe", {"orofaringe": "lesión ulcerada o exofítica en orofaringe", "cuello": "adenopatías cervicales duras y fijas"}),
@@ -198,7 +199,7 @@ RULES += [
     (r"menopausia", {"genital": "mucosa vaginal pálida, delgada y seca, con atrofia vulvovaginal", "general": "paciente con bochornos y sudoración"}),
     (r"examen ginecologico|examen o prueba de embarazo", {"genital": "genitales externos sin lesiones; cuello uterino de aspecto normal si se explora"}),
     (r"estado de embarazo|supervision de embarazo|amenorrea por embarazo|embarazo", {"general": "paciente en aceptable estado general, con ganancia de peso acorde", "genital": "útero gestante con altura uterina acorde a la edad gestacional, frecuencia cardíaca fetal presente y sin sangrado ni pérdida de líquido", "extremidades": "sin edema significativo ni várices"}),
-    (r"amenaza de aborto|aborto|hemorragia al comienzo|hemorragia obstetrica|hemorragia", {"general": "paciente pálida, con taquicardia leve", "genital": "sangrado vaginal escaso o moderado de color rojo oscuro; cuello uterino cerrado; útero acorde a la edad gestacional"}),
+    (r"amenaza de aborto|aborto|hemorragia al comienzo|hemorragia obstetrica|hemorragia especificada al comienzo", {"general": "paciente pálida, con taquicardia leve", "genital": "sangrado vaginal escaso o moderado de color rojo oscuro; cuello uterino cerrado; útero acorde a la edad gestacional"}),
     (r"preeclam|eclampsia|hipertension gestacional|edema, proteinuria|edema gestacional", {"general": "paciente con cifras tensionales elevadas, edema palpebral y facial", "extremidades": "edema con fóvea en miembros inferiores, reflejos osteotendinosos aumentados", "genital": "altura uterina acorde; frecuencia cardíaca fetal presente"}),
     (r"vomitos excesivos|desnutricion en el embarazo", {"general": "paciente con mucosas secas, pérdida de peso y decaimiento", "genital": "útero gestante acorde a la edad gestacional"}),
     (r"parto|trabajo de parto|puerperio|posparto|complicaciones principalmente relacionadas con el puerperio", {"genital": "útero involucionando, a nivel infraumbilical, loquios en cantidad y aspecto normales; herida quirúrgica o episiorrafia sin signos de infección"}),
@@ -216,6 +217,22 @@ except ImportError:
     VARIANTES = {}
 
 
+
+RULES += [
+    (r"afecciones alergicas|urticaria|hipersensibilidad", {"piel": "habones eritematosos, pruriginosos y migratorios, de bordes bien definidos, con dermografismo y excoriaciones por rascado; sin edema de labios ni lengua y sin compromiso de la vía aérea"}),
+    (r"gastritis|dispepsia|reflujo|sistema digestivo|afectan al aparato digestivo", {"general": "paciente en aceptable estado general, que refiere ardor o dolor epigástrico, sin datos de deshidratación"}),
+    (r"nausea|vomito|disminucion del apetito", {"general": "paciente en aceptable estado general, con mucosas orales levemente secas y sin datos de deshidratación severa"}),
+    (r"estrenimiento|intestino irritable|dolor abdominal", {"general": "paciente en aceptable estado general, con facies de molestia y dolor abdominal referido, sin datos de abdomen agudo"}),
+    (r"trastornos metabolicos|endocrinas|hipofuncion|equilibrio hidroelectrolitico", {"general": "paciente en aceptable estado general, sin signos de descompensación aguda, con piel y mucosas hidratadas"}),
+    (r"causas externas|traumatismos, intoxicaciones|traumatismos intoxicaciones", {"general": "paciente en aceptable estado general, con signos vitales estables y sin datos de compromiso hemodinámico"}),
+    (r"habla o del lenguaje", {"general": "paciente alerta y colaboradora/o, con lenguaje expresivo disminuido y comprensión conservada"}),
+    (r"anomalias del desarrollo", {"general": "paciente con rasgos físicos que sugieren alteración del desarrollo, a valorar"}),
+    (r"dolor agudo", {"general": "paciente ansiosa/o, con facies de dolor y taquicardia leve"}),
+    (r"sistema inmunitario", {"general": "paciente en aceptable estado general, sin datos de infección activa"}),
+    (r"asesoramiento o consejo general sobre anticoncepcion|atencion relativa a la anticoncepcion|anticoncepcion poscoital", {"genital": "genitales externos sin lesiones ni signos de infección, sin secreción ni sangrado anormal"}),
+    (r"insercion de dispositivo anticonceptivo", {"genital": "cuello uterino sin lesiones, con hilos del dispositivo intrauterino visibles en el orificio cervical y sin dolor a la movilización"}),
+]
+
 class _Primera:
     @staticmethod
     def choice(op):
@@ -228,21 +245,47 @@ def _var(texto, rng):
     return rng.choice(op) if op else texto
 
 
-_COMPILADAS = [(re.compile(p), h) for p, h in RULES]
+_COMPILADAS = [(re.compile(p.replace(",", "")), h) for p, h in RULES]
+
+
+# diagnósticos con reglas propias: no se les aplica ninguna otra (evita coincidencias por palabras sueltas)
+EXCLUSIVAS = [
+    (r"^neoplasias (benignas|de comportamiento)", {"piel": "lesión nodular o elevada, bien delimitada, de crecimiento lento, móvil y no dolorosa"}),
+    (r"^otras neoplasias de cerebro", {"general": "paciente en regular estado general, con pérdida de peso y palidez"}),
+    (r"^traumatismos en la cabeza", {"cabeza": "hematoma o aumento de volumen en región traumatizada, sin heridas penetrantes", "general": "paciente consciente, orientada/o, Glasgow 15 puntos"}),
+]
 
 
 def _hallazgos(descripciones):
     """{parte: [textos]} sumando los de cada diagnóstico (sin repetir)."""
     out = {}
     for d in descripciones:
-        nombre = cat.plain(d or "")
+        nombre = re.sub(r"\s+", " ", cat.plain(d or "")).strip()
         if not nombre:
+            continue
+        excl = next((h for p, h in EXCLUSIVAS if re.search(p, nombre)), None)
+        if excl is not None:
+            for k, v in excl.items():
+                if v not in out.setdefault(k, []):
+                    out[k].append(v)
             continue
         for rx, h in _COMPILADAS:
             if rx.search(nombre):
                 for k, v in h.items():
                     if v and v not in out.setdefault(k, []):
                         out[k].append(v)
+    return out
+
+
+def _sin_repetir_general(clave, items):
+    """Con varios diagnósticos, «paciente en aceptable estado general» se dice una sola vez."""
+    if clave != "general" or len(items) < 2:
+        return items
+    out = [items[0]]
+    for x in items[1:]:
+        y = re.sub(r"^.*?(estado general|condiciones generales|condición general)[,\s]*(y\s+)?", "", x, count=1, flags=re.I)
+        y = re.sub(r"^que\s+", "", y)
+        out.append(y if y.strip() else x)
     return out
 
 
@@ -255,10 +298,10 @@ _PROPIO = {  # si el texto ya empieza nombrando la región, no se le antepone
     "Corazón": r"corazón|ruidos card", "Pulmones": r"pulmon|campos pulm|murmullo vesicular|ventilación",
     "Abdomen": r"abdomen", "Extremidades": r"extremidades",
     "ORL": r"ojos|oídos|nariz|fosas|conjuntiva|membrana|conducto|mucosa|faringe|orofaringe|agudeza|párpado|inyección|opacidad|caries|hipoacusia|cuerpo extraño",
-    "General": r"paciente|recién|en aceptable|en buen|en regular|afebril|ansios|inquiet|sudoros|somnolient|alerta",
+    "Piel": r"piel", "General": r"paciente|recién|en aceptable|en buen|en regular|afebril|ansios|inquiet|sudoros|somnolient|alerta",
 }
 _ART = {"Cabeza": "la cabeza", "Cuello": "el cuello", "Tórax": "el tórax", "Corazón": "el corazón", "Pulmones": "los pulmones",
-        "Abdomen": "el abdomen", "Extremidades": "las extremidades", "Genitourinario": "el examen genitourinario", "ORL": "ORL"}
+        "Abdomen": "el abdomen", "Extremidades": "las extremidades", "Genitourinario": "el examen genitourinario", "Piel": "la piel", "ORL": "ORL"}
 _ADJ = ("sin ", "simétric", "móvil", "normo", "de ", "con ", "no explorable", "libre", "sano", "blando")
 
 
@@ -288,7 +331,7 @@ def compose(descripciones, ssr=False, rng=None):
         trozos = []
         for clave, normal in partes:
             if clave in h and clave != "abdomen":
-                trozos.append(_unir([_var(x, rng) for x in h[clave]]))
+                trozos.append(_unir(_sin_repetir_general(clave, [_var(x, rng) for x in h[clave]])))
             elif normal:
                 trozos.append(_var(normal, rng))
         if titulo == "Corazón" and False:

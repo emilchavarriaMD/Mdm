@@ -237,3 +237,15 @@ class T09_ExamenFisico(unittest.TestCase):
             for w in ("purulent", "amarillent", "fétid", "abundante"):
                 self.assertIn(w, t)
             self.assertIn("falta de espacio", t.replace("no contar con espacio", "falta de espacio")) if "espacio" in t else None
+
+    def test_cobertura_y_correcciones(self):
+        from services import cie11_catalog as cat, cie11_ssr as ssr
+        from services import examen_fisico as e
+        sin = [d for m in (cat, ssr) for d in m.descriptions() if not e._hallazgos([d])]
+        self.assertLessEqual(len(sin), 2, sin)                     # solo «otros síntomas… no clasificados»
+        self.assertIn("piel", e._hallazgos(["Afecciones alérgicas o de hipersensibilidad, sin especificación"]))
+        self.assertIn("oidos", e._hallazgos(["Otitis media, sin especificación"]))
+        self.assertIn("piel", e._hallazgos(["Uña encarnada"]))
+        self.assertEqual(list(e._hallazgos(["Hemorragia retiniana"])), ["ojos"])
+        t = e.compose(["Hipertensión esencial, sin especificación"])
+        self.assertEqual(t.lower().count("ingurgitación yugular"), 1)
