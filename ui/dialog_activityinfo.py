@@ -94,17 +94,36 @@ class ActivityInfoDialog(_Modal):
         add("consultas", "Consulta a realizar (puede marcar más de una)", ChecksField(gf, ai.CONSULTAS), span=3)
         add("profesional", "Profesional que atiende (APS)", E())
         add("tipo_consulta", "Tipo de consulta (APS)", C(ai.TIPOS_CONSULTA))
-        V = lambda vals: widgets.ComboField(gf, [""] + list(vals), readonly=False, width=26)  # noqa: E731
-        add("sistolica", "Sistólica (mayor) mmHg", V(ai.LISTA_SISTOLICA))
-        add("diastolica", "Diastólica (menor) mmHg", V(ai.LISTA_DIASTOLICA))
-        add("fc", "Frecuencia cardiaca o pulso (latidos/min)", V(ai.LISTA_FC))
-        add("fr", "Frecuencia respiratoria (resp/min) — en niños, elíjala", V(ai.LISTA_FR))
-        add("temperatura", "Temperatura (ºC)", V(ai.LISTA_TEMP))
-        add("peso", "Peso (kg) — escríbalo; vacío = no se llena", E())
+        # Orden de la página de ActivityInfo (subformulario APS): HEA, signos vitales y peso, examen físico, diagnósticos
+        f_hea = ttk.Frame(body)
+        f_hea.pack(fill="x")
+        f_vit = ttk.Frame(body)
+        f_vit.pack(fill="x")
+        f_exa = ttk.Frame(body)
+        f_exa.pack(fill="x")
+        f_dx = ttk.Frame(body)
+        f_dx.pack(fill="x")
+        ttk.Label(f_vit, text="Signos vitales y peso (frecuencia respiratoria: en niños, elíjala; vacío = no se llena)", style="H2.TLabel").pack(anchor="w", pady=(12, 2))
+        gf2 = ttk.Frame(f_vit)
+        gf2.pack(fill="x")
+        g2 = widgets.FormGrid(gf2, 3)
+
+        def add2(key, label, w, span=1):
+            self.w[key] = w
+            w.set_value(defaults.get(key, ""))
+            g2.add(label, w, span=span)
+
+        V = lambda vals: widgets.ComboField(gf2, [""] + list(vals), readonly=False, width=26)  # noqa: E731
+        add2("sistolica", "Sistólica (mayor) mmHg", V(ai.LISTA_SISTOLICA))
+        add2("diastolica", "Diastólica (menor) mmHg", V(ai.LISTA_DIASTOLICA))
+        add2("fc", "Pulso (latidos/min)", V(ai.LISTA_FC))
+        add2("fr", "Frec. respiratoria (por min)", V(ai.LISTA_FR))
+        add2("temperatura", "Temperatura (ºC)", V(ai.LISTA_TEMP))
+        add2("peso", "Peso (kg) — escríbalo", widgets.EntryField(gf2, width=26))
         self._vit_auto = {k: self.w[k].get_value() for k in ("diastolica", "fr")}
 
         dxs = defaults.get("dx") or []
-        ttk.Label(body, text="Diagnósticos — lista de ActivityInfo (descripción y código)",
+        ttk.Label(f_dx, text="Diagnósticos — lista de ActivityInfo (descripción y código)",
                   style="H2.TLabel").pack(anchor="w", pady=(10, 2))
         self.dx_rows = []
         self.dx_tags = []
@@ -112,7 +131,7 @@ class ActivityInfoDialog(_Modal):
         self._labels = labels
         if dxs:
             for i, d in enumerate(dxs):
-                row = ttk.Frame(body)
+                row = ttk.Frame(f_dx)
                 row.pack(fill="x", pady=2)
                 ttk.Label(row, text=f"{i + 1}. {d['abrev']}", width=22).pack(side="left")
                 cb = widgets.ComboField(row, labels, readonly=False, width=78)
@@ -124,40 +143,40 @@ class ActivityInfoDialog(_Modal):
                 cb.bind("<<ComboboxSelected>>", lambda e: self._regen_hea(True))
                 cb.bind("<FocusOut>", lambda e: self._regen_hea(True))
                 cb.bind("<KeyRelease>", lambda e, c=cb: self._filtrar(c, e))
-                tag = ttk.Label(body, text="", style="Muted.TLabel")
+                tag = ttk.Label(f_dx, text="", style="Muted.TLabel")
                 tag.pack(anchor="w", padx=(170, 0))
                 self.dx_tags.append(tag)
                 self.dx_rows.append((d["abrev"], cb))
-            ttk.Label(body, text="Elija en la lista de ActivityInfo (puede escribir para buscar). Al elegir la "
+            ttk.Label(f_dx, text="Elija en la lista de ActivityInfo (puede escribir para buscar). Al elegir la "
                       "descripción, ActivityInfo pone el código solo. Si uno no está en la lista, déjelo vacío: no se llena en "
                       "ActivityInfo, pero la HEA sí lo incluye (vea «HEA usa» debajo de cada uno).",
                       style="Muted.TLabel", wraplength=780, justify="left").pack(anchor="w")
             self.recordar = tk.BooleanVar(value=True)
-            ttk.Checkbutton(body, text="Recordar estas equivalencias para los próximos pacientes",
+            ttk.Checkbutton(f_dx, text="Recordar estas equivalencias para los próximos pacientes",
                             variable=self.recordar).pack(anchor="w")
         else:
             self.recordar = tk.BooleanVar(value=False)
-            ttk.Label(body, text="El ATA no trae diagnósticos para este paciente.",
+            ttk.Label(f_dx, text="El ATA no trae diagnósticos para este paciente.",
                       style="Muted.TLabel").pack(anchor="w")
-        hh = ttk.Frame(body)
+        hh = ttk.Frame(f_hea)
         hh.pack(fill="x", pady=(10, 2))
         ttk.Label(hh, text="HEA — se escribe en «Historia de la enfermedad actual» de APS", style="H2.TLabel").pack(
             side="left")
         ttk.Button(hh, text="Otra versión", command=lambda: self._regen_hea(False)).pack(side="right")
-        ttk.Label(body, text="Una sola historia con los diagnósticos elegidos (crónicos como antecedente, el agudo como cuadro "
+        ttk.Label(f_hea, text="Una sola historia con los diagnósticos elegidos (crónicos como antecedente, el agudo como cuadro "
                   "actual, los demás como síntomas). Revísela y corríjala con lo que el paciente refirió; si la edita a "
                   "mano, ya no se reemplaza sola.", style="Muted.TLabel", wraplength=780, justify="left").pack(anchor="w")
-        self.hea = tk.Text(body, height=6, wrap="word", font=("Segoe UI", 10), relief="solid", bd=1)
+        self.hea = tk.Text(f_hea, height=6, wrap="word", font=("Segoe UI", 10), relief="solid", bd=1)
         self.hea.insert("1.0", defaults.get("hea", ""))
         self.hea.pack(fill="x")
-        self.hea_aviso = ttk.Label(body, text="", style="Muted.TLabel", wraplength=780, justify="left")
+        self.hea_aviso = ttk.Label(f_hea, text="", style="Muted.TLabel", wraplength=780, justify="left")
         self.hea_aviso.pack(anchor="w")
-        ttk.Label(body, text="Examen físico — se escribe en «Examen Físico» de APS", style="H2.TLabel").pack(
+        ttk.Label(f_exa, text="Examen físico — se escribe en «Examen Físico» de APS", style="H2.TLabel").pack(
             anchor="w", pady=(12, 2))
-        ttk.Label(body, text="Por ahora solo «Cefalo-caudal»; luego habrá una biblioteca de exámenes. Puede escribir o "
+        ttk.Label(f_exa, text="Por ahora solo «Cefalo-caudal»; luego habrá una biblioteca de exámenes. Puede escribir o "
                   "corregir el texto; vacío = no se llena.", style="Muted.TLabel", wraplength=780,
                   justify="left").pack(anchor="w")
-        self.examen = tk.Text(body, height=5, wrap="word", font=("Segoe UI", 10), relief="solid", bd=1)
+        self.examen = tk.Text(f_exa, height=5, wrap="word", font=("Segoe UI", 10), relief="solid", bd=1)
         self.examen.insert("1.0", defaults.get("examen_fisico", ""))
         self.examen.pack(fill="x")
         self._hea_auto = defaults.get("hea", "")      # último texto generado: si la persona lo cambia, se respeta
