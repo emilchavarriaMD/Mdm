@@ -41,7 +41,7 @@ class T07_HEA(unittest.TestCase):
             self.assertGreaterEqual(len(b["v"]), 5, n)
             for v in b["v"]:
                 self.assertNotIn("___", v, n)
-                self.assertFalse(re.match(r"(consulta|acude|paciente|beneficiari)", v, re.I), (n, v[:40]))
+                self.assertFalse(re.match(r"(consulta por|paciente|beneficiari)", v, re.I), (n, v[:40]))
 
     def test_toda_la_lista_de_activityinfo_tiene_hea(self):
         for d, _c in cat.CATALOG:
@@ -50,7 +50,7 @@ class T07_HEA(unittest.TestCase):
     def test_abreviaturas_del_ata(self):
         for abrev, nombre in (("HTA", "Hipertensión"), ("DM2", "Diabetes"), ("RC", "Nasofaringitis"),
                               ("PF (ACOS)", "anticonceptivos orales"), ("Tiña pedis", "Dermatofitosis del pie"),
-                              ("Cervicalgia", "Cervicalgia"), ("Vaginosis mixta", "Vaginitis"),
+                              ("Cervicalgia", "Cervicalgia"), ("Vaginosis mixta", "Vaginosis"),
                               ("Cuerpo extraño oído izq", "Cuerpo extraño")):
             self.assertIn(nombre, BANK[hb.bank_id(abrev)]["n"], abrev)
 
@@ -118,7 +118,7 @@ class T07_HEA(unittest.TestCase):
         for _ in range(100):
             t, _a = hb.compose("M", "30", ["Amigdalitis aguda, sin especificación", "Tos"], rng=r)
             neg = " ".join(re.findall(r"Niega [^.]*\.", t)).lower()
-            self.assertNotIn("tos", neg.replace("tose", ""), t)
+            self.assertNotRegex(neg, r"\btos\b", t)
 
     def test_combinaciones_al_azar(self):
         r = random.Random(0)
@@ -157,3 +157,46 @@ class T09_SignosVitales(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)
+
+
+class T08_BancoNuevo(unittest.TestCase):
+    """Banco generado (tools/hea_gen.py): más versiones, sin repetirse, y todas las listas cubiertas."""
+
+    def test_doce_o_mas_versiones_sin_repetirse(self):
+        import difflib
+        from services.hea_data_gen import BANK_GEN
+        self.assertGreaterEqual(len(BANK_GEN), 340)
+        for n, b in BANK_GEN.items():
+            self.assertGreaterEqual(len(b["v"]), 12, (n, b["n"]))
+            self.assertEqual(len(set(b["v"])), len(b["v"]), (n, b["n"]))
+            for i, a in enumerate(b["v"]):
+                for c in b["v"][i + 1:]:
+                    self.assertLess(difflib.SequenceMatcher(None, a, c, autojunk=False).ratio(), .9, (n, b["n"]))
+
+    def test_estructura_de_las_versiones(self):
+        from services.hea_data_gen import BANK_GEN
+        for n, b in BANK_GEN.items():
+            for v in b["v"]:
+                self.assertTrue(v.endswith("."), (n, v))
+                self.assertFalse(re.search(r"\.\.|,,|\s[,.;]|\by (i|hi)[^aeiouáéíóú\W]", v), (n, v))
+                if b["k"] == "C":
+                    self.assertTrue(v.startswith("antecedente de "), (n, v))
+
+    def test_toda_la_lista_ssr_tiene_hea_propia(self):
+        from services import cie11_ssr as ssr
+        for d in ssr.descriptions():
+            n = hb.bank_id(d)
+            self.assertIsNotNone(n, d)
+        self.assertIn("Vaginosis", BANK[hb.bank_id("Vaginosis bacteriana")]["n"])
+        self.assertIn("Dismenorrea", BANK[hb.bank_id("Dismenorrea")]["n"])
+        self.assertIn("Cervicitis", BANK[hb.bank_id("Cervicitis")]["n"])
+        self.assertIn("Mastitis", BANK[hb.bank_id("Mastitis puerperal")]["n"])
+        self.assertIn("Prurito vulvar", BANK[hb.bank_id("Prurito vulvar")]["n"])
+
+    def test_hea_con_diagnosticos_de_aps_y_ssr(self):
+        r = random.Random(11)
+        for _ in range(50):
+            t, av = hb.compose("M", "29", ["Cefalea", "Vaginosis bacteriana", "Dismenorrea"], rng=r)
+            self.assertNotIn("None", t)
+            self.assertEqual(len(re.findall(r"Beneficiaria", t)), 1, t)
+

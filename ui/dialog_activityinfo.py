@@ -254,6 +254,16 @@ class ActivityInfoDialog(_Modal):
         # descripción elegida en la lista de ActivityInfo; si se dejó vacía, el texto del ATA (la HEA lo incluye igual)
         return [hea_banco.fuente_hea(a, cat.from_label(cb.get_value())[0]) for a, cb in self.dx_rows]
 
+    def _dx_hea(self):
+        """Diagnósticos de los que sale la HEA: los de APS y, si se marcó SSR, los de la lista SSR (una sola HEA)."""
+        dxs = list(self._dx_actuales())
+        if hasattr(self, "ssr_rows") and "Salud Sexual y Reproductiva" in self.w["consultas"].get_value():
+            for cb in self.ssr_rows:
+                d = ssr_cat.from_label(cb.get_value())[0] if hasattr(ssr_cat, "from_label") else cb.get_value()
+                if d and d not in dxs:
+                    dxs.append(d)
+        return dxs
+
     def _persona(self):
         """Sexo y edad para la HEA: lo del ATA, corregido con lo que se elija en esta ventana."""
         p = dict(self.defaults.get("hea_persona") or {})
@@ -431,6 +441,8 @@ class ActivityInfoDialog(_Modal):
                 cb.set_value(ssr_cat.label(x["descripcion"]))
             cb.pack(side="left", fill="x", expand=True)
             cb.bind("<KeyRelease>", lambda e, c=cb: self._filtrar(c, e, self._ssr_labels))
+            cb.bind("<<ComboboxSelected>>", lambda e: self._regen_hea(True))
+            cb.bind("<FocusOut>", lambda e: self._regen_hea(True))
             self.ssr_rows.append(cb)
         nota("Elija en la lista de ActivityInfo de SSR (puede escribir para buscar). SSR admite máximo 2 diagnósticos: deje "
              "vacíos los que no apliquen (los que no tienen equivalente en SSR quedan vacíos).")
@@ -563,6 +575,7 @@ class ActivityInfoDialog(_Modal):
     def _mostrar_ssr(self):
         if "Salud Sexual y Reproductiva" in self.w["consultas"].get_value():
             self.f_ssr.pack(fill="x")
+            self._regen_hea(True)
             self._sync_ssr_hea()
         else:
             self.f_ssr.pack_forget()
@@ -586,13 +599,13 @@ class ActivityInfoDialog(_Modal):
 
     def _clave_hea(self):
         p = self._persona()
-        return (tuple(self._dx_actuales()), p.get("sexo"), p.get("edad"), p.get("unidad"))
+        return (tuple(self._dx_hea()), p.get("sexo"), p.get("edad"), p.get("unidad"))
 
     def _regen_hea(self, solo_si_cambio):
         """Vuelve a armar la HEA con los diagnósticos elegidos. Si la persona editó el texto a mano, no lo pisa
         (salvo con «Otra versión»)."""
-        dxs = self._dx_actuales()
         self._marcar_fuentes()
+        dxs = self._dx_hea()
         if solo_si_cambio:
             clave = self._clave_hea()
             if clave == self._dx_vistos:

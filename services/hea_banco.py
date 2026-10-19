@@ -12,11 +12,22 @@ import re
 
 from services import cie11_catalog as cat
 from services.hea_data import ALIAS, BANK, SINONIMOS
+from services.hea_data_gen import ALIAS_GEN, BANK_GEN
+
+# El banco generado (tools/hea_gen.py) reemplaza las versiones de los diagnósticos que tienen ficha clínica nueva
+# y agrega los de la lista SSR que no existían.
+BANK.update(BANK_GEN)
+SINONIMOS = dict(SINONIMOS)
+SINONIMOS.update({"vaginosis": 1001, "vaginosis mixta": 1001, "vaginosis bacteriana": 1001,
+                  "dismenorrea": 1007, "cervicitis": 1002, "mastitis": 1005, "mastitis puerperal": 1005,
+                  "aborto": 1008, "preeclampsia": 1006, "herpes genital": 1004, "fimosis": 1018})
 
 _ID = {}
 for _n, _b in BANK.items():
     _ID.setdefault(cat.plain(_b["n"]), _n)
 for _n, _desc in ALIAS.items():
+    _ID[cat.plain(_desc)] = _n
+for _desc, _n in ALIAS_GEN:
     _ID[cat.plain(_desc)] = _n
 
 
@@ -204,7 +215,7 @@ def compose(sexo, edad, dx_descripciones, unidad="años", rng=None):
     items = []
     vistos = set()
     anios = _edad_anios(edad, unidad)
-    for d in [x for x in dx_descripciones if x and x.strip()][:3]:
+    for d in [x for x in dx_descripciones if x and x.strip()][:4]:
         n = bank_id(d)
         if n is not None and n in vistos:      # el mismo diagnóstico dos veces
             continue
@@ -263,7 +274,10 @@ def compose(sexo, edad, dx_descripciones, unidad="años", rng=None):
             texto = ("antecedente de " + _lista([principal["t"]] + labels) + "; " + cuerpo_txt) if cuerpo_txt else \
                     "antecedente de " + _lista([principal["t"]] + labels)
     else:
-        ant = ("antecedente de " + _lista(labels) + " y cuadro actual de ") if labels else ""
+        if labels and re.match(r"(acude|refiere|solicita|desea|utiliza|se encuentra|cursa|requiere)\b", cuerpo_txt):
+            ant = "antecedente de " + _lista(labels) + ". Actualmente "
+        else:
+            ant = ("antecedente de " + _lista(labels) + " y cuadro actual de ") if labels else ""
         texto = ant + cuerpo_txt
     if not texto.endswith((".", "!", "?")):
         texto += "."
@@ -279,4 +293,6 @@ def compose(sexo, edad, dx_descripciones, unidad="años", rng=None):
     # 4) contexto / motivos
     for j, i in enumerate(otros_x):
         texto += (" Además, " if (j == 0 and not otros_s) else " Asimismo, ") + i["t"] + "."
+    if re.match(r"(acude|refiere|solicita|desea|utiliza|se encuentra|cursa|requiere)\b", texto):
+        head = head.replace(", que presenta ", ", que ")     # «…de edad, que acude a control…»
     return head + texto, avisos

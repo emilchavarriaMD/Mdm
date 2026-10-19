@@ -81,7 +81,7 @@ propio del programa) abre el formulario y **lo llena**. El programa **nunca guar
 - **Diagnósticos**: cada diagnóstico del ATA se elige de la lista de ActivityInfo (260 opciones con su código,
   guardadas en el programa; se puede escribir para buscar). El programa escribe la descripción y ActivityInfo pone
   el código. Nunca elige una opción que no coincida: si no la encuentra, la deja vacía y lo avisa.
-- **HEA**: se arma sola con sexo, edad y diagnósticos (banco de más de 320 diagnósticos con 5–10 versiones cada uno) y se
+- **HEA**: se arma sola con sexo, edad y diagnósticos (banco de 346 diagnósticos con 14 versiones distintas cada uno, en lenguaje médico; una sola HEA para APS y SSR) y se
   escribe en «Historia de la enfermedad actual» del subformulario APS. Con 2–3 diagnósticos se escribe una sola
   historia: los crónicos como «antecedente de…», el agudo como cuadro actual y los demás como «Además refiere…».
   Respeta edad y sexo, avisa si un diagnóstico no corresponde, y el botón «Otra versión» cambia la redacción.
@@ -113,6 +113,9 @@ que dependen de otro aparecen al elegirlo (violencia → tipo; ITS «Sí» → �
 vitales/peso de SSR, medicamentos, lista de verificación de embarazo y los otros campos condicionales de SSR.
 
 ## Cambios
+- **1.5** — HEA nueva: banco ampliado y rehecho para las listas de APS (326) y de SSR (todas con HEA propia, p. ej. vaginosis bacteriana, cervicitis,
+  dismenorrea, mastitis, obstétricos). 14 versiones por diagnóstico, sin repetirse; la HEA sale de los diagnósticos de APS **y** de SSR y es la
+  misma en las dos secciones. Se regenera con `python3 tools/hea_gen.py` (fichas en `tools/hea_specs_*.py`).
 - **1.4** — Salud Sexual y Reproductiva: sección propia en la ventana, lista de diagnósticos de SSR, llenado del subformulario.
 - **1.3** — Peso y examen físico («Cefalo-caudal»); signos vitales con listas desplegables; HEA sin el prefijo «HEA:»; el lugar de atención espera más a que cargue la lista.
 - **1.2** — HEA según edad y sexo; abreviaturas del ATA (PF, RC, FAB, FAV, tiña pedis, cervicalgia, vaginosis…);
