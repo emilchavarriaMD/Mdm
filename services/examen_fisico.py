@@ -28,7 +28,12 @@ SECCIONES = [
 ]
 GU = ("genital", "lumbar")
 GENITAL_NO_EXPLORADO = ("no se realiza inspección genital debido a la ausencia de un espacio físico privado y adecuado, "
-                        "así como de camilla e instrumental necesario, incluidos espéculos vaginales")
+                        "así como de camilla e instrumental necesario")
+# hallazgos genitales que sí pueden anotarse sin explorar (sin inspección genital, espéculo, tacto ni camilla)
+_NO_SIN_EXPLORAR = re.compile(r"vulv|vagin|cuello uterino|cervical|tacto|rectal|anal\b|genital|glande|prepucio|escrot|secreci|leucorrea|"
+                              r"flujo|sangrado vaginal|loquios|episiorrafia|papilomat|verruga|ves[ií]cul|lesi[oó]n|mucosa|"
+                              r"adenopat|bimanual|anexos|incontinencia|cistocele|escape de orina|pene|pr[oó]stat|"
+                              r"hilos|dispositivo|inguinal|consentimiento", re.I)
 
 FIEBRE = {"general": "paciente en aceptable estado general, febril, con malestar general"}
 RESP_ALTA = {"nariz": "nariz con mucosa hiperémica y edematosa, con rinorrea", "orofaringe": "orofaringe con hiperemia leve"}
@@ -324,7 +329,8 @@ def compose(descripciones, ssr=False, rng=None):
     lineas = []
     for titulo, partes in SECCIONES:
         if titulo == "Genitourinario":      # no se explora: solo se anota por qué (y la puño percusión si el dx la pide)
-            tr = [GENITAL_NO_EXPLORADO] + [_var(x, rng) for x in h.get("lumbar", [])]
+            extra = [x for x in h.get("genital", []) if not _NO_SIN_EXPLORAR.search(x)]
+            tr = [GENITAL_NO_EXPLORADO] + [_var(x, rng) for x in extra + h.get("lumbar", [])]
             lineas.append(_frase(titulo, "; ".join(tr)))
             continue
         trozos = []

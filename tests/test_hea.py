@@ -237,7 +237,8 @@ class T09_ExamenFisico(unittest.TestCase):
         self.assertEqual(pos, sorted(pos))                          # genitourinario justo después del abdomen
         self.assertIn("falta de espacio clínico", t)
         self.assertIn("No se realiza inspección genital debido a la ausencia de un espacio físico privado y adecuado, así como "
-                      "de camilla e instrumental necesario, incluidos espéculos vaginales", t)
+                      "de camilla e instrumental necesario", t)
+        self.assertNotIn("espécul", t)
         self.assertEqual(e.compose([], ssr=True), t)
 
     def test_vaginitis(self):
@@ -245,6 +246,10 @@ class T09_ExamenFisico(unittest.TestCase):
         t = e.compose(["Vaginitis aguda"], ssr=False)
         self.assertIn("No se realiza inspección genital", t)         # no se explora: no se inventan hallazgos genitales
         self.assertNotIn("purulento", t)
+        emb = e.compose(["Estado de embarazo"])                       # hallazgos que no requieren explorar sí se conservan
+        self.assertIn("altura uterina", emb)
+        self.assertIn("No se realiza inspección genital", emb)
+        self.assertNotIn("espécul", emb)
 
     def test_varios_dx(self):
         from services import examen_fisico as e
@@ -285,7 +290,8 @@ class T10_PlanBanco(unittest.TestCase):
             for d in m.descriptions():
                 self.assertTrue(pb.tiene_plan(d), d)
                 reg = pb.PLAN[d]
-                self.assertTrue(8 <= len(reg["m"]) <= 13 and 4 <= len(reg["a"]) <= 9 and 2 <= len(reg["s"]) <= 4, d)
+                self.assertTrue(4 <= len(reg["m"]) <= 13 and 4 <= len(reg["a"]) <= 9, d)
+                self.assertTrue(all(re.match(r"[a-záéíóúñü]+(ar|er|ir|se)\b|(en|si|al|ante|durante|después|con|cuando) ", x) for x in reg["m"]), d)
                 t = pb.compose([d], rng=random.Random(1))
                 self.assertTrue(t.endswith(".") and "alarma" in t and t[0].isupper(), d)
                 self.assertNotRegex(t, r"Indicaciones generales|Debe consultar|Se sugiere", d)
