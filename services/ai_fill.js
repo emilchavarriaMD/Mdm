@@ -80,6 +80,7 @@
     if (d.lugar) await S("Lugar de atención", () => setLookup("Puntos de atención sanitaria", d.lugar));
     if (d.fecha) await S("Fecha consulta", () => setText("Fecha consulta", d.fecha));
     if (d.genero) await S("Género", () => setRadio("Género", d.genero));
+    if (d.lgtbiq) await S("¿Se identifica como persona LGTBIQ+?", () => setLookup("¿Se identifica como persona LGTBIQ+?", d.lgtbiq));
     if (d.nacionalidad) await S("País de nacionalidad", () => setLookup("País de Nacionalidad", d.nacionalidad));
     if (d.idioma) await S("Idioma", () => setLookup("Idioma", d.idioma));
     if (d.nombres) await S("Nombre", () => setText("Nombre", d.nombres));

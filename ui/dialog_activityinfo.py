@@ -35,9 +35,8 @@ class ActivityInfoDialog(_Modal):
         add("apellidos", "Apellidos", E())
         add("genero", "Género", C(ai.GENEROS))
         add("fecha", "Fecha de consulta (AAAA-MM-DD)", E())
-        add("tiene_fecha_nac", "¿Se sabe la fecha de nacimiento?", C(["Si", "No"]))
-        add("fecha_nac", "Fecha de nacimiento (AAAA-MM-DD)", E())
-        add("edad", "Edad final (años)", E())
+        add("lgtbiq", "¿Se identifica como persona LGTBIQ+?", C(ai.LGTBIQ))
+        add("edad", "Edad final (años; no se usa fecha de nacimiento)", E())
         add("estado_civil", "Estado civil", C(ai.ESTADOS_CIVILES))
         add("escolaridad", "Grado de escolaridad", C(ai.ESCOLARIDADES))
         add("ocupacion", "Sector de ocupación", C(ai.OCUPACIONES))
@@ -71,6 +70,7 @@ class ActivityInfoDialog(_Modal):
 
     def _ok(self):
         data = {k: w.get_value().strip() for k, w in self.w.items()}
+        data["tiene_fecha_nac"] = "No"  # siempre se usa la edad
         data["dx"] = self.defaults.get("dx") or []
         self.result = data
         self.destroy()

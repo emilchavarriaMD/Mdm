@@ -161,6 +161,9 @@ class UITests(unittest.TestCase):
             _t.sleep(0.05)
         self.assertEqual(seen["defaults"]["nombres"], "Luis")
         self.assertEqual(seen["defaults"]["genero"], "Hombre CIS")
+        self.assertEqual(seen["defaults"]["tiene_fecha_nac"], "No")
+        self.assertEqual(seen["defaults"]["perfil"], "Persona en riesgo de desplazamiento")
+        self.assertEqual(seen["defaults"]["idioma"], "Español")
         self.assertEqual(seen["sent"]["estado_civil"], "Soltero/a")
         self.assertEqual(seen["defaults"]["estado_civil"], "")  # lo que el ATA no trae no se inventa
         self.assertEqual(A.get_record(db, rid)["ai_estado"], "Registrado")
@@ -175,6 +178,21 @@ class UITests(unittest.TestCase):
         app.show("pacientes")
         pp.load()
         self.assertEqual(len(pp.tree.get_children()), 2)
+        # selección y borrado
+        pp.estado.set_value("Todos")
+        pp.load()
+        pp.toggle_all()
+        self.assertEqual(len(pp._checked), 3)
+        pp.toggle_all()
+        self.assertEqual(len(pp._checked), 0)
+        first = int(pp.tree.get_children()[0])
+        pp.tree.selection_set(str(first))
+        pp.toggle_current()
+        self.assertEqual(pp._checked, {first})
+        self.answers[:] = ["yes"]
+        pp.delete_checked()
+        self.assertEqual(len(pp.tree.get_children()), 2)
+        self.assertEqual(self.db.scalar("SELECT COUNT(*) FROM ata_rows"), 2)
 
     def test_03_importar_excel_y_exportar(self):
         from services import ata as A

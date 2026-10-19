@@ -30,6 +30,7 @@ PERFILES = ["Persona en tránsito", "Población desplazada interna", "Persona re
             "Persona en riesgo de desplazamiento", "Comunidad de acogida",
             "Migrante en proceso de retorno", "Líder/esa comunitario/a"]
 PERFIL_FIJO = "Persona en riesgo de desplazamiento"
+LGTBIQ = ["Sí", "No"]
 DISCAPACIDAD = ["Sí", "No", "Prefiere no contestar"]
 DERIVADO = ["Sí", "No"]
 TIPOS_CONSULTA = ["Primera", "Reconsulta", "Seguimiento", "Tamizaje de signos vitales",
@@ -94,7 +95,6 @@ def build_defaults(db, rec: dict) -> dict:
     nombres, apellidos = split_name(rec.get("nombre"))
     sexo = (rec.get("sexo") or "").upper()
     genero = {"M": "Mujer CIS", "H": "Hombre CIS"}.get(sexo, "")
-    fn = (rec.get("fecha_nacimiento") or "").strip()
     anios = (rec.get("edad_anios") or "").strip()
     edad = anios or ("0" if (rec.get("edad_meses") or rec.get("edad_dias")) else "")
     dxmap = dx_map(db)
@@ -109,9 +109,9 @@ def build_defaults(db, rec: dict) -> dict:
                     "cie11": (m["cie11"] if m else "") or cie})
     return {
         "lugar": st["ai_lugar"], "fecha": (rec.get("fecha") or "")[:10], "genero": genero,
-        "nacionalidad": st["ai_nacionalidad"], "idioma": st["ai_idioma"],
+        "lgtbiq": "", "nacionalidad": st["ai_nacionalidad"], "idioma": st["ai_idioma"],
         "nombres": nombres, "apellidos": apellidos,
-        "tiene_fecha_nac": "Si" if fn else "No", "fecha_nac": fn[:10], "edad": edad,
+        "tiene_fecha_nac": "No", "edad": edad,
         "estado_civil": "", "escolaridad": "", "ocupacion": "", "discapacidad": "", "perfil": PERFIL_FIJO,
         "derivado": "", "consulta": CONSULTA_APS, "profesional": st["ai_profesional"],
         "tipo_consulta": "", "dx": dxs,

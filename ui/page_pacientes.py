@@ -21,6 +21,7 @@ class PacientesPage(Page):
         self._rows = {}
         self._busy = False
         self._result = None
+        self._checked = set()
         ttk.Label(self, text="Pacientes", style="H1.TLabel").pack(anchor="w")
         ttk.Label(self, text="Un renglón por paciente atendido. Pulse «➕ Añadir registro» (junto a cada paciente) para registrarlo en ActivityInfo.", style="Muted.TLabel").pack(
             anchor="w", pady=(0, 6))
@@ -37,9 +38,17 @@ class PacientesPage(Page):
         self.estado.bind("<<ComboboxSelected>>", lambda e: self.load())
         self.count = ttk.Label(bar, text="", style="Muted.TLabel")
         self.count.pack(side="left", padx=6)
+        bar2 = ttk.Frame(self)
+        bar2.pack(fill="x", pady=(8, 0))
+        ttk.Button(bar2, text="Seleccionar paciente", command=self.toggle_current).pack(side="left")
+        ttk.Button(bar2, text="Seleccionar todo", command=self.toggle_all).pack(side="left", padx=8)
+        self.btn_del = ttk.Button(bar2, text="Borrar", command=self.delete_checked)
+        self.btn_del.pack(side="left")
+        ttk.Label(bar2, text="(también puede marcar la casilla ☐ de cada paciente)",
+                  style="Muted.TLabel").pack(side="left", padx=10)
 
         frame, self.tree = widgets.make_tree(self, [
-            ("fecha", "Fecha", 108), ("nombre", "Paciente", 270), ("accion", "Acción", 160, "center"),
+            ("sel", "", 46, "center"), ("fecha", "Fecha", 108), ("nombre", "Paciente", 270), ("accion", "Acción", 160, "center"),
             ("estado", "ActivityInfo", 95, "center"), ("sexo", "Sexo", 50, "center"),
             ("edad", "Edad", 70), ("dx", "Diagnósticos", 340)], height=16)
         frame.pack(fill="both", expand=True, pady=(8, 0))
@@ -70,19 +79,63 @@ class PacientesPage(Page):
         self._after = None
         rows = ata_svc.list_records(self.db, self.q.get_value(), self.estado.get_value())
         self._rows = {r["id"]: r for r in rows}
+        self._checked &= set(self._rows)
         widgets.fill_tree(self.tree, [(
-            r["id"], (fmt_date(r["fecha"]), r["nombre"],
+            r["id"], ("☑" if r["id"] in self._checked else "☐", fmt_date(r["fecha"]), r["nombre"],
                       ACTION if r["ai_estado"] != "Registrado" else "Registrado ✔",
                       r["ai_estado"], r["sexo"], ata_svc.age_text(r),
                       " · ".join(x for x in (r["dx1"], r["dx2"], r["dx3"]) if x))) for r in rows])
         pend = sum(1 for r in rows if r["ai_estado"] != "Registrado")
         self.count.configure(text=f"{len(rows)} paciente(s) · {pend} pendiente(s)")
+        self._update_buttons()
+
+    # -- selección y borrado ---------------------------------------------------
+    def _update_buttons(self):
+        n = len(self._checked)
+        self.btn_del.configure(text=f"Borrar ({n})" if n else "Borrar")
+
+    def _set_check(self, rid, on):
+        (self._checked.add if on else self._checked.discard)(rid)
+        if self.tree.exists(str(rid)):
+            self.tree.set(str(rid), "sel", "☑" if on else "☐")
+        self._update_buttons()
+
+    def toggle_current(self):
+        iid = widgets.selected_iid(self.tree)
+        if not iid:
+            dialogs.info(self, "Pulse primero un paciente de la lista.")
+            return
+        self._set_check(int(iid), int(iid) not in self._checked)
+
+    def toggle_all(self):
+        ids = [int(i) for i in self.tree.get_children("")]
+        on = not (ids and all(i in self._checked for i in ids))
+        for i in ids:
+            self._set_check(i, on)
+
+    def delete_checked(self):
+        ids = sorted(self._checked)
+        if not ids:
+            dialogs.info(self, "No hay pacientes marcados. Use «Seleccionar paciente» o «Seleccionar todo».")
+            return
+        nombres = [self._rows[i]["nombre"] for i in ids if i in self._rows]
+        resumen = "\n".join(f"• {n}" for n in nombres[:8]) + (f"\n… y {len(nombres) - 8} más" if len(nombres) > 8 else "")
+        if not dialogs.confirm(self, "Borrar pacientes", f"¿Quitar {len(ids)} paciente(s) del programa?\n\n{resumen}\n\n"
+                               "Se quitan de esta lista y de su hoja ATA. Esto no toca ActivityInfo.",
+                               yes="Borrar", no="Cancelar"):
+            return
+        ata_svc.delete_records(self.db, ids)
+        self._checked.clear()
+        self.app.refresh_all()
 
     def _click(self, event):
         if self.tree.identify_region(event.x, event.y) != "cell":
             return
         col = self.tree.identify_column(event.x)
         iid = self.tree.identify_row(event.y)
+        if iid and col == "#1":
+            self._set_check(int(iid), int(iid) not in self._checked)
+            return "break"
         if iid and col == f"#{list(self.tree['columns']).index('accion') + 1}":
             self.tree.selection_set(iid)
             self.after(10, self.add_record)

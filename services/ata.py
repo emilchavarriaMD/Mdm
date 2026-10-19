@@ -259,6 +259,17 @@ def delete_sheet(db, sheet_id):
         db.audit("ata", sheet_id, "eliminación", "Hoja ATA eliminada")
 
 
+def delete_records(db, ids):
+    """Quita pacientes (filas) de los ATA cargados. Devuelve cuántos se borraron."""
+    ids = [int(i) for i in ids]
+    with db.transaction():
+        for i in ids:
+            db.execute("DELETE FROM ata_rows WHERE id=?", (i,))
+        if ids:
+            db.audit("ata", ids[0], "eliminación", f"{len(ids)} paciente(s) del ATA eliminados")
+    return len(ids)
+
+
 def images_dir() -> Path:
     d = Path(config.data_dir()) / "ata_imagenes"
     d.mkdir(parents=True, exist_ok=True)
