@@ -291,6 +291,27 @@ class UITests(unittest.TestCase):
         for d, _c in __import__("services.cie11_catalog", fromlist=["x"]).CATALOG:
             self.assertIsNotNone(hb.bank_id(d), d)
 
+    def test_04e_hea_se_actualiza_y_respeta_lo_editado(self):
+        from ui.dialog_activityinfo import ActivityInfoDialog
+        d = {"dx": [{"abrev": "RC", "descripcion": "", "cie11": ""}, {"abrev": "Cervicalgia", "descripcion": "",
+                                                                     "cie11": ""}],
+             "consultas": [], "hea_persona": {"sexo": "", "edad": "5", "unidad": "años"}, "hea": "", "edad": "5"}
+        dlg = ActivityInfoDialog(self.root, d)
+        dlg._regen_hea(False)
+        self.assertIn("Beneficiaria/o Fem/Masc de 5 años", dlg.hea.get("1.0", "end"))
+        self.assertEqual([t.cget("text") for t in dlg.dx_tags],
+                         ["HEA usa: Nasofaringitis aguda", "HEA usa: Cervicalgia"])
+        dlg.w["genero"].set_value("Hombre CIS")
+        dlg._regen_hea(True)
+        self.assertIn("Beneficiario Masc de 5 años", dlg.hea.get("1.0", "end"))
+        dlg.hea.insert("end", " EDITADO")
+        dlg.w["edad"].set_value("7")
+        dlg._regen_hea(True)
+        self.assertIn("EDITADO", dlg.hea.get("1.0", "end"))      # lo escrito a mano no se pisa
+        dlg._regen_hea(False)                                     # «Otra versión» sí lo cambia
+        self.assertIn("Beneficiario Masc de 7 años", dlg.hea.get("1.0", "end"))
+        dlg.destroy()
+
     def test_05_respaldo(self):
         import backup
         db = self.db
