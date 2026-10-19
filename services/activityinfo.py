@@ -138,7 +138,34 @@ def _profile_dir() -> str:
     return str(d)
 
 
+DEBUG_PORT = 9223
+
+
+def _find_chrome():
+    """Ruta de chrome.exe (instalación normal de Chrome) o None."""
+    import os
+    import shutil
+    cands = [os.path.join(os.environ.get(v, ""), "Google", "Chrome", "Application", "chrome.exe")
+             for v in ("PROGRAMFILES", "PROGRAMFILES(X86)", "LOCALAPPDATA")]
+    for c in cands:
+        if c and os.path.exists(c):
+            return c
+    return shutil.which("chrome") or shutil.which("google-chrome")
+
+
+def _port_open(port=DEBUG_PORT):
+    import socket
+    try:
+        with socket.create_connection(("127.0.0.1", port), timeout=0.5):
+            return True
+    except OSError:
+        return False
+
+
 def _get_driver():
+    """Chrome NORMAL (ventana de siempre, sin aviso de automatización ni modo incógnito).
+    Se abre como cualquier Chrome y Selenium solo se conecta a él. Usa un perfil propio del programa
+    (Chrome no deja controlar el perfil de uso diario): la primera vez se inicia sesión y queda guardada."""
     global _driver
     if _driver is not None:
         try:
@@ -147,12 +174,25 @@ def _get_driver():
         except Exception:  # noqa: BLE001  (la ventana fue cerrada)
             _driver = None
     from selenium import webdriver
+    chrome = _find_chrome()
     opts = webdriver.ChromeOptions()
-    opts.add_argument(f"--user-data-dir={_profile_dir()}")
-    opts.add_argument("--start-maximized")
-    opts.add_argument("--no-first-run")
-    opts.add_experimental_option("detach", True)  # la ventana queda abierta aunque se cierre el programa
-    opts.add_experimental_option("excludeSwitches", ["enable-automation"])
+    if chrome:
+        import subprocess
+        if not _port_open():
+            subprocess.Popen([chrome, f"--remote-debugging-port={DEBUG_PORT}",
+                              f"--user-data-dir={_profile_dir()}", "--no-first-run",
+                              "--no-default-browser-check", "--start-maximized", "about:blank"])
+            for _ in range(40):
+                if _port_open():
+                    break
+                time.sleep(0.5)
+        opts.add_experimental_option("debuggerAddress", f"127.0.0.1:{DEBUG_PORT}")
+    else:  # sin Chrome instalado en la ruta habitual: modo anterior
+        opts.add_argument(f"--user-data-dir={_profile_dir()}")
+        opts.add_argument("--start-maximized")
+        opts.add_argument("--no-first-run")
+        opts.add_experimental_option("detach", True)
+        opts.add_experimental_option("excludeSwitches", ["enable-automation"])
     _driver = webdriver.Chrome(options=opts)
     return _driver
 
