@@ -1481,7 +1481,7 @@ BANK = {1: {'k': 'S',
        'v': ['antecedente de otitis media crónica; refiere salida de secreción por oído derecho de 3 semanas de evolución, intermitente, con mal olor y disminución de la audición. Niega fiebre, '
              'otalgia intensa o vértigo.',
              'antecedente de otitis media crónica supurativa; acude por reaparición de otorrea amarillenta de 1 mes de evolución. Niega dolor detrás de la oreja, fiebre o debilidad facial.',
-             'antecedente de otitis media crónica; refiere secreción ótica persistente y hipoacusia de 2 meses de evolución, con prurito ótico. Niega cefalea intensa, fiebre o mareo.',
+             'antecedente de otitis media crónica; refiere secreción ótica persistente e hipoacusia de 2 meses de evolución, con prurito ótico. Niega cefalea intensa, fiebre o mareo.',
              'antecedente de infecciones de oído a repetición; refiere otorrea fétida de 6 semanas de evolución con disminución de la audición del mismo lado. Niega fiebre o dolor intenso.',
              'antecedente de otitis media crónica; acude a control refiriendo secreción ocasional tras entrar agua al oído. Niega fiebre, vértigo, otalgia intensa o parálisis facial.']},
  102: {'k': 'S',
@@ -1709,7 +1709,7 @@ BANK = {1: {'k': 'S',
              'congestión nasal, tos seca y febrícula de 3 días de evolución, con cefalea leve. Refiere contacto con familiar resfriado. Niega disnea, sibilancias o dolor torácico.',
              'dolor de garganta, rinorrea y estornudos de 1 día de evolución, tras exposición al frío y la lluvia. Niega fiebre, tos persistente o dificultad para tragar.',
              'rinorrea que pasó de clara a blanquecina, congestión nasal y tos de 4 días de evolución, con disminución del apetito. Niega fiebre alta, dolor de oídos o dificultad respiratoria.',
-             'obstrucción nasal y estornudos de 2 días de evolución, con fiebre de 38 °C y irritabilidad, según refiere la madre. Se alimenta con normalidad. Niega dificultad respiratoria o vómitos.',
+             'obstrucción nasal y estornudos de 2 días de evolución, con fiebre de 38 °C e irritabilidad, según refiere la madre. Se alimenta con normalidad. Niega dificultad respiratoria o vómitos.',
              'malestar general, rinorrea y carraspera de 3 días de evolución, con dolor de garganta al despertar. Se automedicó con antigripal con mejoría parcial. Niega fiebre, tos productiva o '
              'dolor torácico.',
              'congestión nasal y rinorrea de 5 días de evolución, con tos leve de predominio nocturno. Niega fiebre, dificultad respiratoria, dolor facial o secreción purulenta abundante.',
@@ -2777,7 +2777,7 @@ BANK = {1: {'k': 'S',
        'v': ['dolor y edema en muñeca derecha de 1 día de evolución tras caída con la mano extendida, con limitación para movilizarla. Niega deformidad, herida o adormecimiento de los dedos.',
              'dolor en rodilla de 2 días de evolución tras giro brusco jugando fútbol, con inflamación y sensación de inestabilidad. Niega bloqueo articular o herida.',
              'dolor en dedo de la mano de 1 día de evolución tras golpe con balón, con edema y dificultad para doblarlo. Niega deformidad evidente o herida.',
-             'dolor en hombro de 6 horas de evolución tras caída, con deformidad y imposibilidad para mover el brazo. Niega herida abierta o pérdida de sensibilidad.',
+             'dolor en hombro de 6 horas de evolución tras caída, con deformidad e imposibilidad para mover el brazo. Niega herida abierta o pérdida de sensibilidad.',
              'dolor en región cervical de 1 día de evolución tras movimiento brusco en accidente leve, con rigidez y limitación para girar. Niega adormecimiento de brazos o pérdida de fuerza.']},
  217: {'k': 'S',
        'n': 'Molusco contagioso',
@@ -4013,3 +4013,7 @@ BANK.update({
 SINONIMOS.update({'cuerpo extrano oido': 327, 'cuerpo extrano en oido': 327, 'cuerpo extrano oido izq': 327,
                   'cuerpo extrano oido der': 327, 'cuerpo extrano oido izquierdo': 327, 'cuerpo extrano oido derecho': 327,
                   'dermatitis seborreica': 328, 'caspa': 328})
+
+# Correcciones
+BANK[53]['k'] = 'S'
+BANK[53]['t'] = 'bochornos y ausencia de menstruación propios de la menopausia'

@@ -30,7 +30,7 @@ HEADER_FIELDS = [
     ("departamento", "Departamento"), ("municipio", "Municipio"), ("fecha", "Fecha"),
 ]
 DITTO_KEYS = ("dep", "mun", "loc")
-DITTOS = {'"', "''", "“", "”", "〃", "''", "”"}
+DITTOS = {'"', "''", "“", "”", "〃", "11", ",,"}   # «11» es como se ve la comilla de «ídem» escrita a mano
 MAX_ROWS = 40
 
 

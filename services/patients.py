@@ -3,7 +3,7 @@ import difflib
 from datetime import date, datetime
 
 from database import now_iso
-from services.validators import (ValidationError, digits, fmt_date, normalize, parse_date,
+from services.validators import (ValidationError, digits, normalize, parse_date,
                                  parse_number)
 
 SEXOS = ["Femenino", "Masculino", "Otro"]

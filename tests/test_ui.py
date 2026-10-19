@@ -26,7 +26,6 @@ except Exception:  # noqa: BLE001
     HAS_DISPLAY = False
 
 if HAS_DISPLAY:
-    import backup
     import config
     from database import Database
     from ui import dialogs, widgets

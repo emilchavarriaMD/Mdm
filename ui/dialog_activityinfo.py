@@ -5,7 +5,7 @@ from tkinter import ttk
 from services import activityinfo as ai
 from services import cie11_catalog as cat
 from services import hea_banco
-from ui import dialogs, theme, widgets
+from ui import dialogs, widgets
 from ui.dialogs import _Modal
 
 

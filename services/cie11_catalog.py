@@ -307,7 +307,6 @@ SINONIMOS = {
     "parasitismo intestinal": "Parasitosis", "parasitismo": "Parasitosis",
     "cervicalgia": "Afecciones asociadas con la columna vertebral", "dermatitis seborreica": "Dermatitis y eccema",
     "dermatitis atopica": "Dermatitis y eccema", "dermatitis a": "Dermatitis y eccema", "mialgias": "Mialgia",
-    "asma": "Asma no especificada sin complicaciones", "eda": "Gastroenteritis o colitis infecciosa",
     "hta": "Hipertensión esencial", "hipertension arterial": "Hipertensión esencial",
     "hipertension": "Hipertensión esencial", "dm": "Diabetes mellitus", "dm2": "Diabetes mellitus",
     "diabetes": "Diabetes mellitus", "itu": "Infección urinaria", "ivu": "Infección urinaria",
