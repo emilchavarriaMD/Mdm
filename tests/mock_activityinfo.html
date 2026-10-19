@@ -1,0 +1,167 @@
+<!doctype html>
+<html lang="es"><head><meta charset="utf-8"><title>Simulación del formulario de ActivityInfo (solo para pruebas)</title>
+<style>
+  body { font-family: sans-serif; width: 700px; margin: 20px auto; }
+  .forminput__field { border: 1px solid #ccc; padding: 8px; margin: 6px 0; position: relative; }
+  .forminput__lookup__key { display: block; margin: 4px 0; }
+  .listpicker { position: absolute; background: #fff; border: 1px solid #888; z-index: 10; max-height: 300px; overflow: auto; }
+  .listpicker__item { padding: 3px 6px; cursor: pointer; }
+  .hidden { display: none; }
+</style></head>
+<body>
+<!-- Réplica mínima de la estructura del formulario real (etiquetas, listas «listpicker», radios, casillas y campos
+     que aparecen según lo elegido). Sirve para probar services/ai_fill.js sin internet y sin tocar ActivityInfo. -->
+<div id="form"></div>
+<script>
+window.__saved = false;
+window.__clicks = [];
+const $ = (h) => { const t = document.createElement("template"); t.innerHTML = h.trim(); return t.content.firstChild; };
+const plain = (s) => (s || "").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").trim();
+const form = document.getElementById("form");
+let picker = null;
+function closePicker() { if (picker) { picker.remove(); picker = null; } }
+
+function lookup(id, label, options, onPick) {
+  const lab = $(`<label class="forminput__lookup__key" id="${id}">${label}<input type="text"><button class="field__trigger" type="button">▾</button></label>`);
+  const inp = lab.querySelector("input");
+  const show = (filter) => {
+    closePicker();
+    picker = $(`<div class="listpicker"></div>`);
+    const f = plain(filter);
+    options.filter((o) => !f || plain(o).includes(f)).slice(0, 30).forEach((o) => {
+      const it = $(`<div class="listpicker__item">${o}</div>`);
+      it.addEventListener("click", () => { inp.value = o; closePicker(); if (onPick) onPick(o); });
+      picker.appendChild(it);
+    });
+    lab.after(picker);
+  };
+  inp.addEventListener("input", () => show(inp.value));
+  inp.addEventListener("click", () => show(inp.value));
+  lab.querySelector(".field__trigger").addEventListener("click", () => show(""));
+  return lab;
+}
+function field(title, ...children) {
+  const box = $(`<div class="forminput__field"><label>${title}</label></div>`);
+  children.forEach((c) => box.appendChild(c));
+  return box;
+}
+function text(id, title, area) {
+  return field(title, area ? $(`<textarea id="${id}"></textarea>`) : $(`<input type="text" id="${id}">`));
+}
+function radios(id, title, options, onPick) {
+  const box = field(title);
+  box.id = id;
+  options.forEach((o) => {
+    const l = $(`<label><input type="radio" name="${id}" value="${o}"><span>${o}</span></label>`);
+    l.querySelector("input").addEventListener("change", () => onPick && onPick(o));
+    box.appendChild(l);
+  });
+  return box;
+}
+function checks(id, title, options, onPick) {
+  const box = field(title);
+  box.id = id;
+  options.forEach((o) => {
+    const l = $(`<label><input type="checkbox" value="${o}"><span>${o}</span></label>`);
+    l.querySelector("input").addEventListener("change", (e) => onPick && onPick(o, e.target.checked));
+    box.appendChild(l);
+  });
+  return box;
+}
+function button(text, onClick) {
+  const b = $(`<button type="button">${text}</button>`);
+  b.addEventListener("click", () => { window.__clicks.push(text); onClick && onClick(); });
+  return b;
+}
+
+// --- Ficha de atención integral ---
+const punto = field("Punto de atención*",
+  lookup("pais", "Centroamérica País", ["Honduras", "Guatemala", "El Salvador"]),
+  lookup("depto", "Centroamérica Departamento", ["Cortés", "Atlántida"]),
+  lookup("lugar", "Puntos de atención sanitaria / psicológica Lugar de atención",
+         ["San Pedro Sula", "Cortes-otro", "Choloma", "Guatemala - Otro"], (v) => {
+    document.querySelector("#pais input").value = /guatemala/i.test(v) ? "Guatemala" : "Honduras";
+    document.querySelector("#depto input").value = /guatemala/i.test(v) ? "" : "Cortés";
+    if (/otro/i.test(v) && !document.getElementById("especifique")) {
+      setTimeout(() => punto.after(text("especifique", "Especifique punto de atención")), 300);
+    }
+    if (!/guatemala/i.test(v) && !document.getElementById("pueblo")) {
+      setTimeout(() => lgtbiq.after(field("¿Con qué pueblo se identifica la persona atendida?",
+        lookup("pueblo", "¿Con qué pueblo se identifica la persona atendida?", ["Lenca", "Garífuna", "Mestizo"]))), 300);
+    }
+  }));
+form.appendChild(punto);
+form.appendChild(field("Proyecto*",
+  lookup("donante", "Donante Nombre", ["ECHO", "AECID"]),
+  lookup("titulo", "PROYECTOS Título del proyecto", ["ECHO - COMPASS"]),
+  lookup("perfin", "PROYECTOS PERFIN", ["F09010020"])));
+form.appendChild(text("fecha", "Fecha consulta*"));
+form.appendChild(radios("genero", "Género*", ["Mujer CIS", "Hombre CIS", "Mujer TRANS", "Hombre TRANS"]));
+const lgtbiq = field("¿Se identifica como persona LGTBIQ+?", lookup("lgtbiq", "¿Se identifica como persona LGTBIQ+?", ["No", "Sí"]));
+form.appendChild(lgtbiq);
+form.appendChild(field("País de Nacionalidad*", lookup("nac", "País de Nacionalidad", ["Honduras", "Guatemala"])));
+form.appendChild(field("Idioma*", lookup("idioma", "Idioma", ["Español", "Inglés"])));
+form.appendChild(text("nombre", "Nombre*"));
+form.appendChild(text("apellidos", "Apellidos*"));
+const fnac = radios("fnac", "Fecha de nacimiento SI/NO*", ["Si", "No"], (v) => {
+  if (v === "No" && !document.getElementById("anios")) setTimeout(() => fnac.after(text("anios", "Años (manual)")), 300);
+});
+form.appendChild(fnac);
+form.appendChild(radios("civil", "Estado civil*", ["Soltero/a", "Casado/a", "Unión libre"]));
+form.appendChild(radios("escolaridad", "Grado de escolaridad*", ["Ninguno", "Primaria", "Secundaria"]));
+form.appendChild(field("Sector de ocupación*", lookup("ocupacion", "Sector de ocupación", ["Estudiante", "Ama de casa", "Agricultura"])));
+form.appendChild(radios("discapacidad", "¿Tiene algún tipo de discapacidad?*", ["Sí", "No"]));
+form.appendChild(field("Perfil de población*", lookup("perfil", "Perfil de población", ["Persona en riesgo de desplazamiento", "Persona retornada"])));
+form.appendChild(radios("derivado", "¿Ha sido derivado/a?*", ["Sí", "No"]));
+const consultas = checks("consultas", "Consulta a realizar*", ["Atención Primaria de Salud", "Nutrición", "Salud mental"], (o, on) => {
+  if (o === "Atención Primaria de Salud" && on && !document.getElementById("btnAps")) {
+    const b = button("Nuevo registro en Atención primaria de salud", openAps);
+    b.id = "btnAps";
+    consultas.after(b);
+  }
+});
+form.appendChild(consultas);
+form.appendChild(button("Guardar como borrador", () => { window.__saved = true; }));
+form.appendChild(button("Guardar registro", () => { window.__saved = true; }));
+
+// --- Subformulario de Atención primaria de salud ---
+const CATALOGO = { "Hipertensión esencial, sin especificación": "BA00.Z", "Dermatitis y eccema, sin especificación": "EA8Z",
+  "Trastornos de cefalea, sin especificación": "8A81.Z", "Gastritis, sin especificación": "DA42.Z",
+  "Absceso periapical, sin especificación": "DA09.6Z" };
+function openAps() {
+  if (document.getElementById("aps")) return;
+  const aps = $(`<div id="aps"><h3>Nuevo registro en Atención primaria de salud</h3></div>`);
+  aps.appendChild(field("Profesional que atiende*", lookup("prof", "Nombre y Apellidos",
+    ["Nadia Alejandra Chavarría López", "Otra Persona"]), lookup("prof_pais", "País", ["Honduras"])));
+  aps.appendChild(radios("mismo_punto", "¿Mismo punto de atención registrado en la ficha integral?*", ["Sí", "No"]));
+  aps.appendChild(radios("mismo_proy", "¿Mismo proyecto registrado en la ficha integral?*", ["Sí", "No"]));
+  const tipo = radios("tipo", "Tipo de consulta*", ["Primera", "Reconsulta", "Tamizaje de signos vitales"], (v) => {
+    const hea = document.getElementById("hea_box");
+    if (v !== "Tamizaje de signos vitales" && !hea) {
+      setTimeout(() => { const b = text("hea", "Historia de la enfermedad actual", true); b.id = "hea_box"; tipo.after(b); }, 300);
+    }
+    if (v === "Tamizaje de signos vitales" && hea) hea.remove();
+  });
+  aps.appendChild(tipo);
+  const ndx = text("ndx", "¿Cuántos diagnósticos?");
+  ndx.querySelector("input").addEventListener("change", (e) => {
+    const n = Math.min(3, parseInt(e.target.value || "0", 10));
+    document.querySelectorAll(".dxbox").forEach((x) => x.remove());
+    let last = ndx;
+    for (let i = 1; i <= n; i++) {
+      const box = $(`<div class="forminput__field dxbox"><h4>${i === 1 ? "Diagnóstico APS" : "Diagnóstico APS " + i}</h4></div>`);
+      const code = lookup(`code${i}`, "Código CIE.11", Object.values(CATALOGO));
+      const desc = lookup(`desc${i}`, "Descripción de la morbilidad CIE-11", Object.keys(CATALOGO), (v) => {
+        code.querySelector("input").value = CATALOGO[v];
+      });
+      box.appendChild(desc); box.appendChild(code);
+      last.after(box); last = box;
+    }
+  });
+  aps.appendChild(ndx);
+  aps.appendChild(button("Está hecho", () => { window.__saved = true; }));
+  aps.appendChild(button("Cancelar", () => { window.__saved = true; }));
+  document.getElementById("btnAps").after(aps);
+}
+</script>
+</body></html>
