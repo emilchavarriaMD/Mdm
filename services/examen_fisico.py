@@ -275,4 +275,4 @@ def compose(descripciones, ssr=False, rng=None):
                 txt = txt[len(pref):]
                 break
         lineas.append(f"{titulo}: {txt[:1].upper() + txt[1:]}.")
-    return "\n".join(lineas)
+    return " ".join(lineas)
