@@ -105,6 +105,7 @@ class T08_LlenadoSimulado(unittest.TestCase):
         self.assertNotIn("Guardar registro", v["clicks"])
         self.assertNotIn("Está hecho", v["clicks"])
         self.assertEqual(rep["ficha"], [], rep)
+        self.assertEqual(rep["verif"], [], rep)            # nada quedó vacío ni distinto de lo escrito
         esperado = {
             "lugar": "Cortes-otro", "pais": "Honduras", "especifique": "Brigada Brisas 1", "donante": "ECHO",
             "titulo": "ECHO - COMPASS", "perfin": "F09010020", "fecha": "2026-10-19", "genero": "Mujer CIS",
@@ -125,6 +126,20 @@ class T08_LlenadoSimulado(unittest.TestCase):
         self.assertEqual(v["desc3"], "")
         self.assertTrue(any("Inventado" in x for x in rep["aps"]), rep)
         self.assertEqual(len(rep["info"]), 2, rep)
+
+    def test_verificacion_detecta_un_campo_que_cambio(self):
+        page = self.browser.new_page()
+        page.goto((ROOT / "tests" / "mock_activityinfo.html").as_uri())
+        page.add_script_tag(content=(ROOT / "services" / "ai_fill.js").read_text(encoding="utf-8"))
+        page.evaluate("async () => { await window.__mdm.setText('Nombre', 'Ana'); await window.__mdm.setText('Apellidos', 'Prueba'); }")
+        self.assertEqual(page.evaluate("() => window.__mdm.verificar()"), [])
+        page.evaluate("async () => { await window.__mdm.setText('Nombre', 'Ana'); await window.__mdm.setText('Apellidos', 'Prueba'); }")
+        page.evaluate("() => { document.querySelector('#nombre').value = ''; document.querySelector('#apellidos').value = 'Otro'; }")
+        malos = page.evaluate("() => window.__mdm.verificar()")
+        page.close()
+        self.assertEqual(len(malos), 2, malos)
+        self.assertTrue(any("Nombre" in m and "vacío" in m for m in malos), malos)
+        self.assertTrue(any("Apellidos" in m and "distinto" in m for m in malos), malos)
 
     def _ssr_payload(self, **kw):
         p = dict(PAYLOAD, consultas=["Atención Primaria de Salud", "Salud Sexual y Reproductiva"], permitir_esta_hecho=True,

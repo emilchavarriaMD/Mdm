@@ -116,8 +116,8 @@ def save_sheet(db, header: dict, rows: list, sheet_id=None, imagen=None, brigade
             # se conserva el estado de ActivityInfo de lo ya registrado (se compara nombre + fecha nac.)
             prev = {(x["nombre"].lower(), x["fecha_nacimiento"] or "", x["numero"] or ""):
                     (x["ai_estado"], x["ai_fecha"])
-                    for x in db.query("SELECT * FROM ata_rows WHERE sheet_id=?", (sheet_id,))}
-            db.execute("DELETE FROM ata_rows WHERE sheet_id=?", (sheet_id,))
+                    for x in db.query("SELECT * FROM ata_rows WHERE sheet_id=? AND borrado_en IS NULL", (sheet_id,))}
+            db.execute("DELETE FROM ata_rows WHERE sheet_id=? AND borrado_en IS NULL", (sheet_id,))
             db.audit("ata", sheet_id, "modificación", f"Hoja ATA {header['fecha']}")
         for n, r in enumerate(rows):
             est = prev.get((r["nombre"].lower(), r["fecha_nacimiento"] or "", r["numero"] or ""),
@@ -131,10 +131,11 @@ def save_sheet(db, header: dict, rows: list, sheet_id=None, imagen=None, brigade
 
 def list_records(db, texto="", estado="Todos"):
     """Un renglón por paciente/atención, con los datos de su hoja."""
-    where, params = [], []
+    where, params = ["r.borrado_en IS NULL"], []
     for tok in texto.lower().split():
-        where.append("(LOWER(r.nombre) LIKE ? OR LOWER(r.hc) LIKE ? OR r.identidad LIKE ?)")
-        params += [f"%{tok}%"] * 3
+        where.append("(LOWER(r.nombre) LIKE ? OR LOWER(r.hc) LIKE ? OR r.identidad LIKE ? OR LOWER(r.dx1) LIKE ? "
+                     "OR LOWER(r.dx2) LIKE ? OR LOWER(r.dx3) LIKE ?)")
+        params += [f"%{tok}%"] * 6
     if estado in ("Pendiente", "Llenado", "Registrado"):
         where.append("r.ai_estado = ?")
         params.append(estado)
@@ -249,7 +250,7 @@ def import_excel(path):
 
 
 def list_sheets(db):
-    return db.query("""SELECT s.*, (SELECT COUNT(*) FROM ata_rows WHERE sheet_id=s.id) AS filas
+    return db.query("""SELECT s.*, (SELECT COUNT(*) FROM ata_rows WHERE sheet_id=s.id AND borrado_en IS NULL) AS filas
                        FROM ata_sheets s ORDER BY COALESCE(s.fecha,'') DESC, s.id DESC""")
 
 
@@ -257,7 +258,7 @@ def get_sheet(db, sheet_id):
     s = db.one("SELECT * FROM ata_sheets WHERE id=?", (sheet_id,))
     if not s:
         return None, []
-    rows = db.query("SELECT * FROM ata_rows WHERE sheet_id=? ORDER BY orden", (sheet_id,))
+    rows = db.query("SELECT * FROM ata_rows WHERE sheet_id=? AND borrado_en IS NULL ORDER BY orden", (sheet_id,))
     return s, rows
 
 
@@ -268,13 +269,28 @@ def delete_sheet(db, sheet_id):
 
 
 def delete_records(db, ids):
-    """Quita pacientes (filas) de los ATA cargados. Devuelve cuántos se borraron."""
+    """Manda pacientes (filas) de los ATA cargados a la papelera (se pueden recuperar). Devuelve cuántos."""
     ids = [int(i) for i in ids]
     with db.transaction():
         for i in ids:
-            db.execute("DELETE FROM ata_rows WHERE id=?", (i,))
+            db.execute("UPDATE ata_rows SET borrado_en=? WHERE id=?", (now_iso(), i))
         if ids:
-            db.audit("ata", ids[0], "eliminación", f"{len(ids)} paciente(s) del ATA eliminados")
+            db.audit("ata", ids[0], "eliminación", f"{len(ids)} paciente(s) del ATA enviados a la papelera")
+    return len(ids)
+
+
+def list_papelera(db):
+    return db.query("SELECT r.*, s.fecha FROM ata_rows r JOIN ata_sheets s ON s.id = r.sheet_id "
+                    "WHERE r.borrado_en IS NOT NULL ORDER BY r.borrado_en DESC, r.id")
+
+
+def restore_records(db, ids):
+    ids = [int(i) for i in ids]
+    with db.transaction():
+        for i in ids:
+            db.execute("UPDATE ata_rows SET borrado_en=NULL WHERE id=?", (i,))
+        if ids:
+            db.audit("ata", ids[0], "restauración", f"{len(ids)} paciente(s) recuperados de la papelera")
     return len(ids)
 
 

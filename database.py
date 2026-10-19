@@ -335,6 +335,8 @@ class Database:
         if "ai_estado" not in acols:
             self.conn.execute("ALTER TABLE ata_rows ADD COLUMN ai_estado TEXT NOT NULL DEFAULT 'Pendiente'")
             self.conn.execute("ALTER TABLE ata_rows ADD COLUMN ai_fecha TEXT")
+        if "borrado_en" not in acols:      # papelera: los pacientes borrados se pueden recuperar
+            self.conn.execute("ALTER TABLE ata_rows ADD COLUMN borrado_en TEXT")
         self.conn.execute(f"PRAGMA user_version = {SCHEMA_VERSION}")
         with self.transaction():
             for key, value in DEFAULT_SETTINGS.items():

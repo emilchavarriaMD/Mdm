@@ -202,7 +202,31 @@ class UITests(unittest.TestCase):
         self.answers[:] = ["yes"]
         pp.delete_checked()
         self.assertEqual(len(pp.tree.get_children()), 2)
-        self.assertEqual(self.db.scalar("SELECT COUNT(*) FROM ata_rows"), 2)
+        self.assertEqual(self.db.scalar("SELECT COUNT(*) FROM ata_rows WHERE borrado_en IS NULL"), 2)
+        self.assertEqual(self.db.scalar("SELECT COUNT(*) FROM ata_rows WHERE borrado_en IS NOT NULL"), 1)   # en la papelera
+        # filtros de sexo y edad, y alerta de la fila seleccionada
+        pp.sexo.set_value("Hombre")
+        pp.load()
+        self.assertTrue(all(pp._rows[int(i)]["sexo"] == "H" for i in pp.tree.get_children()))
+        pp.sexo.set_value("Todos")
+        pp.grupo.set_value("60 años o más")
+        pp.load()
+        self.assertEqual(len(pp.tree.get_children()), 0)
+        pp.grupo.set_value("Todas las edades")
+        pp.load()
+        self.assertEqual(len(pp.tree.get_children()), 2)
+        import ui.page_pacientes as ppmod2
+
+        class NoDialog:
+            def __init__(self, *a, **k):
+                pass
+
+            def run(self):
+                return None
+        ppmod2.ActivityInfoDialog = NoDialog
+        pp.tree.selection_set(pp.tree.get_children()[0])
+        pp.siguiente_pendiente()                      # abre el siguiente pendiente (aquí se cancela el diálogo)
+        self.assertEqual(pp.progreso["maximum"], 100)
 
     def test_03_importar_excel_y_exportar(self):
         from services import ata as A

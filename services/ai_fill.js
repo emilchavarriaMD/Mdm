@@ -1,6 +1,6 @@
 /* Llena el formulario de ActivityInfo. NUNCA pulsa Guardar registro ni Guardar como borrador. */
 (function () {
-  const VERSION = 22;
+  const VERSION = 23;
   if (window.__mdm && window.__mdm.version === VERSION) return;   // una versión vieja en la pestaña se reemplaza
   const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
   const norm = (s) => (s || "").replace(/\s+/g, " ").replace(/\*/g, "").replace(/OBLIGATORIO/g, "").trim().toLowerCase();
@@ -42,6 +42,20 @@
     const inp = inputFor(l); if (!inp) throw new Error("Campo sin cuadro de texto: " + label);
     inp.scrollIntoView({ block: "center" }); inp.focus(); setNative(inp, String(value));
     inp.dispatchEvent(new Event("change", { bubbles: true })); inp.blur();
+    if (!/fecha/i.test(label)) CHK.push({ label, el: inp, esperado: String(value) });
+  }
+  // Verificación: vuelve a leer lo escrito en los cuadros de texto y avisa si quedó vacío o distinto.
+  const CHK = [];
+  const compacto = (t) => plain(t).replace(/[^a-z0-9]+/g, "");
+  function verificar() {
+    const malos = [];
+    for (const c of CHK.splice(0)) {
+      if (!c.el.isConnected) continue;       // el subformulario ya se cerró: se revisó antes de cerrarlo
+      const v = compacto(c.el.value), e = compacto(c.esperado);
+      if (v === e) continue;
+      malos.push(v ? `«${c.label}» quedó distinto de lo previsto; revíselo` : `«${c.label}» quedó vacío; escríbalo a mano`);
+    }
+    return malos;
   }
   async function setLookup(label, value, within) {
     const l = findLabel(label, within); if (!l) throw new Error("No encontré el campo: " + label);
@@ -435,12 +449,14 @@
     return log;
   }
   async function run(d) {
+    CHK.length = 0;
     const falla = await fillFicha(d);
+    const verif = verificar();
     const info = [];
     const quiereAps = (d.consultas || []).includes("Atención Primaria de Salud");
     const quiereSsr = (d.consultas || []).includes("Salud Sexual y Reproductiva") && !!d.ssr;
     let aps = [];
-    if (quiereAps) aps = await fillAps(d, info);
+    if (quiereAps) { aps = await fillAps(d, info); verif.push(...verificar()); }
     let ssr = [];
     if (quiereSsr) {
       if (quiereAps) {
@@ -449,9 +465,9 @@
           try { await terminarAps(); } catch (e) { ssr = ["SSR: " + e.message]; }
         }
       }
-      if (!ssr.length) ssr = await fillSsr(d, info);
+      if (!ssr.length) { ssr = await fillSsr(d, info); verif.push(...verificar()); }
     }
-    return { ficha: falla, aps: aps, ssr: ssr, info: info };
+    return { ficha: falla, aps: aps, ssr: ssr, info: info, verif: verif };
   }
-  window.__mdm = { fillSsr, openSsr, terminarAps, findLabel, setText, setLookup, setRadio, setChecks, setAuto, fillFicha, fillAps, run, sleep, version: VERSION };
+  window.__mdm = { fillSsr, openSsr, terminarAps, findLabel, setText, setLookup, setRadio, setChecks, setAuto, fillFicha, fillAps, run, verificar, sleep, version: VERSION };
 })();

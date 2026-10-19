@@ -4,6 +4,7 @@ import tkinter as tk
 from tkinter import ttk
 
 from services import activityinfo as ai
+from services import coherencia
 from services import cie11_catalog as cat
 from services import cie11_ssr as ssr_cat
 from services import hea_banco
@@ -288,6 +289,8 @@ class ActivityInfoDialog(_Modal):
         ttk.Label(side, text="DIAGNÓSTICOS", style="CardField.TLabel").pack(anchor="w")
         self._p_dx = ttk.Label(side, style="Card.TLabel", wraplength=ancho - 35, justify="left")
         self._p_dx.pack(anchor="w", pady=(2, 0))
+        self._p_alerta = ttk.Label(side, style="Card.TLabel", foreground=theme.WARN, wraplength=ancho - 35, justify="left")
+        self._p_alerta.pack(anchor="w", pady=(6, 0))
         ttk.Separator(side).pack(fill="x", pady=8)
         ttk.Label(side, text="IR A", style="CardField.TLabel").pack(anchor="w")
         self._nav = {}
@@ -348,6 +351,10 @@ class ActivityInfoDialog(_Modal):
             self._p_edad.configure(text=" · ".join(x for x in ((f"{edad} {u}" if edad else ""), sexo) if x) or "—")
             dx = [d for d in self._dx_hea() if d]
             self._p_dx.configure(text="\n".join("• " + d for d in dx) if dx else "—")
+            anios = (float(edad) if (p.get("unidad") or "años").lower().startswith("a") else
+                     float(edad) / 12 if (p.get("unidad") or "").lower().startswith("m") else float(edad) / 365) if edad.isdigit() else None
+            al = coherencia.alertas(p.get("sexo"), anios, dx, self._valor("temperatura"))
+            self._p_alerta.configure(text=("⚠ Revisar:\n" + "\n".join("• " + a for a in al)) if al else "")
             # lo importante que falta: campos en rojo, marca en cada sección y lista en el panel
             falt = self._faltantes()
             malos = {k for _s, _t, k in falt if k}
