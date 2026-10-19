@@ -21,7 +21,7 @@ PAYLOAD = {
     "discapacidad": "No", "perfil": "Persona en riesgo de desplazamiento", "derivado": "No",
     "consultas": ["Atención Primaria de Salud"], "profesional": "Nadia Alejandra Chavarria Lopez",
     "tipo_consulta": "Primera",
-    "hea": "HEA: Beneficiaria Fem de 34 años de edad, que presenta antecedente de hipertensión arterial esencial.",
+    "hea": "Beneficiaria Fem de 34 años de edad, que presenta antecedente de hipertensión arterial esencial.",
     "dx": [{"abrev": "HTA", "descripcion": "Hipertensión esencial, sin especificación", "cie11": "BA00.Z"},
            {"abrev": "Dermatitis", "descripcion": "Dermatitis y eccema, sin especificación", "cie11": "EA8Z"},
            {"abrev": "Inventado", "descripcion": "Diagnóstico que no existe en la lista", "cie11": ""}],

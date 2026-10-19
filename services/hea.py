@@ -131,7 +131,7 @@ def generate_hea(rec, descripciones=None):
     dxs = [(rec.get(f"dx{i}") or "").strip() for i in (1, 2, 3)]
     dxs = [d for d in dxs if d]
     if not dxs:
-        return f"HEA: {cabecera} que acude a consulta. El ATA no registra diagnóstico; complete el motivo de consulta."
+        return f"{cabecera} que acude a consulta. El ATA no registra diagnóstico; complete el motivo de consulta."
     cronicos, otros = [], []
     for d in dxs:
         nombre = descripciones.get(d.lower()) or d
@@ -142,7 +142,7 @@ def generate_hea(rec, descripciones=None):
     if cronicos:
         ant = " con " + ("antecedente" if otros else "diagnóstico") + " de " + " y ".join(c[1][0] for c in cronicos)
     if not otros:   # solo enfermedades crónicas: consulta de control
-        return f"HEA: {cabecera}{ant}, que acude a consulta para valoración y control. " + ". ".join(notas) + "."
+        return f"{cabecera}{ant}, que acude a consulta para valoración y control. " + ". ".join(notas) + "."
     nombre0, h0 = otros[0]
     if h0 is None:
         texto = (f"{cabecera}{ant}, que acude a consulta con diagnóstico de {nombre0}. Se requiere caracterizar el "
@@ -160,4 +160,4 @@ def generate_hea(rec, descripciones=None):
         texto += " Además se identifica: " + "; ".join(extra) + "."
     if notas:
         texto += " " + ". ".join(notas) + "."
-    return "HEA: " + texto.replace(" ,", ",")
+    return texto.replace(" ,", ",")

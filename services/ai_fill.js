@@ -1,6 +1,6 @@
 /* Llena el formulario de ActivityInfo. NUNCA pulsa Guardar registro ni Guardar como borrador. */
 (function () {
-  const VERSION = 11;
+  const VERSION = 12;
   if (window.__mdm && window.__mdm.version === VERSION) return;   // una versión vieja en la pestaña se reemplaza
   const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
   const norm = (s) => (s || "").replace(/\s+/g, " ").replace(/\*/g, "").replace(/OBLIGATORIO/g, "").trim().toLowerCase();
@@ -54,12 +54,12 @@
     let item = null;
     const t0 = Date.now();
     let nudge = 0;
-    while (Date.now() - t0 < 15000 && !item) {
-      if (Date.now() - t0 >= nudge) { setNative(inp, ""); await sleep(150); setNative(inp, String(value)); nudge += 3500; }
+    while (Date.now() - t0 < 45000 && !item) {
+      if (Date.now() - t0 >= nudge) { setNative(inp, ""); await sleep(150); setNative(inp, nudge > 7000 ? String(value).slice(0, Math.max(4, Math.ceil(String(value).length / 2))) : String(value)); nudge += 3500; }
       await sleep(250);
       const items = shown();
       item = items.find((i) => plain(i.innerText) === want) || null;
-      if (!item && Date.now() - t0 > 9000) {
+      if (!item && Date.now() - t0 > 25000) {
         const near = items.filter((i) => plain(i.innerText).includes(want)).sort((x, y) => x.innerText.length - y.innerText.length);
         item = near[0] || null;
       }

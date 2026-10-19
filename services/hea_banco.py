@@ -223,7 +223,7 @@ def compose(sexo, edad, dx_descripciones, unidad="años", rng=None):
                 avisos.append(f"«{d}» es propio de lactantes o recién nacidos; revise la edad o el diagnóstico.")
     head = cabecera(sexo, edad, unidad)
     if not items:
-        return "HEA: " + head.replace(", que presenta ", "") + " que acude a consulta. El ATA no registra diagnóstico.", avisos
+        return head.replace(", que presenta ", "") + " que acude a consulta. El ATA no registra diagnóstico.", avisos
 
     cron = [i for i in items if i["k"] == "C"]
     agud = [i for i in items if i["k"] == "S"]
@@ -279,4 +279,4 @@ def compose(sexo, edad, dx_descripciones, unidad="años", rng=None):
     # 4) contexto / motivos
     for j, i in enumerate(otros_x):
         texto += (" Además, " if (j == 0 and not otros_s) else " Asimismo, ") + i["t"] + "."
-    return "HEA: " + head + texto, avisos
+    return head + texto, avisos

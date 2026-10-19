@@ -166,7 +166,7 @@ class UITests(unittest.TestCase):
         self.assertEqual((seen["defaults"]["donante"], seen["defaults"]["proyecto"], seen["defaults"]["perfin"]),
                          ("ECHO", "ECHO - COMPASS", "F09010020"))
         self.assertEqual(seen["defaults"]["pueblo"], "")
-        self.assertTrue(seen["defaults"]["hea"].startswith("HEA: Beneficiario Masc"))
+        self.assertTrue(seen["defaults"]["hea"].startswith("Beneficiario Masc"))
         self.assertEqual(seen["sent"]["estado_civil"], "Soltero/a")
         self.assertEqual(seen["defaults"]["estado_civil"], "")  # lo que el ATA no trae no se inventa
         self.assertEqual(A.get_record(db, rid)["ai_estado"], "Registrado")
@@ -279,7 +279,7 @@ class UITests(unittest.TestCase):
         r = random.Random(1)
         t, av = hb.compose("H", "58", ["Hipertensión esencial, sin especificación",
                                        "Diabetes mellitus, tipo no especificado"], rng=r)
-        self.assertTrue(t.startswith("HEA: Beneficiario Masc de 58 años de edad, que presenta antecedente de "))
+        self.assertTrue(t.startswith("Beneficiario Masc de 58 años de edad, que presenta antecedente de "))
         self.assertIn("diabetes mellitus", t)
         self.assertIn("hipertensión arterial", t)
         t, av = hb.compose("M", "30", ["Rinitis alérgica, sin especificación", "Tos",

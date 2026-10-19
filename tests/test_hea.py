@@ -14,7 +14,7 @@ from services.hea_data import BANK  # noqa: E402
 
 def problemas(t):
     p = []
-    if not t.startswith("HEA: Benefici"):
+    if not t.startswith("Benefici"):
         p.append("inicio")
     if "  " in t:
         p.append("doble espacio")
@@ -92,7 +92,7 @@ class T07_HEA(unittest.TestCase):
         r = random.Random(3)
         for _ in range(60):
             t, _a = hb.compose("H", "70", ["HTA", "DM2"], rng=r)
-            self.assertTrue(t.startswith("HEA: Beneficiario Masc de 70 años de edad, que presenta antecedente de "))
+            self.assertTrue(t.startswith("Beneficiario Masc de 70 años de edad, que presenta antecedente de "))
             self.assertEqual(len(re.findall(r"diabetes", t.split("Niega")[0], re.I)), 1, t)
 
     def test_no_nombra_enfermedades_que_no_tiene(self):
