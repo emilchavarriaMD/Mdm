@@ -16,10 +16,10 @@ except ImportError:  # sin banco: no se propone nada
 _NORM = {cat.plain(k): v for k, v in PLAN.items()}
 
 FRASES_M = ["Se recomienda {}.", "Se indica {}.", "Se aconseja {}.", "Se sugiere {}."]
-FRASES_A = ["Se explican los signos de alarma y se indica acudir de inmediato a un centro de salud si presenta {}.",
-            "Se educa sobre signos de alarma: acudir sin demora si presenta {}.",
-            "Se indica acudir a un centro de salud de inmediato si presenta {}.",
-            "Se orienta sobre los signos de peligro: buscar atención médica urgente ante {}."]
+FRASES_A = ["Vigilar signos de alarma como {}; en caso de presentarlos, acudir de inmediato a un centro de salud.",
+            "Vigilar la aparición de signos de alarma como {} y, en caso de presentarlos, acudir sin demora al centro de salud.",
+            "Estar atento a signos de alarma como {}; si se presentan, acudir de inmediato a un centro de salud.",
+            "Vigilar por signos de alarma como {} y, de presentarlos, buscar atención médica de inmediato."]
 
 
 class _Primero:

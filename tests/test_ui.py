@@ -353,7 +353,7 @@ class UITests(unittest.TestCase):
         self.upd()
         t1 = dlg.plan.get("1.0", "end").strip()
         self.assertNotEqual(t1, "Plan")
-        self.assertRegex(t1, "inmediato|sin demora")
+        self.assertRegex(t1, "alarma")
         dlg._regen_plan(True)                                         # «Otra versión»
         self.upd()
         dlg.plan.delete("1.0", "end")
@@ -388,7 +388,7 @@ class UITests(unittest.TestCase):
         ex = dlg.ssr_examen.get("1.0", "end")
         self.assertIn("Genitourinario", ex)
         self.assertRegex(ex, "grisáceo|grisácea|olor a pescado")                              # vaginosis → hallazgo propio en genitourinario
-        self.assertRegex(dlg.ssr_plan.get("1.0", "end"), "inmediato|sin demora")     # plan general según los diagnósticos
+        self.assertRegex(dlg.ssr_plan.get("1.0", "end"), "alarma")     # plan general según los diagnósticos
         self.assertFalse(dlg.ssr_its_x.winfo_manager())
         self.assertEqual(dlg.ssr_larga.winfo_manager(), "pack")            # ficha larga: menarquía, citología…
         self.assertEqual(dlg._ssr_larga_mujer.winfo_manager(), "pack")
