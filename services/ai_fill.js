@@ -1,6 +1,6 @@
 /* Llena el formulario de ActivityInfo. NUNCA pulsa Guardar registro ni Guardar como borrador. */
 (function () {
-  const VERSION = 9;
+  const VERSION = 10;
   if (window.__mdm && window.__mdm.version === VERSION) return;   // una versión vieja en la pestaña se reemplaza
   const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
   const norm = (s) => (s || "").replace(/\s+/g, " ").replace(/\*/g, "").replace(/OBLIGATORIO/g, "").trim().toLowerCase();
@@ -146,7 +146,6 @@
     if (d.discapacidad) await S("Discapacidad", () => setRadio("¿Tiene algún tipo de discapacidad?", d.discapacidad));
     if (d.perfil) await S("Perfil de población", () => setAuto("Perfil de población", d.perfil));
     if (d.derivado) await S("¿Ha sido derivado/a?", () => setRadio("¿Ha sido derivado/a?", d.derivado));
-    if (d.hea_a_observaciones && d.hea) await S("Observaciones (HEA)", () => setText("Observaciones", d.hea));
     if ((d.consultas || []).length) await S("Consulta a realizar", () => setChecks("Consulta a realizar", d.consultas));
     return log;
   }
@@ -222,6 +221,14 @@
     await S("¿Mismo punto de atención?", () => setRadio("¿Mismo punto de atención registrado en la ficha integral?", "Sí"));
     await S("¿Mismo proyecto?", () => setRadio("¿Mismo proyecto registrado en la ficha integral?", "Sí"));
     if (d.tipo_consulta) await S("Tipo de consulta", () => setRadio("Tipo de consulta", d.tipo_consulta));
+    if (d.hea && d.tipo_consulta) {
+      // El cuadro «Historia de la enfermedad actual» aparece al elegir el tipo de consulta (no con «Tamizaje»).
+      await S("Historia de la enfermedad actual", async () => {
+        const ok = await waitFor(() => findLabel("Historia de la enfermedad actual"), 5000);
+        if (!ok) throw new Error("no apareció el cuadro (con «Tamizaje de signos vitales» no existe)");
+        await setText("Historia de la enfermedad actual", d.hea);
+      });
+    }
     if (d.n_dx) {
       await S("¿Cuántos diagnósticos?", () => setText("¿Cuántos diagnósticos?", String(d.n_dx)));
       await sleep(900);
