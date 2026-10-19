@@ -1,6 +1,6 @@
 /* Llena el formulario de ActivityInfo. NUNCA pulsa Guardar registro ni Guardar como borrador. */
 (function () {
-  const VERSION = 13;
+  const VERSION = 14;
   if (window.__mdm && window.__mdm.version === VERSION) return;   // una versión vieja en la pestaña se reemplaza
   const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
   const norm = (s) => (s || "").replace(/\s+/g, " ").replace(/\*/g, "").replace(/OBLIGATORIO/g, "").trim().toLowerCase();
@@ -244,6 +244,9 @@
     for (const [nombre, valor] of vit) {
       if (valor) await S(nombre, () => setText(nombre, String(valor)));
     }
+    // Examen físico: peso (se escribe a mano en la ventana; la talla nunca se toca y el IMC lo calcula el formulario)
+    if (d.peso) await S("Peso", () => setText("Peso", String(d.peso)));
+    if (d.examen_fisico) await S("Examen Físico", () => setText("Examen Físico", d.examen_fisico));
     if (d.n_dx) {
       await S("¿Cuántos diagnósticos?", () => setText("¿Cuántos diagnósticos?", String(d.n_dx)));
       await sleep(900);

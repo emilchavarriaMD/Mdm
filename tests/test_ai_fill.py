@@ -25,7 +25,7 @@ PAYLOAD = {
     "dx": [{"abrev": "HTA", "descripcion": "Hipertensión esencial, sin especificación", "cie11": "BA00.Z"},
            {"abrev": "Dermatitis", "descripcion": "Dermatitis y eccema, sin especificación", "cie11": "EA8Z"},
            {"abrev": "Inventado", "descripcion": "Diagnóstico que no existe en la lista", "cie11": ""}],
-    "sistolica": "120", "diastolica": "70", "fc": "72", "fr": "16", "temperatura": "36.6",
+    "sistolica": "120", "diastolica": "70", "fc": "72", "fr": "16", "temperatura": "36.6", "peso": "62", "examen_fisico": "Cefalo-caudal",
     "n_dx": 3,
 }
 
@@ -43,7 +43,7 @@ LEER = """() => {
     consultas: [...document.querySelectorAll('#consultas input:checked')].map(x => x.value),
     prof: v('#prof input'), mismo_punto: r('mismo_punto'), mismo_proy: r('mismo_proy'), tipo: r('tipo'),
     hea: v('#hea'), ndx: v('#ndx'),
-    sis: v('#sis'), dia: v('#dia'), fc: v('#fc'), fr: v('#fr'), temp: v('#temp'),
+    sis: v('#sis'), dia: v('#dia'), fc: v('#fc'), fr: v('#fr'), temp: v('#temp'), peso: v('#peso'), talla: v('#talla'), examen: v('#examen'),
     desc1: v('#desc1 input'), code1: v('#code1 input'), desc2: v('#desc2 input'), code2: v('#code2 input'),
     desc3: v('#desc3 input'),
     saved: window.__saved, clicks: window.__clicks,
@@ -91,7 +91,7 @@ class T08_LlenadoSimulado(unittest.TestCase):
             "derivado": "No", "consultas": ["Atención Primaria de Salud"],
             "prof": "Nadia Alejandra Chavarría López", "mismo_punto": "Sí", "mismo_proy": "Sí", "tipo": "Primera",
             "hea": PAYLOAD["hea"], "ndx": "3",
-            "sis": "120", "dia": "70", "fc": "72", "fr": "16", "temp": "36.6",
+            "sis": "120", "dia": "70", "fc": "72", "fr": "16", "temp": "36.6", "peso": "62", "talla": "", "examen": "Cefalo-caudal",
             "desc1": "Hipertensión esencial, sin especificación", "code1": "BA00.Z",
             "desc2": "Dermatitis y eccema, sin especificación", "code2": "EA8Z",
         }

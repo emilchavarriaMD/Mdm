@@ -100,6 +100,8 @@ class ActivityInfoDialog(_Modal):
         add("fc", "Frecuencia cardiaca o pulso (latidos/min)", V(ai.LISTA_FC))
         add("fr", "Frecuencia respiratoria (resp/min) — en niños, elíjala", V(ai.LISTA_FR))
         add("temperatura", "Temperatura (ºC)", V(ai.LISTA_TEMP))
+        add("peso", "Peso (kg) — escríbalo; vacío = no se llena", E())
+        add("examen_fisico", "Examen físico (por ahora solo «Cefalo-caudal»)", widgets.EntryField(gf, width=26))
         self._vit_auto = {k: self.w[k].get_value() for k in ("diastolica", "fr")}
 
         dxs = defaults.get("dx") or []

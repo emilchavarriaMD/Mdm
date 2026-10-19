@@ -145,6 +145,8 @@ function openAps() {
   aps.appendChild(tipo);
   [["sis", "Sistólica (mayor)"], ["dia", "Diastólica (menor)"], ["fc", "Frecuencia Cardiaca o Pulso"],
    ["fr", "Frecuencia Respiratoria"], ["temp", "Temperatura"]].forEach(([id, t]) => aps.appendChild(text(id, t)));
+  aps.appendChild(text("peso", "Peso")); aps.appendChild(text("talla", "Talla"));
+  aps.appendChild(text("examen", "Examen Físico", true));
   const ndx = text("ndx", "¿Cuántos diagnósticos?");
   ndx.querySelector("input").addEventListener("change", (e) => {
     const n = Math.min(3, parseInt(e.target.value || "0", 10));

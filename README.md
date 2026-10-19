@@ -90,10 +90,12 @@ propio del programa) abre el formulario y **lo llena**. El programa **nunca guar
   frecuencia cardiaca 40–200, respiratoria 10–50, temperatura 35.0–41.0). Valores iniciales: 120 / 80 (hombre) o 70 (mujer),
   pulso al azar 65–90, respiratoria al azar 12–20 solo en mayores de 10 años (en niños se elige), temperatura al azar
   36.0–37.2. Se escriben en el subformulario APS; lo que se deje vacío no se toca.
+- **Examen físico**: «Peso» se escribe a mano en la ventana (vacío = no se llena); la talla nunca se llena y el IMC lo
+  calcula el formulario. «Examen Físico» se escribe como «Cefalo-caudal» por ahora (se puede editar en la ventana).
 - Necesita internet y Google Chrome.
 
 ## Cambios
-- **1.3** — Signos vitales con listas desplegables; HEA sin el prefijo «HEA:»; el lugar de atención espera más a que cargue la lista.
+- **1.3** — Peso y examen físico («Cefalo-caudal»); signos vitales con listas desplegables; HEA sin el prefijo «HEA:»; el lugar de atención espera más a que cargue la lista.
 - **1.2** — HEA según edad y sexo; abreviaturas del ATA (PF, RC, FAB, FAV, tiña pedis, cervicalgia, vaginosis…);
   búsqueda al escribir en los diagnósticos y «HEA usa» por diagnóstico; «11» como comillas de ídem en el ATA;
   pruebas del banco de HEA y del llenado.

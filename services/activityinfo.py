@@ -56,6 +56,9 @@ def vitales_defecto(sexo, edad, unidad="años", rng=None):
             "temperatura": f"{rng.randint(360, 372) / 10:.1f}"}
 
 
+# Texto inicial de «Examen Físico» (después habrá una biblioteca de exámenes). La talla no se toma ni se llena.
+EXAMEN_FISICO_BASE = "Cefalo-caudal"
+
 DERIVADO = ["Sí", "No"]
 TIPOS_CONSULTA = ["Primera", "Reconsulta", "Seguimiento", "Tamizaje de signos vitales",
                   "Nuevo motivo de consulta", "Procedimiento terapéutico no quirúrgico"]
@@ -163,7 +166,7 @@ def build_defaults(db, rec: dict) -> dict:
         hea = generate_hea(rec, desc)
     vit = vitales_defecto(persona["sexo"], persona["edad"], persona["unidad"])
     return {
-        "hea": hea, "hea_persona": persona, **vit,
+        "hea": hea, "hea_persona": persona, **vit, "peso": "", "examen_fisico": EXAMEN_FISICO_BASE,
         "lugar": st["ai_lugar"], "punto_especifico": "", "fecha": (rec.get("fecha") or "")[:10], "genero": genero,
         "donante": st["ai_donante"], "proyecto": st["ai_proyecto"], "perfin": st["ai_perfin"],
         "lgtbiq": "", "pueblo": "", "nacionalidad": st["ai_nacionalidad"], "idioma": st["ai_idioma"],
