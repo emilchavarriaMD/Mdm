@@ -3,6 +3,7 @@ from tkinter import ttk
 
 import security
 from services import activityinfo as ai
+from services import cie11_catalog as cat
 from ui import dialogs, widgets
 from ui.page import Page
 
@@ -42,8 +43,9 @@ class SettingsPage(Page):
         g2.full(row2, pady=(12, 0))
 
         s4 = widgets.section(body, "Equivalencias CIE-11 (abreviatura del ATA → diagnóstico y código)")
-        ttk.Label(s4, text="Escriba cada abreviatura tal como aparece en el ATA (HTA, ITU, RC…) y el "
-                  "diagnóstico y código CIE-11 que usted decide usar. El programa no inventa códigos.",
+        ttk.Label(s4, text="Escriba cada abreviatura tal como aparece en el ATA (HTA, ITU, RC…) y elija el "
+                  "diagnóstico de la lista de ActivityInfo (puede escribir para buscar); el código se pone solo. "
+                  "Las equivalencias también se guardan desde la ventana «Añadir registro».",
                   style="Hint.TLabel", wraplength=900, justify="left").pack(anchor="w")
         frame, self.dx_tree = widgets.make_tree(s4, [("a", "Abreviatura", 120), ("d", "Descripción CIE-11", 380),
                                                      ("c", "Código CIE-11", 120)], height=6)
@@ -52,7 +54,10 @@ class SettingsPage(Page):
         r3 = ttk.Frame(s4)
         r3.pack(fill="x")
         self.dx_a = widgets.EntryField(r3, width=12)
-        self.dx_d = widgets.EntryField(r3, width=42)
+        self._labels = [cat.label(d) for d in cat.descriptions()]
+        self.dx_d = widgets.ComboField(r3, self._labels, readonly=False, width=48)
+        self.dx_d.bind("<<ComboboxSelected>>", lambda e: self._dx_desc_elegida())
+        self.dx_d.bind("<KeyRelease>", self._dx_filtrar)
         self.dx_c = widgets.EntryField(r3, width=12)
         for lbl, w in (("Abreviatura", self.dx_a), ("Descripción", self.dx_d), ("Código", self.dx_c)):
             ttk.Label(r3, text=lbl, style="Muted.TLabel").pack(side="left", padx=(0, 4))
@@ -112,7 +117,24 @@ class SettingsPage(Page):
             self.dx_d.set_value(v[1])
             self.dx_c.set_value(v[2])
 
+    def _dx_filtrar(self, event):
+        if event.keysym in ("Up", "Down", "Return", "Escape", "Tab"):
+            return
+        q = cat.plain(self.dx_d.get_value())
+        self.dx_d.set_values([x for x in self._labels if q in cat.plain(x)] or self._labels if q else self._labels)
+
+    def _dx_desc_elegida(self):
+        d, c = cat.from_label(self.dx_d.get_value())
+        if d:
+            self.dx_d.set_value(d)
+            self.dx_c.set_value(c)
+
     def save_dx(self):
+        d, c = cat.from_label(self.dx_d.get_value())
+        if d:                       # elegida de la lista: se guarda la descripción exacta y su código
+            self.dx_d.set_value(d)
+            if not self.dx_c.get_value().strip():
+                self.dx_c.set_value(c)
         try:
             ai.save_dx_map(self.db, self.dx_a.get_value(), self.dx_d.get_value(), self.dx_c.get_value())
         except ValueError as exc:
