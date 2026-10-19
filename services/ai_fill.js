@@ -331,8 +331,7 @@
         await setText("Historia de la enfermedad actual", hea);
       });
     }
-    // Antecedentes personales y de ficha larga (según el género): menarquía, ritmo, citología, etc.
-    if (x.app) await S("SSR: Antecedentes personales patológicos", () => setText("Antecedentes personales patológicos", x.app));
+    // Antecedentes de ficha larga (según el género): menarquía, ritmo, citología, etc.
     for (const [k, lab, auto] of [["menarquia", "Menarquía", false], ["espermarquia", "Espermarquia", false], ["ritmo", "Ritmo menstrual", false],
          ["trast_mens", "Transtorno Menstrual", true], ["menopausia", "Menopausia", true], ["citologia", "Última citología", false],
          ["prueba_vph", "¿Se ha realizado la prueba de detección de VPH el último año?", true],

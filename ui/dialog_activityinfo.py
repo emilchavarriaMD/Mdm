@@ -329,8 +329,8 @@ class ActivityInfoDialog(_Modal):
         self._ssr_hea_auto = defaults.get("hea", "")
 
         titulo("Antecedentes")
-        ttk.Label(f, text="Antecedentes personales patológicos").pack(anchor="w")
-        self.ssr_app = caja("APP", 2, "")
+        self.ssr_app = ttk.Frame(f)       # ancla (sin contenido) para colocar los campos de ficha larga
+        self.ssr_app.pack()
         self.ssr_larga = ttk.Frame(f)           # solo con ficha «Larga»; según el género salen unos u otros, como en la página
         self._ssr_larga_mujer = ttk.Frame(self.ssr_larga)
         gm_ = widgets.FormGrid(self._ssr_larga_mujer, 3)
@@ -692,7 +692,6 @@ class ActivityInfoDialog(_Modal):
                            "viol_genero": W("ssr_viol_genero") if W("ssr_violencia") == "Violencia Basada en Género" else "",
                            "viol_otras": W("ssr_viol_otras") if W("ssr_violencia") == "Otra Situación de Violencia" else "",
                            "hea": self.ssr_hea.get("1.0", "end").strip(),
-                           "app": self.ssr_app.get("1.0", "end").strip(),
                            **({k: W("ssr_" + k).strip() if isinstance(W("ssr_" + k), str) else W("ssr_" + k)
                                for k in ("menarquia", "ritmo", "trast_mens", "menopausia", "citologia", "prueba_vph",
                                          "autoex_mamas")}
