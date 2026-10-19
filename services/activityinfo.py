@@ -19,6 +19,17 @@ ESTADOS_CIVILES = ["Casado/a", "Divorciado/a", "Soltero/a", "Unión Libre", "Viu
                    "Prefiere no contestar", "No aplica"]
 ESCOLARIDADES = ["Preescolar", "Primaria", "Secundaria/Bachillerato", "Formación Técnica",
                  "Universitaria", "Posgrado", "Prefiere no contestar", "Ninguno"]
+OCUPACIONES = ["Comercio informal", "Construcción", "Cuidador/a", "Desempleado/a", "Estudiante",
+               "Funcionario/a público", "No relevante", "Persona en situación de prostitución", "Servicios",
+               "Trabajador/a de la salud", "Trabajo académico", "Trabajo agrícola",
+               "Trabajo doméstico NO remunerado", "Trabajo doméstico remunerado", "Trabajo industrial",
+               "Transporte", "Otro", "No aplica"]
+PERFILES = ["Persona en tránsito", "Población desplazada interna", "Persona refugiada",
+            "Niño, niña o adolescente (NNA)", "Persona retornada", "Solicitante de asilo",
+            "Sobreviviente de violencia de género", "OSV (Otras situaciones de violencia)",
+            "Persona en riesgo de desplazamiento", "Comunidad de acogida",
+            "Migrante en proceso de retorno", "Líder/esa comunitario/a"]
+PERFIL_FIJO = "Persona en riesgo de desplazamiento"
 DISCAPACIDAD = ["Sí", "No", "Prefiere no contestar"]
 DERIVADO = ["Sí", "No"]
 TIPOS_CONSULTA = ["Primera", "Reconsulta", "Seguimiento", "Tamizaje de signos vitales",
@@ -29,8 +40,8 @@ CONSULTA_APS = "Atención Primaria de Salud"
 SETTINGS = [
     ("ai_lugar", "Lugar de atención (al elegirlo se llenan País y Departamento)", "San Pedro Sula"),
     ("ai_nacionalidad", "País de nacionalidad", "Honduras"),
-    ("ai_idioma", "Idioma (vacío = se deja el que trae el formulario)", ""),
-    ("ai_profesional", "Profesional que atiende", ""),
+    ("ai_idioma", "Idioma", "Español"),
+    ("ai_profesional", "Profesional que atiende (APS)", "Nadia Alejandra Chavarria Lopez"),
 ]
 
 _driver = None
@@ -52,7 +63,7 @@ def split_name(full: str):
 
 
 def get_setting_values(db):
-    return {k: db.get_setting(k, default) for k, _l, default in SETTINGS}
+    return {k: (db.get_setting(k, default) or default) for k, _l, default in SETTINGS}
 
 
 def dx_map(db):
@@ -101,7 +112,7 @@ def build_defaults(db, rec: dict) -> dict:
         "nacionalidad": st["ai_nacionalidad"], "idioma": st["ai_idioma"],
         "nombres": nombres, "apellidos": apellidos,
         "tiene_fecha_nac": "Si" if fn else "No", "fecha_nac": fn[:10], "edad": edad,
-        "estado_civil": "", "escolaridad": "", "ocupacion": "", "discapacidad": "", "perfil": "",
+        "estado_civil": "", "escolaridad": "", "ocupacion": "", "discapacidad": "", "perfil": PERFIL_FIJO,
         "derivado": "", "consulta": CONSULTA_APS, "profesional": st["ai_profesional"],
         "tipo_consulta": "", "dx": dxs,
     }
