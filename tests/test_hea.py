@@ -216,6 +216,15 @@ class T08_BancoNuevo(unittest.TestCase):
         self.assertIn("Mastitis", BANK[hb.bank_id("Mastitis puerperal")]["n"])
         self.assertIn("Prurito vulvar", BANK[hb.bank_id("Prurito vulvar")]["n"])
 
+    def test_diagnostico_secundario_con_cuadro_propio(self):
+        r = random.Random(4)
+        for _ in range(60):
+            t, av = hb.compose("M", "26", ["Cefalea", "Vaginosis bacteriana", "Candidiasis vulvovaginal"], rng=r)
+            sec = t.split("Además refiere ", 1)[1]
+            self.assertGreater(len(sec.split(".")[0].split()), 7, t)       # cuadro descrito, no una etiqueta
+            self.assertIn("También refiere", t)
+            self.assertNotRegex(t, r"cuadro actual de cuadro|embarazo actual|\.\.")
+
     def test_hea_con_diagnosticos_de_aps_y_ssr(self):
         r = random.Random(11)
         for _ in range(50):

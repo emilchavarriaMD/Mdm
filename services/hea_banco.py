@@ -116,6 +116,9 @@ def _edad_anios(edad, unidad):
 def _version_ok(version, ids, sexo=None, anios=None):
     cuerpo = " ".join(f for f in _frases(version) if not f.startswith("Niega "))
     low = cuerpo.lower()
+    if re.search(r"embarazo actual|gestaci[oó]n actual|\bgestante\b|semanas de gestaci", low) and not any(
+            n in BANK and re.search(r"embarazo|gestacional|prenatal|aborto", BANK[n]["n"].lower()) for n in ids):
+        return False                       # no se dice «embarazo actual» si ningún diagnóstico es de embarazo
     for patron, propios in _MENCIONES:
         if re.search(patron, low) and not (propios & ids):
             return False
@@ -207,6 +210,37 @@ def _ya_mencionado(item, texto_low):
             return True
     return cat.plain(item["t"]) in cat.plain(texto_low)
 
+_NO_EXTRA = re.compile(r"embaraz|gestaci|anticoncep|menopaus|ni[nñ]|madre|escuela|\bmeses de edad", re.I)
+
+
+def _secundarios(otros_s, principal, cuerpo_principal, ids, sexo, anios, rng):
+    """Para cada diagnóstico agudo que no es el principal: (cuadro, un dato extra, negativos). Se toma de una de sus
+    versiones del banco para que no quede en una sola palabra; los dos primeros llevan dato extra y negativos."""
+    out = []
+    contra = _raices([cuerpo_principal])
+    for k, i in enumerate(otros_s):
+        if not i["v"]:
+            continue
+        buenas = ([v for v in i["v"] if _version_ok(v, ids, sexo, anios)] or [v for v in i["v"] if _version_ok(v, ids)]
+                  or i["v"])
+        fr = _frases(rng.choice(buenas))
+        cuadro = fr[0].rstrip(". ")
+        if cuadro.lower().startswith(("refiere ", "presenta ")):
+            cuadro = cuadro.split(" ", 1)[1]
+        if re.match(r"\d", cuadro):                      # «3 días de evolución con…» → «cuadro de 3 días de evolución con…»
+            cuadro = "cuadro de " + cuadro
+        elif cuadro.lower().startswith("acude a "):
+            cuadro = "cuadro que motiva consulta: " + cuadro[8:]
+        extra, nieg = "", ""
+        if k < 2:
+            extra = next((f for f in fr[1:] if not f.startswith("Niega ") and not f.startswith("No ha recibido")
+                          and not _NO_EXTRA.search(f)), "")
+            ng = next((f for f in fr[1:] if f.startswith("Niega ")), "")
+            if ng:
+                nieg = _filtrar_negativos(ng, contra | _raices([cuadro]), cuerpo_principal)
+        out.append((cuadro, extra, nieg))
+    return out
+
 
 def compose(sexo, edad, dx_descripciones, unidad="años", rng=None):
     """Devuelve (texto, avisos). dx_descripciones: descripciones de la lista de ActivityInfo (máx. 3)."""
@@ -276,20 +310,30 @@ def compose(sexo, edad, dx_descripciones, unidad="años", rng=None):
     else:
         if labels and re.match(r"(acude|refiere|solicita|desea|utiliza|se encuentra|cursa|requiere)\b", cuerpo_txt):
             ant = "antecedente de " + _lista(labels) + ". Actualmente "
+        elif labels and cuerpo_txt.lower().startswith("cuadro"):
+            ant = "antecedente de " + _lista(labels) + " y "
         else:
             ant = ("antecedente de " + _lista(labels) + " y cuadro actual de ") if labels else ""
         texto = ant + cuerpo_txt
     if not texto.endswith((".", "!", "?")):
         texto += "."
-    # 2) negativos del cuadro principal (sin los que contradicen a los otros diagnósticos), pegados a su cuadro
-    raices = _raices([i["t"] for i in otros_s] + [i["t"] for i in otros_c] + [i["t"] for i in otros_x])
+    # 2) los otros diagnósticos agudos se cuentan con su propio cuadro (descripción, algún dato y sus negativos)
+    sec = _secundarios(otros_s, principal, cuerpo_txt, ids, sexo, anios, rng)
+    # 3) negativos del cuadro principal (sin los que contradicen a los otros diagnósticos), pegados a su cuadro
+    raices = _raices([i["t"] for i in otros_s] + [i["t"] for i in otros_c] + [i["t"] for i in otros_x]
+                     + [c for c, _x, _n in sec])
     for f in neg:
         g = _filtrar_negativos(f, raices, " ".join(i["t"] for i in otros_s + otros_c + otros_x)) if raices else f
         if g:
             texto += " " + g
-    # 3) otros agudos como síntomas
-    if otros_s:
-        texto += " Además refiere " + _lista([i["t"] for i in otros_s]) + "."
+    for j, (cuadro, extra, nieg) in enumerate(sec):
+        texto += (" Además refiere " if j == 0 else " También refiere ") + cuadro + "."
+        if extra:
+            texto += " " + extra
+        if nieg:
+            texto += " " + nieg
+    for i in otros_s[len(sec):]:
+        texto += " Además refiere " + i["t"] + "."
     # 4) contexto / motivos
     for j, i in enumerate(otros_x):
         texto += (" Además, " if (j == 0 and not otros_s) else " Asimismo, ") + i["t"] + "."

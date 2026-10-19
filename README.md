@@ -113,6 +113,7 @@ que dependen de otro aparecen al elegirlo (violencia → tipo; ITS «Sí» → �
 vitales/peso de SSR, medicamentos, lista de verificación de embarazo y los otros campos condicionales de SSR.
 
 ## Cambios
+- **2.4** — HEA con varios diagnósticos: cada diagnóstico agudo adicional (APS o SSR: vaginosis, candidiasis, cervicitis, dismenorrea…) se cuenta con su propio cuadro (evolución, síntomas, un dato y sus «Niega…»), no con una sola etiqueta. Se evita «embarazo actual» sin diagnóstico de embarazo y «cuadro actual de cuadro».
 - **2.3** — Plan: todas las medidas redactadas con verbo en infinitivo (lectura uniforme) y sin controles, citas, seguimiento ni referencias. Examen físico: la leyenda de genitourinario ya no menciona espéculos y se conservan los hallazgos que no requieren explorar (p. ej. altura uterina y frecuencia cardíaca fetal en embarazo, dolor suprapúbico).
 - **2.2** — Ventana «Añadir registro»: panel fijo a la izquierda con nombre, edad, sexo y diagnósticos del paciente (se actualiza al corregir datos y no se desplaza con el formulario).
 - **2.1** — Examen físico con etiquetas (Apariencia general, Cabeza, ORL, Cuello, Tórax, Corazón, Pulmones, Abdomen, Genitourinario, Extremidades). El genitourinario va después del abdomen y siempre dice que no se realiza inspección genital por falta de espacio privado, camilla e instrumental (incluidos espéculos vaginales); solo agrega la puño percusión lumbar si el diagnóstico la pide. El plan ya no lleva seguimiento y sus signos de alarma empiezan con «Vigilar signos de alarma como…».
