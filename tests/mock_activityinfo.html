@@ -163,6 +163,24 @@ function openAps() {
     }
   });
   aps.appendChild(ndx);
+  aps.appendChild(text("plan", "Plan", true));
+  const der = lookup("derivado_aps", "¿Va a ser derivado?", ["Sí", "No"], (v) => {
+    if (v === "Sí" && !document.getElementById("svc")) {
+      const svc = radios("svc", "Servicio brindado*", ["Protección", "Salud", "Recuperación económica/medios de vida"], (o) => {
+        if (o === "Salud" && !document.getElementById("saludgrp")) {
+          const g = $(`<div class="forminput__field" id="saludgrp"><h4>Salud*</h4></div>`);
+          ["MdM - Atención primaria", "MdM - Salud sexual y reproductiva", "Médico especialista privado"].forEach((t) => {
+            const l = $(`<label><input type="radio" name="saludsvc" value="${t}"><span>${t}</span></label>`);
+            g.appendChild(l);
+          });
+          svc.after(g);
+        }
+      });
+      derBox.after(svc);
+    }
+  });
+  const derBox = field("¿Va a ser derivado?", der);
+  aps.appendChild(derBox);
   aps.appendChild(button("Está hecho", () => { window.__saved = true; }));
   aps.appendChild(button("Cancelar", () => { window.__saved = true; }));
   document.getElementById("btnAps").after(aps);

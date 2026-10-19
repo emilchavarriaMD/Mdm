@@ -103,6 +103,10 @@ class ActivityInfoDialog(_Modal):
         f_exa.pack(fill="x")
         f_dx = ttk.Frame(body)
         f_dx.pack(fill="x")
+        f_plan = ttk.Frame(body)
+        f_plan.pack(fill="x")
+        f_der = ttk.Frame(body)
+        f_der.pack(fill="x")
         ttk.Label(f_vit, text="Signos vitales y peso (frecuencia respiratoria: en niños, elíjala; vacío = no se llena)", style="H2.TLabel").pack(anchor="w", pady=(12, 2))
         gf2 = ttk.Frame(f_vit)
         gf2.pack(fill="x")
@@ -179,6 +183,31 @@ class ActivityInfoDialog(_Modal):
         self.examen = tk.Text(f_exa, height=5, wrap="word", font=("Segoe UI", 10), relief="solid", bd=1)
         self.examen.insert("1.0", defaults.get("examen_fisico", ""))
         self.examen.pack(fill="x")
+        ttk.Label(f_plan, text="Plan — se escribe en «Plan» de APS", style="H2.TLabel").pack(anchor="w", pady=(12, 2))
+        ttk.Label(f_plan, text="Por ahora solo «Plan»; luego habrá un repertorio. Puede escribir o corregir el texto; "
+                  "vacío = no se llena.", style="Muted.TLabel", wraplength=780, justify="left").pack(anchor="w")
+        self.plan = tk.Text(f_plan, height=5, wrap="word", font=("Segoe UI", 10), relief="solid", bd=1)
+        self.plan.insert("1.0", defaults.get("plan", ""))
+        self.plan.pack(fill="x")
+        ttk.Label(f_der, text="Derivación (hacia) y servicio brindado", style="H2.TLabel").pack(anchor="w", pady=(12, 2))
+        ttk.Label(f_der, text="«Servicio brindado» solo aparece en ActivityInfo con «¿Va a ser derivado?» = Sí (es el "
+                  "recapitulativo interno de MdM para todas las atenciones). Siempre es Salud.", style="Muted.TLabel",
+                  wraplength=780, justify="left").pack(anchor="w")
+        gf3 = ttk.Frame(f_der)
+        gf3.pack(fill="x")
+        g3 = widgets.FormGrid(gf3, 3)
+
+        def add3(key, label, vals):
+            w = widgets.ComboField(gf3, [""] + list(vals), readonly=True, width=26)
+            self.w[key] = w
+            w.set_value(defaults.get(key, ""))
+            g3.add(label, w)
+
+        add3("va_derivado", "¿Va a ser derivado?", ai.VA_DERIVADO)
+        add3("n_servicios", "¿A cuántos servicios se deriva?", ai.N_SERVICIOS)
+        add3("transfronteriza", "¿Referencia Transfronteriza?", ai.VA_DERIVADO)
+        add3("servicio_brindado", "Servicio brindado", ai.SERVICIOS_BRINDADOS)
+        add3("servicio_salud", "Salud (si el servicio es Salud)", ai.SERVICIOS_SALUD)
         self._hea_auto = defaults.get("hea", "")      # último texto generado: si la persona lo cambia, se respeta
         self._dx_vistos = self._clave_hea()
         # si se corrige el género o la edad en esta ventana, la HEA se actualiza (salvo que ya la haya editado)
@@ -294,6 +323,7 @@ class ActivityInfoDialog(_Modal):
         data["recordar_dx"] = bool(self.recordar.get())
         data["hea"] = self.hea.get("1.0", "end").strip()
         data["examen_fisico"] = self.examen.get("1.0", "end").strip()
+        data["plan"] = self.plan.get("1.0", "end").strip()
         data["tiene_fecha_nac"] = "No"  # siempre se usa la edad
         self.result = data
         self.destroy()

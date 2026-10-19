@@ -56,6 +56,17 @@ def vitales_defecto(sexo, edad, unidad="años", rng=None):
             "temperatura": f"{rng.randint(360, 372) / 10:.1f}"}
 
 
+# Derivación (hacia) / Servicio brindado: «recapitulativo interno MdM para todas las atenciones».
+VA_DERIVADO = ["Sí", "No"]
+N_SERVICIOS = ["Un servicio", "Dos servicios"]
+SERVICIOS_BRINDADOS = ["Protección", "Salud", "Recuperación económica/medios de vida", "Justicia/Asistencia legal",
+                       "Gestión de casos MdM", "Educación NNA"]
+SERVICIOS_SALUD = ["MdM - Atención primaria", "MdM - Salud sexual y reproductiva",
+                   "MdM - Salud mental y apoyo psicosocial", "Consulta externa especializada publico",
+                   "Atención hospitalaria (de emergencia o no)", "Atención primaria-establecimiento de salud local",
+                   "Médico especialista privado", "Otras organizaciones con servicios de salud"]
+PLAN_BASE = "Plan"
+
 # Texto inicial de «Examen Físico» (después habrá una biblioteca de exámenes). La talla no se toma ni se llena.
 EXAMEN_FISICO_BASE = "Cefalo-caudal"
 
@@ -167,6 +178,8 @@ def build_defaults(db, rec: dict) -> dict:
     vit = vitales_defecto(persona["sexo"], persona["edad"], persona["unidad"])
     return {
         "hea": hea, "hea_persona": persona, **vit, "peso": "", "examen_fisico": EXAMEN_FISICO_BASE,
+        "plan": PLAN_BASE, "va_derivado": "Sí", "n_servicios": "", "transfronteriza": "",
+        "servicio_brindado": "Salud", "servicio_salud": SERVICIOS_SALUD[0],
         "lugar": st["ai_lugar"], "punto_especifico": "", "fecha": (rec.get("fecha") or "")[:10], "genero": genero,
         "donante": st["ai_donante"], "proyecto": st["ai_proyecto"], "perfin": st["ai_perfin"],
         "lgtbiq": "", "pueblo": "", "nacionalidad": st["ai_nacionalidad"], "idioma": st["ai_idioma"],

@@ -1,6 +1,6 @@
 /* Llena el formulario de ActivityInfo. NUNCA pulsa Guardar registro ni Guardar como borrador. */
 (function () {
-  const VERSION = 14;
+  const VERSION = 15;
   if (window.__mdm && window.__mdm.version === VERSION) return;   // una versión vieja en la pestaña se reemplaza
   const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
   const norm = (s) => (s || "").replace(/\s+/g, " ").replace(/\*/g, "").replace(/OBLIGATORIO/g, "").trim().toLowerCase();
@@ -251,6 +251,32 @@
       await S("¿Cuántos diagnósticos?", () => setText("¿Cuántos diagnósticos?", String(d.n_dx)));
       await sleep(900);
       await fillDx(d, log, info);
+    }
+    // Plan, derivación y servicio brindado (en el orden de la página). «Servicio brindado» solo aparece con
+    // «¿Va a ser derivado?» = Sí; al elegir «Salud» aparece el grupo «Salud».
+    if (d.plan) await S("Plan", () => setText("Plan", d.plan));
+    if (d.va_derivado) { await S("¿Va a ser derivado?", () => setAuto("¿Va a ser derivado?", d.va_derivado)); await sleep(700); }
+    if (d.n_servicios) await S("¿A cuántos servicios se deriva?", () => setAuto("¿A cuántos servicios se deriva?", d.n_servicios));
+    if (d.transfronteriza) await S("¿Referencia Transfronteriza?", () => setAuto("¿Referencia Transfronteriza?", d.transfronteriza));
+    if (d.servicio_brindado) {
+      await S("Servicio brindado", async () => {
+        const ok = await waitFor(() => findLabel("Servicio brindado"), 5000);
+        if (!ok) throw new Error("no apareció (solo sale si «¿Va a ser derivado?» es Sí)");
+        await setRadio("Servicio brindado", d.servicio_brindado);
+      });
+      await sleep(600);
+    }
+    if (d.servicio_salud && d.servicio_brindado === "Salud") {
+      // «Salud» también es una opción de «Servicio brindado»: el grupo se busca por su título (h4), no por la etiqueta.
+      await S("Servicio brindado: Salud", async () => {
+        const hbox = () => { const h = [...document.querySelectorAll("h4")].find((x) => norm(x.textContent) === "salud"); return h && h.closest(".forminput__field"); };
+        const box = await waitFor(hbox, 5000);
+        if (!box) throw new Error("no apareció el grupo «Salud»");
+        const want = norm(d.servicio_salud);
+        const cand = [...box.querySelectorAll("label, div, span")].filter((e) => visible(e) && norm(e.textContent) === want);
+        if (!cand.length) throw new Error(`no hay la opción «${d.servicio_salud}»`);
+        const el = cand[cand.length - 1]; el.scrollIntoView({ block: "center" }); click(el.closest("label") || el); await sleep(200);
+      });
     }
     return log;
   }

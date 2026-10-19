@@ -92,6 +92,9 @@ propio del programa) abre el formulario y **lo llena**. El programa **nunca guar
   36.0–37.2. Se escriben en el subformulario APS; lo que se deje vacío no se toca.
 - **Examen físico**: «Peso» se escribe a mano en la ventana (vacío = no se llena); la talla nunca se llena y el IMC lo
   calcula el formulario. «Examen Físico» se escribe como «Cefalo-caudal» por ahora (se puede editar en la ventana).
+- **Plan** (cuadro de texto, por ahora solo «Plan») y **Derivación / servicio brindado**: «¿Va a ser derivado?» = Sí
+  (sin eso ActivityInfo no muestra «Servicio brindado»), «Servicio brindado» = Salud y, en la lista «Salud», por defecto
+  «MdM - Atención primaria» (se puede elegir otra). Todo en el orden de la página.
 - Necesita internet y Google Chrome.
 
 ## Cambios
