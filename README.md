@@ -134,3 +134,7 @@ vitales/peso de SSR, medicamentos, lista de verificación de embarazo y los otro
   pruebas del banco de HEA y del llenado.
 - **1.1** — Lista de diagnósticos de ActivityInfo, HEA en el subformulario APS, punto de atención «Otro»,
   ventana de registro con desplazamiento y maximizable.
+
+
+## 2.7
+- La HEA de APS ahora usa solo los diagnósticos de APS y la de SSR solo los de SSR (cada una con su botón de otra versión). El examen físico es el mismo en ambas fichas.

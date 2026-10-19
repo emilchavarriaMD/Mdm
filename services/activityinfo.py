@@ -244,10 +244,6 @@ def build_defaults(db, rec: dict) -> dict:
         if not d:
             d = hea_banco.sugerir_lista(x["abrev"])[0]
         descs.append(hea_banco.fuente_hea(x["abrev"], d))
-    if any(descs):
-        hea = hea_banco.compose(persona["sexo"], persona["edad"], descs, persona["unidad"])[0]
-    else:
-        hea = generate_hea(rec, desc)
     ssr_dx = []        # una por cada diagnóstico del ATA (en el mismo orden); vacío si no hay equivalente en SSR
     usados = set()
     for x in dxs:
@@ -257,9 +253,20 @@ def build_defaults(db, rec: dict) -> dict:
             ssr_dx.append({"abrev": x["abrev"], "descripcion": d2[0][0], "cie11": d2[0][1]})
         else:
             ssr_dx.append({"abrev": x["abrev"], "descripcion": "", "cie11": ""})
+    # HEA de APS: solo los diagnósticos que no pasan a SSR (si todos pasan, se usan todos); HEA de SSR: solo los de SSR
+    aps_descs = [d for d, y in zip(descs, ssr_dx) if not y["descripcion"]]
+    if not any(aps_descs):
+        aps_descs = descs
+    ssr_descs = [y["descripcion"] for y in ssr_dx if y["descripcion"]]
+    if any(aps_descs):
+        hea = hea_banco.compose(persona["sexo"], persona["edad"], aps_descs, persona["unidad"])[0]
+    else:
+        hea = generate_hea(rec, desc)
+    ssr_hea = (hea_banco.compose(persona["sexo"], persona["edad"], ssr_descs, persona["unidad"])[0]
+               if ssr_descs else hea)
     vit = vitales_defecto(persona["sexo"], persona["edad"], persona["unidad"])
     return {
-        "hea": hea, "hea_persona": persona, **vit,
+        "hea": hea, "ssr_hea": ssr_hea, "hea_persona": persona, **vit,
         "ssr_mismo_punto": "Sí", "ssr_mismo_proy": "Sí", "ssr_ficha": "Larga", "ssr_recibio_aps": "Sí",
         "ssr_tipo": "", "ssr_dx": ssr_dx, "ssr_va_derivado": "", "ssr_transfronteriza": "",
         "ssr_servicio_brindado": "Salud", "ssr_servicio_salud": SSR_SERVICIO_SALUD, "peso": "", "examen_fisico": EXAMEN_FISICO_APS, "ssr_examen_fisico": EXAMEN_FISICO_SSR,

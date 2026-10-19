@@ -432,7 +432,13 @@ class UITests(unittest.TestCase):
         dlg._mostrar_ssr_der()
         self.assertEqual(dlg.ssr_der_extra.winfo_manager(), "pack")
         # campos que dependen de lo elegido
-        self.assertEqual(dlg.ssr_hea.get("1.0", "end").strip(), dlg.hea.get("1.0", "end").strip())   # HEA propia, copia de APS
+        # HEA distintas: APS solo con los diagnósticos de APS (hipertensión) y SSR solo con los de SSR (vaginosis)
+        h_aps, h_ssr = dlg.hea.get("1.0", "end"), dlg.ssr_hea.get("1.0", "end")
+        self.assertIn("hipertensión", h_aps)
+        self.assertNotIn("vaginal", h_aps)
+        self.assertIn("flujo vaginal", h_ssr)
+        self.assertNotIn("hipertensión", h_ssr)
+        self.assertEqual(dlg.ssr_examen.get("1.0", "end").strip(), dlg.examen.get("1.0", "end").strip())   # mismo examen físico
         ex = dlg.ssr_examen.get("1.0", "end")
         self.assertIn("Genitourinario", ex)
         self.assertRegex(ex, "No se realiza inspección genital")                              # vaginosis → hallazgo propio en genitourinario

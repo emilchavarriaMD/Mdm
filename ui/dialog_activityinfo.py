@@ -169,9 +169,9 @@ class ActivityInfoDialog(_Modal):
         hh.pack(fill="x")
         ttk.Label(hh, text="Se escribe en «Historia de la enfermedad actual» de APS.", style="Muted.TLabel").pack(
             side="left")
-        ttk.Button(hh, text="Otra versión", command=lambda: self._regen_hea(False)).pack(side="right")
-        ttk.Label(f_hea, text="Una sola historia con los diagnósticos elegidos (crónicos como antecedente, el agudo como cuadro "
-                  "actual, los demás como síntomas). Revísela y corríjala con lo que el paciente refirió; si la edita a "
+        ttk.Button(hh, text="Otra versión", command=lambda: self._regen_hea_aps(True)).pack(side="right")
+        ttk.Label(f_hea, text="Una sola historia con los diagnósticos de APS (crónicos como antecedente, el agudo como cuadro "
+                  "actual, los demás como síntomas); los que pasan a Salud Sexual y Reproductiva tienen su propia HEA allí. Revísela y corríjala con lo que el paciente refirió; si la edita a "
                   "mano, ya no se reemplaza sola.", style="Muted.TLabel", wraplength=780, justify="left").pack(anchor="w")
         self.hea = tk.Text(f_hea, height=6, wrap="word", font=theme.FONT_TEXT, relief="solid", bd=1)
         self.hea.insert("1.0", defaults.get("hea", ""))
@@ -399,15 +399,37 @@ class ActivityInfoDialog(_Modal):
         # descripción elegida en la lista de ActivityInfo; si se dejó vacía, el texto del ATA (la HEA lo incluye igual)
         return [hea_banco.fuente_hea(a, cat.from_label(cb.get_value())[0]) for a, cb in self.dx_rows]
 
+    def _ssr_activo(self):
+        return hasattr(self, "ssr_rows") and "Salud Sexual y Reproductiva" in self.w["consultas"].get_value()
+
+    def _dx_ssr(self):
+        """Diagnósticos elegidos en la lista de SSR (solo si se marcó esa consulta)."""
+        if not self._ssr_activo():
+            return []
+        out = []
+        for cb in self.ssr_rows:
+            d = ssr_cat.from_label(cb.get_value())[0] if hasattr(ssr_cat, "from_label") else cb.get_value()
+            if d and d not in out:
+                out.append(d)
+        return out
+
     def _dx_hea(self):
-        """Diagnósticos de los que sale la HEA: los de APS y, si se marcó SSR, los de la lista SSR (una sola HEA)."""
+        """Todos los diagnósticos (APS y SSR): de ellos sale el examen físico, que es el mismo en ambas fichas."""
         dxs = list(self._dx_actuales())
-        if hasattr(self, "ssr_rows") and "Salud Sexual y Reproductiva" in self.w["consultas"].get_value():
-            for cb in self.ssr_rows:
-                d = ssr_cat.from_label(cb.get_value())[0] if hasattr(ssr_cat, "from_label") else cb.get_value()
-                if d and d not in dxs:
-                    dxs.append(d)
+        for d in self._dx_ssr():
+            if d not in dxs:
+                dxs.append(d)
         return dxs
+
+    def _dx_aps_hea(self):
+        """Diagnósticos de la HEA de APS: los del ATA que NO pasaron a SSR (cada renglón de SSR corresponde al
+        diagnóstico del ATA del mismo número). Si todos pasaron a SSR, se usan todos para no dejar la HEA vacía."""
+        todos = self._dx_actuales()
+        if not self._ssr_activo():
+            return todos
+        a_ssr = {i for i, cb in enumerate(self.ssr_rows) if ssr_cat.from_label(cb.get_value())[0]}
+        aps = [d for i, d in enumerate(todos) if i not in a_ssr]
+        return aps if any(aps) else todos
 
     def _persona(self):
         """Sexo y edad para la HEA: lo del ATA, corregido con lo que se elija en esta ventana."""
@@ -478,10 +500,16 @@ class ActivityInfoDialog(_Modal):
         self._ssr_gf5 = gf5
 
         titulo("Historia de la enfermedad actual (SSR)")
-        nota("Empieza igual que la HEA de Atención primaria (se copia sola mientras no la edite aquí). Corríjala si hace falta; "
-             "vacío = no se llena.")
-        self.ssr_hea = caja("HEA", 6, defaults.get("hea", ""))
-        self._ssr_hea_auto = defaults.get("hea", "")
+        nota("Es distinta de la HEA de Atención primaria: sale solo de los diagnósticos de SSR de la lista de abajo (se rehace al "
+             "cambiarlos, mientras no la edite aquí). Corríjala si hace falta; vacío = no se llena.")
+        bh = ttk.Frame(f)
+        bh.pack(fill="x")
+        ttk.Button(bh, text="Otra versión de la HEA (SSR)", command=lambda: self._regen_hea_ssr(True)).pack(side="right")
+        _h0 = defaults.get("ssr_hea", defaults.get("hea", ""))
+        self.ssr_hea = caja("HEA", 6, _h0)
+        self._ssr_hea_auto = _h0
+        self.ssr_hea_aviso = ttk.Label(f, text="", style="Muted.TLabel", wraplength=780, justify="left")
+        self.ssr_hea_aviso.pack(anchor="w")
 
         titulo("Antecedentes")
         self.ssr_app = ttk.Frame(f)       # ancla (sin contenido) para colocar los campos de ficha larga
@@ -568,7 +596,7 @@ class ActivityInfoDialog(_Modal):
         entry("ssr_observaciones", "Observaciones", gb, grb)
 
         titulo("Exámen físico (SSR)")
-        nota("Examen céfalo-caudal normal, con genitourinario. Puede corregirlo; vacío = no se llena.")
+        nota("Es el mismo examen físico de Atención primaria (se copia solo mientras no lo edite aquí). Puede corregirlo; vacío = no se llena.")
         self.ssr_examen = caja("Examen", 11, defaults.get("ssr_examen_fisico", defaults.get("examen_fisico", "")))
         self._ssr_exa_auto = defaults.get("ssr_examen_fisico", defaults.get("examen_fisico", ""))
 
@@ -710,22 +738,24 @@ class ActivityInfoDialog(_Modal):
             self.ssr_der_extra.pack(fill="x", after=self.w["ssr_va_derivado"].master)
         self.ssr_f_victima.pack(fill="x", pady=(6, 0))
 
-    def _sync_ssr_hea(self):
-        """La HEA de SSR copia la de APS mientras la persona no la haya editado."""
-        actual = self.ssr_hea.get("1.0", "end").strip()
-        if actual == self._ssr_hea_auto.strip():
-            nuevo = self.hea.get("1.0", "end").strip()
-            self.ssr_hea.delete("1.0", "end")
-            self.ssr_hea.insert("1.0", nuevo)
-            self._ssr_hea_auto = nuevo
+    def _sync_ssr_exa(self):
+        """El examen físico de SSR es el mismo de APS: copia el de APS mientras la persona no lo haya editado aquí."""
+        actual = self.ssr_examen.get("1.0", "end").strip()
+        if actual == self._ssr_exa_auto.strip():
+            nuevo = self.examen.get("1.0", "end").strip()
+            self.ssr_examen.delete("1.0", "end")
+            self.ssr_examen.insert("1.0", nuevo)
+            self._ssr_exa_auto = nuevo
 
     def _mostrar_ssr(self):
         if "Salud Sexual y Reproductiva" in self.w["consultas"].get_value():
             self.f_ssr.pack(fill="x")
             self._regen_hea(True)
-            self._sync_ssr_hea()
+            self._regen_hea_ssr(False)
         else:
             self.f_ssr.pack_forget()
+            if hasattr(self, "_dx_vistos"):          # (no durante la construcción de la ventana)
+                self._regen_examen()
 
     def _mostrar_derivacion(self):
         """«Servicio brindado» y lo demás solo existen en la página cuando «¿Va a ser derivado?» es Sí."""
@@ -750,7 +780,7 @@ class ActivityInfoDialog(_Modal):
 
     def _clave_hea(self):
         p = self._persona()
-        return (tuple(self._dx_hea()), p.get("sexo"), p.get("edad"), p.get("unidad"))
+        return (tuple(self._dx_aps_hea()), tuple(self._dx_ssr()), p.get("sexo"), p.get("edad"), p.get("unidad"))
 
     def _regen_plan(self, forzar=False):
         """Plan general (sin medicamentos) según los diagnósticos; si se editó a mano, no se pisa (salvo «Otra versión»)."""
@@ -777,33 +807,56 @@ class ActivityInfoDialog(_Modal):
             caja.insert("1.0", texto)
             setattr(self, auto_attr, texto)
         aps = [d for d in self._dx_actuales() if d]
+        todos = [d for d in self._dx_hea() if d]
         rng = random.Random()
-        poner(self.examen, examen_fisico.compose(aps, ssr=False, rng=rng), "_exa_auto")
-        if hasattr(self, "ssr_examen"):
-            poner(self.ssr_examen, examen_fisico.compose([d for d in self._dx_hea() if d], ssr=True, rng=rng), "_ssr_exa_auto")
+        if self._ssr_activo() and hasattr(self, "ssr_examen"):
+            # con SSR marcado, el examen físico es UNO SOLO (todos los diagnósticos, con genitourinario) y va igual en ambas fichas
+            texto = examen_fisico.compose(todos, ssr=True, rng=rng)
+            poner(self.examen, texto, "_exa_auto")
+            poner(self.ssr_examen, texto, "_ssr_exa_auto")
+        else:
+            poner(self.examen, examen_fisico.compose(aps, ssr=False, rng=rng), "_exa_auto")
+            if hasattr(self, "ssr_examen"):
+                poner(self.ssr_examen, examen_fisico.compose(todos, ssr=True, rng=rng), "_ssr_exa_auto")
 
     def _regen_hea(self, solo_si_cambio):
-        """Vuelve a armar la HEA con los diagnósticos elegidos. Si la persona editó el texto a mano, no lo pisa
-        (salvo con «Otra versión»)."""
+        """Vuelve a armar la HEA de APS (diagnósticos de APS) y la de SSR (diagnósticos de SSR). Si la persona editó
+        un texto a mano, ese no se pisa (salvo con «Otra versión»)."""
         self._marcar_fuentes()
         self._regen_examen()
         self._regen_plan()
-        dxs = self._dx_hea()
         if solo_si_cambio:
             clave = self._clave_hea()
             if clave == self._dx_vistos:
                 return
             self._dx_vistos = clave
-            if self.hea.get("1.0", "end").strip() != self._hea_auto.strip():
-                return
+        self._regen_hea_aps(not solo_si_cambio)
+        self._regen_hea_ssr(not solo_si_cambio)
+
+    def _regen_hea_aps(self, forzar):
+        if not forzar and self.hea.get("1.0", "end").strip() != self._hea_auto.strip():
+            return
         p = self._persona()
-        texto, avisos = hea_banco.compose(p.get("sexo"), p.get("edad"), [d for d in dxs if d], p.get("unidad", "años"))
+        texto, avisos = hea_banco.compose(p.get("sexo"), p.get("edad"), [d for d in self._dx_aps_hea() if d], p.get("unidad", "años"))
         self.hea.delete("1.0", "end")
         self.hea.insert("1.0", texto)
         self._hea_auto = texto
         self.hea_aviso.configure(text="\n".join("⚠ " + a for a in avisos))
-        if hasattr(self, "ssr_hea"):
-            self._sync_ssr_hea()
+
+    def _regen_hea_ssr(self, forzar):
+        if not self._ssr_activo() or not hasattr(self, "ssr_hea"):
+            return
+        dxs = self._dx_ssr()
+        if not dxs:
+            return
+        if not forzar and self.ssr_hea.get("1.0", "end").strip() != self._ssr_hea_auto.strip():
+            return
+        p = self._persona()
+        texto, avisos = hea_banco.compose(p.get("sexo"), p.get("edad"), dxs, p.get("unidad", "años"))
+        self.ssr_hea.delete("1.0", "end")
+        self.ssr_hea.insert("1.0", texto)
+        self._ssr_hea_auto = texto
+        self.ssr_hea_aviso.configure(text="\n".join("⚠ " + a for a in avisos))
 
     def run(self):                      # ya tiene tamaño y posición propios (900 x 700, centrada)
         self.deiconify()
@@ -845,7 +898,7 @@ class ActivityInfoDialog(_Modal):
         data["recordar_dx"] = bool(self.recordar.get())
         quiere_ssr = "Salud Sexual y Reproductiva" in data["consultas"]
         if quiere_ssr:
-            self._sync_ssr_hea()
+            self._sync_ssr_exa()
         ssr_dx, malos_ssr = [], []
         if quiere_ssr:
             for cb in self.ssr_rows:
