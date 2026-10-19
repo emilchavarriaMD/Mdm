@@ -272,3 +272,30 @@ class T09_ExamenFisico(unittest.TestCase):
         self.assertEqual(list(e._hallazgos(["Hemorragia retiniana"])), ["ojos"])
         t = e.compose(["Hipertensión esencial, sin especificación"])
         self.assertEqual(t.lower().count("ingurgitación yugular"), 1)
+
+
+class T10_PlanBanco(unittest.TestCase):
+    def test_cobertura_y_forma(self):
+        import random
+        import re
+        from services import cie11_catalog as cat, cie11_ssr as ssr
+        from services import plan_banco as pb
+        for m in (cat, ssr):
+            for d in m.descriptions():
+                self.assertTrue(pb.tiene_plan(d), d)
+                reg = pb.PLAN[d]
+                self.assertTrue(8 <= len(reg["m"]) <= 13 and 4 <= len(reg["a"]) <= 9 and 2 <= len(reg["s"]) <= 4, d)
+                t = pb.compose([d], rng=random.Random(1))
+                self.assertTrue(t.endswith(".") and "Se " in t or "Indicaciones" in t or "Debe" in t, d)
+                self.assertNotRegex(t, r"\b\d+\s?mg\b", d)                  # nunca dosis de medicamentos
+
+    def test_varias_versiones_y_varios_dx(self):
+        import random
+        from services import plan_banco as pb
+        dx = ["Hipertensión esencial, sin especificación", "Cervicitis"]
+        textos = {pb.compose(dx, rng=random.Random(i)) for i in range(25)}
+        self.assertGreater(len(textos), 15)
+        self.assertEqual(pb.compose(dx), pb.compose(dx))                   # sin rng: estable
+        t = pb.compose(dx, rng=random.Random(3)).lower()
+        self.assertRegex(t, "inmediato|sin demora")
+        self.assertEqual(pb.compose([]), "")

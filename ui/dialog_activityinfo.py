@@ -7,7 +7,7 @@ from services import activityinfo as ai
 from services import cie11_catalog as cat
 from services import cie11_ssr as ssr_cat
 from services import hea_banco
-from services import examen_fisico
+from services import examen_fisico, plan_banco
 from ui import dialogs, widgets
 from ui.dialogs import _Modal
 
@@ -194,10 +194,12 @@ class ActivityInfoDialog(_Modal):
         self._exa_auto = defaults.get("examen_fisico", "")
         self.examen.pack(fill="x")
         ttk.Label(f_plan, text="Plan — se escribe en «Plan» de APS", style="H2.TLabel").pack(anchor="w", pady=(12, 2))
-        ttk.Label(f_plan, text="Por ahora solo «Plan»; luego habrá un repertorio. Puede escribir o corregir el texto; "
-                  "vacío = no se llena.", style="Muted.TLabel", wraplength=780, justify="left").pack(anchor="w")
-        self.plan = tk.Text(f_plan, height=5, wrap="word", font=("Segoe UI", 10), relief="solid", bd=1)
+        ttk.Label(f_plan, text="Medidas generales, signos de alarma y seguimiento según los diagnósticos (sin medicamentos: "
+                  "esos se agregan a mano). Puede corregir el texto; vacío = no se llena.", style="Muted.TLabel", wraplength=780, justify="left").pack(anchor="w")
+        self.plan = tk.Text(f_plan, height=8, wrap="word", font=("Segoe UI", 10), relief="solid", bd=1)
         self.plan.insert("1.0", defaults.get("plan", ""))
+        self._plan_auto = defaults.get("plan", "")
+        ttk.Button(f_plan, text="Otra versión del plan", command=lambda: self._regen_plan(True)).pack(anchor="e")
         self.plan.pack(fill="x")
         ttk.Label(f_der, text="Derivación (hacia) y servicio brindado", style="H2.TLabel").pack(anchor="w", pady=(12, 2))
         ttk.Label(f_der, text="Si elige Sí en «¿Va a ser derivado?» se muestran los demás campos, como en ActivityInfo "
@@ -232,7 +234,11 @@ class ActivityInfoDialog(_Modal):
             self._exa_auto = "\0"        # texto puesto a mano desde fuera: no se pisa
         if self._ssr_exa_auto.strip() != examen_fisico.compose([], ssr=True).strip():
             self._ssr_exa_auto = "\0"
+        for attr in ("_plan_auto", "_ssr_plan_auto"):
+            if getattr(self, attr).strip() not in (ai.PLAN_BASE, ""):
+                setattr(self, attr, "\0")        # texto puesto a mano desde fuera: no se pisa
         self._regen_examen()
+        self._regen_plan()
         # si se corrige el género o la edad en esta ventana, la HEA se actualiza (salvo que ya la haya editado)
         self.w["genero"].bind("<<ComboboxSelected>>", lambda e: (self._ajustar_vitales(), self._regen_hea(True),
                                                                  self._ssr_condicionales()))
@@ -503,8 +509,9 @@ class ActivityInfoDialog(_Modal):
                   style="Muted.TLabel").pack(anchor="w")
 
         titulo("Plan (SSR)")
-        nota("Por ahora solo «Plan». Vacío = no se llena.")
-        self.ssr_plan = caja("Plan", 4, defaults.get("plan", ""))
+        nota("Medidas generales según los diagnósticos (sin medicamentos). Vacío = no se llena.")
+        self.ssr_plan = caja("Plan", 7, defaults.get("plan", ""))
+        self._ssr_plan_auto = defaults.get("plan", "")
 
         titulo("Derivación (SSR)")
         gd = ttk.Frame(f)
@@ -617,6 +624,22 @@ class ActivityInfoDialog(_Modal):
         p = self._persona()
         return (tuple(self._dx_hea()), p.get("sexo"), p.get("edad"), p.get("unidad"))
 
+    def _regen_plan(self, forzar=False):
+        """Plan general (sin medicamentos) según los diagnósticos; si se editó a mano, no se pisa (salvo «Otra versión»)."""
+        def poner(caja, texto, auto_attr):
+            if not texto:
+                return
+            actual = caja.get("1.0", "end").strip()
+            if not forzar and actual not in ("", ai.PLAN_BASE, getattr(self, auto_attr, "").strip()):
+                return
+            caja.delete("1.0", "end")
+            caja.insert("1.0", texto)
+            setattr(self, auto_attr, texto)
+        rng = random.Random()
+        poner(self.plan, plan_banco.compose([d for d in self._dx_actuales() if d], rng=rng), "_plan_auto")
+        if hasattr(self, "ssr_plan"):
+            poner(self.ssr_plan, plan_banco.compose([d for d in self._dx_hea() if d], rng=rng), "_ssr_plan_auto")
+
     def _regen_examen(self, forzar=False):
         """Examen físico por secciones según los diagnósticos; si se editó a mano, no se pisa (salvo «Otra versión»)."""
         def poner(caja, texto, auto_attr):
@@ -636,6 +659,7 @@ class ActivityInfoDialog(_Modal):
         (salvo con «Otra versión»)."""
         self._marcar_fuentes()
         self._regen_examen()
+        self._regen_plan()
         dxs = self._dx_hea()
         if solo_si_cambio:
             clave = self._clave_hea()

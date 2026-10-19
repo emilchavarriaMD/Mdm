@@ -344,6 +344,26 @@ class UITests(unittest.TestCase):
         self.assertTrue(70 <= int(dlg.w["diastolica"].get_value()) <= 80)
         dlg.destroy()
 
+    def test_04h_plan_se_actualiza_y_respeta_lo_editado(self):
+        from services import activityinfo as ai
+        from ui.dialog_activityinfo import ActivityInfoDialog
+        d = ai.build_defaults(self.db, {"nombre": "Ana Pérez López", "sexo": "M", "fecha": "2026-10-15", "edad_anios": "30",
+                                        "dx1": "Hipertensión"})
+        dlg = ActivityInfoDialog(self.root, d)
+        self.upd()
+        t1 = dlg.plan.get("1.0", "end").strip()
+        self.assertNotEqual(t1, "Plan")
+        self.assertRegex(t1, "inmediato|sin demora")
+        dlg._regen_plan(True)                                         # «Otra versión»
+        self.upd()
+        dlg.plan.delete("1.0", "end")
+        dlg.plan.insert("1.0", "Mi plan escrito a mano")
+        dlg._regen_plan()                                             # lo editado no se pisa
+        self.assertEqual(dlg.plan.get("1.0", "end").strip(), "Mi plan escrito a mano")
+        dlg._regen_plan(True)
+        self.assertNotEqual(dlg.plan.get("1.0", "end").strip(), "Mi plan escrito a mano")
+        dlg.destroy()
+
     def test_04f_seccion_ssr(self):
         from services import activityinfo as ai
         from ui.dialog_activityinfo import ActivityInfoDialog
@@ -368,7 +388,7 @@ class UITests(unittest.TestCase):
         ex = dlg.ssr_examen.get("1.0", "end")
         self.assertIn("Genitourinario", ex)
         self.assertRegex(ex, "grisáceo|grisácea|olor a pescado")                              # vaginosis → hallazgo propio en genitourinario
-        self.assertEqual(dlg.ssr_plan.get("1.0", "end").strip(), "Plan")
+        self.assertRegex(dlg.ssr_plan.get("1.0", "end"), "inmediato|sin demora")     # plan general según los diagnósticos
         self.assertFalse(dlg.ssr_its_x.winfo_manager())
         self.assertEqual(dlg.ssr_larga.winfo_manager(), "pack")            # ficha larga: menarquía, citología…
         self.assertEqual(dlg._ssr_larga_mujer.winfo_manager(), "pack")
