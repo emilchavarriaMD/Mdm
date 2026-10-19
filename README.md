@@ -107,8 +107,10 @@ ni «Guardar registro» ni «Guardar como borrador». También se llenan, en el 
 observaciones), observaciones del diagnóstico, consejería de anticoncepción, derivación y «¿Víctima de violencia sexual reciente?».
 Los diagnósticos salen en el mismo formato que los de APS (uno por cada diagnóstico del ATA; SSR admite máximo 2) y solo se sugiere
 un equivalente cuando el nombre coincide exactamente o es un sinónimo conocido. Todo queda vacío por defecto (salvo los defaults
-indicados y Servicio brindado = Salud / «MdM-Salud sexual y reproductiva»). No se llenan: campos que dependen de violencia, medicamentos
-y otros campos condicionales de SSR.
+indicados y Servicio brindado = Salud / «MdM-Salud sexual y reproductiva»). La sección sigue el orden del subformulario: HEA, examen físico y plan propios (copian los de APS y se pueden editar), y los campos
+que dependen de otro aparecen al elegirlo (violencia → tipo; ITS «Sí» → ¿Cuál?; ITU «Sí» → ¿complicada? y n.º de episodios; consejería
+«Si» → ¿Ya planifica?, métodos y acceso). No se llenan: antecedentes obstétricos, menarquía y demás campos de ficha larga, signos
+vitales/peso de SSR, medicamentos, lista de verificación de embarazo y los otros campos condicionales de SSR.
 
 ## Cambios
 - **1.4** — Salud Sexual y Reproductiva: sección propia en la ventana, lista de diagnósticos de SSR, llenado del subformulario.

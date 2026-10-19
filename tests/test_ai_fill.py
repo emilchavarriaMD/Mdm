@@ -60,7 +60,11 @@ LEER = """() => {
         violencia: (q('#violencia input') || {}).value, its: rr('its'), itu: rr('itu'), vph: rr('vph'), papa: rr('papa'), mama: rr('mama'),
         vacuna: [...document.querySelectorAll('#ssr #vacuna input:checked')].map(x => x.value), obs: q('#obs').value,
         obsdx: q('#obsdx').value, conse: rr('conse'), sder: (q('#sder input') || {}).value, strans: rr('strans'), ssvc: rr('ssvc'),
-        ssalud: rr('ssaludsvc'), victima: rr('victima') }; })(),
+        ssalud: rr('ssaludsvc'), victima: rr('victima'),
+        vgen: [...document.querySelectorAll('#ssr #vgen input:checked')].map(x => x.value), itscual: (q('#itscual') || {}).value,
+        ituc: (q('#ituc input') || {}).value, ituN: (q('#ituN') || {}).value, yap: rr('yap'),
+        mact: [...document.querySelectorAll('#ssr #mact input:checked')].map(x => x.value),
+        mel: [...document.querySelectorAll('#ssr #mel input:checked')].map(x => x.value), acc: rr('acc') }; })(),
     aps_abierto: !!document.getElementById('aps'),
   };
 }"""
@@ -124,7 +128,10 @@ class T08_LlenadoSimulado(unittest.TestCase):
                  ssr={"mismo_punto": "Sí", "mismo_proy": "Sí", "tipo": "Primera", "ficha": "Larga", "recibio_aps": "Sí",
                       "dx": [{"abrev": "Vaginosis", "descripcion": "Vaginosis bacteriana", "cie11": "MF3A"},
                              {"abrev": "Cand", "descripcion": "Candidiasis vulvovaginal", "cie11": "1F23.10"}], "n_dx": 2,
-                      "violencia": "No", "its": "No", "itu": "Sí", "vph": "No", "papanicolau": "Sí", "examen_mama": "No",
+                      "violencia": "Violencia Basada en Género", "viol_genero": "Violencia sexual", "its": "Sí", "its_cual": "Sífilis",
+                      "itu": "Sí", "itu_complicada": "No", "itu_episodios": "2", "ya_planifica": "Sí",
+                      "metodos_actuales": ["DIU"], "metodos_elegidos": ["Preservativo masculino"], "acceso": "Sí",
+                      "hea": "HEA de SSR", "examen_fisico": "Examen SSR", "plan": "Plan SSR", "vph": "No", "papanicolau": "Sí", "examen_mama": "No",
                       "vacunacion": ["Td (toxoide tetánico)", "HEPATITIS B:"], "observaciones": "Obs gral", "obs_dx": "Obs dx",
                       "consejeria": "Si", "va_derivado": "Sí", "transfronteriza": "No", "servicio_brindado": "Salud",
                       "servicio_salud": "MdM-Salud sexual y reproductiva", "victima_sexual": "No"})
@@ -144,13 +151,16 @@ class T08_LlenadoSimulado(unittest.TestCase):
         s = v["ssr"]
         self.assertEqual((s["prof"], s["mismo_punto"], s["mismo_proy"], s["tipo"], s["ficha"], s["recibio_aps"]),
                          ("Nadia Alejandra Chavarría López", "Sí", "Sí", "Primera", "Larga", "Sí"))
-        self.assertEqual(s["hea"], PAYLOAD["hea"])
-        self.assertEqual(s["examen"], "Cefalo-caudal")
-        self.assertEqual(s["plan"], "Plan")
+        self.assertEqual(s["hea"], "HEA de SSR")          # la HEA, el examen y el plan de SSR son cuadros propios
+        self.assertEqual(s["examen"], "Examen SSR")
+        self.assertEqual(s["plan"], "Plan SSR")
         self.assertEqual(s["ndx"], "2")
         self.assertEqual((s["desc1"], s["code1"]), ("Vaginosis bacteriana", "MF3A"))
         self.assertEqual((s["desc2"], s["code2"]), ("Candidiasis vulvovaginal", "1F23.10"))
-        self.assertEqual((s["violencia"], s["its"], s["itu"], s["vph"], s["papa"], s["mama"]), ("No", "No", "Sí", "No", "Sí", "No"))
+        self.assertEqual((s["violencia"], s["its"], s["itu"], s["vph"], s["papa"], s["mama"]),
+                         ("Violencia Basada en Género", "Sí", "Sí", "No", "Sí", "No"))
+        self.assertEqual((s["vgen"], s["itscual"], s["ituc"], s["ituN"]), (["Violencia sexual"], "Sífilis", "No", "2"))
+        self.assertEqual((s["yap"], s["mact"], s["mel"], s["acc"]), ("Sí", ["DIU"], ["Preservativo masculino"], "Sí"))
         self.assertEqual(s["vacuna"], ["Td (toxoide tetánico)", "HEPATITIS B:"])
         self.assertEqual((s["obs"], s["obsdx"], s["conse"]), ("Obs gral", "Obs dx", "Si"))
         self.assertEqual((s["sder"], s["strans"], s["ssvc"], s["ssalud"], s["victima"]),

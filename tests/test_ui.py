@@ -343,12 +343,26 @@ class UITests(unittest.TestCase):
         dlg.w["ssr_va_derivado"].set_value("Sí")
         dlg._mostrar_ssr_der()
         self.assertEqual(dlg.ssr_der_extra.winfo_manager(), "pack")
+        # campos que dependen de lo elegido
+        self.assertEqual(dlg.ssr_hea.get("1.0", "end").strip(), dlg.hea.get("1.0", "end").strip())   # HEA propia, copia de APS
+        self.assertEqual(dlg.ssr_examen.get("1.0", "end").strip(), "Cefalo-caudal")
+        self.assertEqual(dlg.ssr_plan.get("1.0", "end").strip(), "Plan")
+        self.assertFalse(dlg.ssr_its_x.winfo_manager())
+        dlg.w["ssr_its"].set_value("Sí"); dlg.w["ssr_itu"].set_value("Sí"); dlg.w["ssr_violencia"].set_value("Violencia Basada en Género")
+        dlg.w["ssr_consejeria"].set_value("Si"); dlg.w["ssr_ya_planifica"].set_value("Sí")
+        dlg._ssr_condicionales()
+        for fr in (dlg.ssr_its_x, dlg.ssr_itu_x, dlg.ssr_viol_g, dlg.ssr_met, dlg.ssr_actuales):
+            self.assertEqual(fr.winfo_manager(), "pack")
+        self.assertFalse(dlg.ssr_viol_o.winfo_manager())
+        dlg.w["ssr_its_cual"].set_value("Sífilis")
+        dlg.w["ssr_metodos_actuales"].set_value(["DIU"])
         for k, v in {"estado_civil": "Soltero/a", "escolaridad": "Primaria", "ocupacion": "Estudiante",
                      "discapacidad": "No", "derivado": "No", "tipo_consulta": "Primera"}.items():
             dlg.w[k].set_value(v)
         dlg._ok()
         r = dlg.result
         self.assertIsNotNone(r)
+        self.assertEqual((r["ssr"]["its_cual"], r["ssr"]["metodos_actuales"], r["ssr"]["ya_planifica"]), ("Sífilis", ["DIU"], "Sí"))
         self.assertEqual(r["ssr"]["dx"][0]["descripcion"], "Vaginosis bacteriana")
         self.assertEqual(r["ssr"]["n_dx"], len(r["ssr"]["dx"]))
         p = ai.payload(r)

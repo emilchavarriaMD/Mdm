@@ -75,6 +75,17 @@ SI_NO = ["Sí", "No"]
 SSR_MAX_DX = 2
 SSR_VIOLENCIA = ["No", "Violencia Basada en Género", "Otra Situación de Violencia"]
 SSR_SI_NO_NS = ["Sí", "No", "No sabe"]
+SSR_VIOLENCIA_GENERO = ["Violencia física", "Violencia psicológica", "Violencia sexual", "Violencia económica",
+                        "Violencia patrimonial", "Violencia institucional", "Unión Temprana", "Matrimonio Forzado"]
+SSR_VIOLENCIA_OTRAS = ["Desórdenes civiles", "Disturbios internos", "Represión Estatal", "Violencia electoral",
+                       "Violencia de maras, pandillas y/o crimen organizado", "Amenazas de muerte", "Extorsión",
+                       "Reclutamiento forzado", "Despojo de tierras", "Expulsión de vivienda", "Usurpación de propiedad",
+                       "Discriminación", "Delincuencia organizada y urbana", "Deportación forzada"]
+SSR_METODOS_ELEGIDOS = ["Anillo vaginal", "Diafragma", "DIU", "Espermicida", "Esponja", "Implante subdérmico",
+                        "Inyección hormonal / DEPO", "Ligadura de trompas / Vasectomía",
+                        "Métodos naturales (calendário, muco, coitus interruptus, temperatura)", "Preservativo feminino",
+                        "Preservativo masculino", "Píldora anticonceptiva", "Píldora del dia después", "Ninguno"]
+SSR_METODOS_ACTUALES = SSR_METODOS_ELEGIDOS[:-1] + ["Otro (no convencional)"]
 SSR_VACUNAS = ["Td (toxoide tetánico)", "VPH (VIRUS PAPILOMA HUMANO)", "HEPATITIS B:", "SRP (SARAMPIÓN-RUBEOLA):"]
 SSR_SERVICIO_SALUD = "MdM-Salud sexual y reproductiva"
 SSR_SERVICIOS_SALUD = ["MdM - Atención primaria", "MdM-Salud sexual y reproductiva", "MdM-Salud mental y apoyo psicosocial",

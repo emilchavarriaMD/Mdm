@@ -1,6 +1,6 @@
 /* Llena el formulario de ActivityInfo. NUNCA pulsa Guardar registro ni Guardar como borrador. */
 (function () {
-  const VERSION = 17;
+  const VERSION = 18;
   if (window.__mdm && window.__mdm.version === VERSION) return;   // una versión vieja en la pestaña se reemplaza
   const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
   const norm = (s) => (s || "").replace(/\s+/g, " ").replace(/\*/g, "").replace(/OBLIGATORIO/g, "").trim().toLowerCase();
@@ -93,6 +93,7 @@
   async function setAuto(label, value) {
     const l = findLabel(label); if (!l) throw new Error("No encontré el campo: " + label);
     const box = l.closest(".forminput__field") || l.parentElement;
+    if (box.querySelector('input[type=checkbox]') && !box.querySelector('[role="radio"], input[type=radio]')) return setChecks(label, [value]);
     if (box.querySelector('[role="radio"], [role="checkbox"], input[type=radio]')) return setRadio(label, value);
     // Si es una lista desplegable, solo se acepta una opción de la lista (si no, queda en rojo): no se escribe texto libre.
     if (box.querySelector(".field__trigger, label.forminput__lookup__key")) return setLookup(label, value);
@@ -316,32 +317,62 @@
       if (l) await S("SSR: ¿Recibió APS el mismo día?", () => setAuto("¿Recibió APS el mismo día", x.recibio_aps));
       else log.push("SSR: ¿Recibió APS el mismo día?: no apareció (solo sale si también se marcó Atención primaria)");
     }
-    if (x.violencia) await S("SSR: ¿Ha sufrido violencia?", () => setAuto("¿Ha sufrido violencia?", x.violencia));
-    if (d.hea) {
+    if (x.violencia) {
+      await S("SSR: ¿Ha sufrido violencia?", () => setAuto("¿Ha sufrido violencia?", x.violencia));
+      await sleep(600);
+      if (x.viol_genero) await S("SSR: Violencia de género", () => setAuto("Violencia de género", x.viol_genero));
+      if (x.viol_otras) await S("SSR: Otras situaciones de violencia", () => setAuto("Otras Situaciones de Violencia", x.viol_otras));
+    }
+    const hea = x.hea !== undefined ? x.hea : d.hea;
+    if (hea) {
       await S("SSR: Historia de la enfermedad actual", async () => {
         const ok = await waitFor(() => findLabel("Historia de la enfermedad actual"), 5000);
         if (!ok) throw new Error("no apareció el cuadro");
-        await setText("Historia de la enfermedad actual", d.hea);
+        await setText("Historia de la enfermedad actual", hea);
       });
     }
-    // Antecedentes (en el orden de la página)
-    for (const [k, lab] of [["its", "Antecedentes de ITS"], ["itu", "Antecedentes de ITU"]]) {
-      if (x[k]) await S("SSR: " + lab, () => setAuto(lab, x[k]));
+    // Antecedentes (en el orden de la página). Con «Sí» aparecen campos nuevos.
+    if (x.its) {
+      await S("SSR: Antecedentes de ITS", () => setAuto("Antecedentes de ITS", x.its));
+      if (x.its === "Sí" && x.its_cual) { await sleep(600); await S("SSR: ITS ¿Cuál?", () => setText("¿Cuál?", x.its_cual)); }
+    }
+    if (x.itu) {
+      await S("SSR: Antecedentes de ITU", () => setAuto("Antecedentes de ITU", x.itu));
+      if (x.itu === "Sí") {
+        await sleep(600);
+        if (x.itu_complicada) await S("SSR: ¿ITU complicada?", () => setAuto("¿ITU complicada?", x.itu_complicada));
+        if (x.itu_episodios) await S("SSR: Número de episodios de ITU al año", () => setText("Número de episodios de ITU al año", x.itu_episodios));
+      }
     }
     if ((x.vacunacion || []).length) await S("SSR: Vacunación", () => setChecks("Vacunación", x.vacunacion));
     for (const [k, lab] of [["vph", "VPH"], ["papanicolau", "Papanicolau"], ["examen_mama", "Examen de mama"]]) {
       if (x[k]) await S("SSR: " + lab, () => setAuto(lab, x[k]));
     }
     if (x.observaciones) await S("SSR: Observaciones", () => setText("Observaciones", x.observaciones));
-    if (d.examen_fisico) await S("SSR: Exámen físico", () => setText("Exámen físico", d.examen_fisico));
+    const exa = x.examen_fisico !== undefined ? x.examen_fisico : d.examen_fisico;
+    if (exa) await S("SSR: Exámen físico", () => setText("Exámen físico", exa));
     if (x.n_dx) {
       await S("SSR: Número de diagnósticos", () => setRadio("Número de diagnósticos", String(x.n_dx)));
       await sleep(900);
       await fillDx(x.dx, "Diagnóstico SSR", log, info);
     }
     if (x.obs_dx) await S("SSR: Observaciones Diagnóstico", () => setText("Observaciones Diagnóstico", x.obs_dx));
-    if (x.consejeria) await S("SSR: ¿Ha recibido consejería anticoncepción?", () => setAuto("¿Ha recibido consejería anticoncepción durante esta consulta?", x.consejeria));
-    if (d.plan) await S("SSR: Plan", () => setText("Plan", d.plan));
+    // Uso de métodos anticonceptivos: con consejería «Si» aparecen ¿Ya planifica?, método elegido y acceso
+    if (x.consejeria) {
+      await S("SSR: ¿Ha recibido consejería anticoncepción?", () => setAuto("¿Ha recibido consejería anticoncepción durante esta consulta?", x.consejeria));
+      if (x.consejeria === "Si") {
+        await sleep(700);
+        if (x.ya_planifica) {
+          await S("SSR: ¿Ya planifica?", () => setAuto("¿Ya planifica?", x.ya_planifica));
+          await sleep(600);
+          if (x.ya_planifica === "Sí" && (x.metodos_actuales || []).length) await S("SSR: Método/s actual/es", () => setChecks("Metodo/s anticonceptivo/s actual", x.metodos_actuales));
+        }
+        if ((x.metodos_elegidos || []).length) { await S("SSR: Método/s elegido/s", () => setChecks("Método/s anticonceptivo/s elegido", x.metodos_elegidos)); await sleep(500); }
+        if (x.acceso) await S("SSR: Acceso", () => setAuto("Acceso", x.acceso));
+      }
+    }
+    const plan = x.plan !== undefined ? x.plan : d.plan;
+    if (plan) await S("SSR: Plan", () => setText("Plan", plan));
     // Derivación (solo aparece «Servicio brindado» con «¿Va a ser derivado?» = Sí; con «Salud» aparece el grupo «Salud»)
     if (x.va_derivado) { await S("SSR: ¿Va a ser derivado?", () => setAuto("¿Va a ser derivado?", x.va_derivado)); await sleep(700); }
     if (x.transfronteriza) await S("SSR: Referencia Transfronteriza", () => setAuto("Referencia Transfronteriza", x.transfronteriza));

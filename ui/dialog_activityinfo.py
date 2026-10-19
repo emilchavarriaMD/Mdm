@@ -267,51 +267,96 @@ class ActivityInfoDialog(_Modal):
         return p
 
     def _construir_ssr(self, defaults):
-        """Sección de Salud Sexual y Reproductiva: se despliega abajo del todo al marcar esa consulta. La HEA, el examen
-        físico, el plan y el profesional son los mismos de Atención primaria; los diagnósticos tienen su propia lista."""
+        """Sección de Salud Sexual y Reproductiva (al final de la ventana; se ve al marcar esa consulta). Sigue el orden
+        del subformulario de ActivityInfo y muestra los campos que dependen de lo elegido, igual que la página."""
         f = self.f_ssr
-        ttk.Label(f, text="Salud Sexual y Reproductiva — se llena en su subformulario (después del de Atención primaria)",
-                  style="H2.TLabel").pack(anchor="w", pady=(16, 2))
-        ttk.Label(f, text="Usa la misma HEA, el mismo examen físico, el mismo plan y el mismo profesional de Atención primaria "
-                  "(los de arriba). El programa pulsa «Está hecho» solo en el de Atención primaria para poder abrir este; en "
-                  "este NO pulsa nada: usted lo revisa y lo termina. Lo que deje vacío no se toca.", style="Muted.TLabel",
-                  wraplength=780, justify="left").pack(anchor="w")
+        self._ssr_vistos = {}
+
+        def titulo(txt, pad=(12, 2)):
+            ttk.Label(f, text=txt, style="H2.TLabel").pack(anchor="w", pady=pad)
+
+        def nota(txt):
+            ttk.Label(f, text=txt, style="Muted.TLabel", wraplength=780, justify="left").pack(anchor="w")
+
+        def combo(key, label, vals, parent, grid, ro=True):
+            w = widgets.ComboField(parent, [""] + list(vals), readonly=ro, width=26)
+            self.w[key] = w
+            w.set_value(defaults.get(key, ""))
+            grid.add(label, w)
+            return w
+
+        def entry(key, label, parent, grid):
+            w = widgets.EntryField(parent, width=26)
+            self.w[key] = w
+            w.set_value(defaults.get(key, ""))
+            grid.add(label, w)
+            return w
+
+        def caja(txt, alto, valor):
+            t = tk.Text(f, height=alto, wrap="word", font=("Segoe UI", 10), relief="solid", bd=1)
+            t.insert("1.0", valor or "")
+            t.pack(fill="x")
+            return t
+
+        titulo("Salud Sexual y Reproductiva — se llena en su subformulario (después del de Atención primaria)", (16, 2))
+        nota("El programa pulsa «Está hecho» solo en el de Atención primaria para poder abrir este; en este NO pulsa "
+             "nada: usted lo revisa y lo termina. El profesional es el mismo de arriba. Lo que deje vacío no se toca; los "
+             "campos que dependen de otro aparecen al elegirlo, como en ActivityInfo.")
         gf5 = ttk.Frame(f)
         gf5.pack(fill="x")
         g5 = widgets.FormGrid(gf5, 3)
+        combo("ssr_mismo_punto", "¿Mismo punto de atención de la ficha?", ai.SI_NO, gf5, g5)
+        combo("ssr_mismo_proy", "¿Mismo proyecto de la ficha?", ai.SI_NO, gf5, g5)
+        combo("ssr_tipo", "Tipo de consulta (vacío = el mismo de APS)", ai.TIPOS_SSR, gf5, g5)
+        combo("ssr_ficha", "¿Ficha corta o larga?", ai.SSR_FICHAS, gf5, g5)
+        combo("ssr_recibio_aps", "¿Recibió APS el mismo día?", ai.SI_NO, gf5, g5)
+        combo("ssr_violencia", "¿Ha sufrido violencia?", ai.SSR_VIOLENCIA, gf5, g5)
+        self.w["ssr_violencia"].bind("<<ComboboxSelected>>", lambda e: self._ssr_condicionales())
+        self.ssr_viol_g = ttk.Frame(f)
+        combo("ssr_viol_genero", "Violencia de género", ai.SSR_VIOLENCIA_GENERO, self.ssr_viol_g,
+              widgets.FormGrid(self.ssr_viol_g, 3))
+        self.ssr_viol_o = ttk.Frame(f)
+        combo("ssr_viol_otras", "Otras situaciones de violencia", ai.SSR_VIOLENCIA_OTRAS, self.ssr_viol_o,
+              widgets.FormGrid(self.ssr_viol_o, 3))
+        self._ssr_gf5 = gf5
 
-        def add5(key, label, vals, parent=None, grid=None):
-            w = widgets.ComboField(parent or gf5, [""] + list(vals), readonly=True, width=26)
-            self.w[key] = w
-            w.set_value(defaults.get(key, ""))
-            (grid or g5).add(label, w)
+        titulo("Historia de la enfermedad actual (SSR)")
+        nota("Empieza igual que la HEA de Atención primaria (se copia sola mientras no la edite aquí). Corríjala si hace falta; "
+             "vacío = no se llena.")
+        self.ssr_hea = caja("HEA", 6, defaults.get("hea", ""))
+        self._ssr_hea_auto = defaults.get("hea", "")
 
-        add5("ssr_mismo_punto", "¿Mismo punto de atención de la ficha?", ai.SI_NO)
-        add5("ssr_mismo_proy", "¿Mismo proyecto de la ficha?", ai.SI_NO)
-        add5("ssr_tipo", "Tipo de consulta (vacío = el mismo de APS)", ai.TIPOS_SSR)
-        add5("ssr_ficha", "¿Ficha corta o larga?", ai.SSR_FICHAS)
-        add5("ssr_recibio_aps", "¿Recibió APS el mismo día?", ai.SI_NO)
-        add5("ssr_violencia", "¿Ha sufrido violencia?", ai.SSR_VIOLENCIA)
-        # Antecedentes (van después de la HEA en la página)
-        ttk.Label(f, text="Antecedentes", style="H2.TLabel").pack(anchor="w", pady=(10, 2))
+        titulo("Antecedentes")
         ga = ttk.Frame(f)
         ga.pack(fill="x")
         gr = widgets.FormGrid(ga, 3)
-        add5("ssr_its", "Antecedentes de ITS", ai.SSR_SI_NO_NS, ga, gr)
-        add5("ssr_itu", "Antecedentes de ITU", ai.SSR_SI_NO_NS, ga, gr)
-        add5("ssr_vph", "VPH", ai.SI_NO, ga, gr)
-        add5("ssr_papanicolau", "Papanicolau", ai.SI_NO, ga, gr)
-        add5("ssr_examen_mama", "Examen de mama", ai.SI_NO, ga, gr)
-        w = widgets.EntryField(ga, width=26)
-        self.w["ssr_observaciones"] = w
-        w.set_value(defaults.get("ssr_observaciones", ""))
-        gr.add("Observaciones", w)
-        ttk.Label(f, text="Vacunación (marque las que apliquen)").pack(anchor="w", pady=(4, 0))
+        combo("ssr_its", "Antecedentes de ITS", ai.SSR_SI_NO_NS, ga, gr)
+        self.w["ssr_its"].bind("<<ComboboxSelected>>", lambda e: self._ssr_condicionales())
+        combo("ssr_itu", "Antecedentes de ITU", ai.SSR_SI_NO_NS, ga, gr)
+        self.w["ssr_itu"].bind("<<ComboboxSelected>>", lambda e: self._ssr_condicionales())
+        self.ssr_its_x = ttk.Frame(f)
+        entry("ssr_its_cual", "Antecedentes de ITS: ¿Cuál?", self.ssr_its_x, widgets.FormGrid(self.ssr_its_x, 3))
+        self.ssr_itu_x = ttk.Frame(f)
+        gu = widgets.FormGrid(self.ssr_itu_x, 3)
+        combo("ssr_itu_complicada", "¿ITU complicada?", ai.SI_NO, self.ssr_itu_x, gu)
+        entry("ssr_itu_episodios", "Número de episodios de ITU al año", self.ssr_itu_x, gu)
+        self._ssr_ga = ga
+        ttk.Label(f, text="Vacunación (marque las que apliquen)").pack(anchor="w", pady=(8, 0))
         self.w["ssr_vacunacion"] = ChecksField(f, ai.SSR_VACUNAS, columns=2)
         self.w["ssr_vacunacion"].pack(anchor="w")
-        # Diagnósticos: mismo formato que los de Atención primaria (uno por cada diagnóstico del ATA)
-        ttk.Label(f, text="Diagnósticos — lista de ActivityInfo SSR (descripción y código)",
-                  style="H2.TLabel").pack(anchor="w", pady=(10, 2))
+        gb = ttk.Frame(f)
+        gb.pack(fill="x", pady=(4, 0))
+        grb = widgets.FormGrid(gb, 3)
+        combo("ssr_vph", "VPH", ai.SI_NO, gb, grb)
+        combo("ssr_papanicolau", "Papanicolau", ai.SI_NO, gb, grb)
+        combo("ssr_examen_mama", "Examen de mama", ai.SI_NO, gb, grb)
+        entry("ssr_observaciones", "Observaciones", gb, grb)
+
+        titulo("Exámen físico (SSR)")
+        nota("Por ahora solo «Cefalo-caudal». Vacío = no se llena.")
+        self.ssr_examen = caja("Examen", 4, defaults.get("examen_fisico", ""))
+
+        titulo("Diagnósticos — lista de ActivityInfo SSR (descripción y código)")
         self._ssr_labels = [ssr_cat.label(d) for d in ssr_cat.descriptions()]
         self.ssr_rows = []
         sug = defaults.get("ssr_dx") or []
@@ -327,48 +372,102 @@ class ActivityInfoDialog(_Modal):
             cb.pack(side="left", fill="x", expand=True)
             cb.bind("<KeyRelease>", lambda e, c=cb: self._filtrar(c, e, self._ssr_labels))
             self.ssr_rows.append(cb)
-        ttk.Label(f, text="Elija en la lista de ActivityInfo de SSR (puede escribir para buscar). SSR admite máximo 2 "
-                  f"diagnósticos: deje vacíos los que no apliquen (los que no tienen equivalente en SSR quedan vacíos).",
-                  style="Muted.TLabel", wraplength=780, justify="left").pack(anchor="w")
+        nota("Elija en la lista de ActivityInfo de SSR (puede escribir para buscar). SSR admite máximo 2 diagnósticos: deje "
+             "vacíos los que no apliquen (los que no tienen equivalente en SSR quedan vacíos).")
         go = ttk.Frame(f)
         go.pack(fill="x", pady=(6, 0))
         gro = widgets.FormGrid(go, 3)
-        w = widgets.EntryField(go, width=26)
-        self.w["ssr_obs_dx"] = w
-        w.set_value(defaults.get("ssr_obs_dx", ""))
-        gro.add("Observaciones del diagnóstico", w)
-        add5("ssr_consejeria", "¿Consejería anticoncepción?", ["Si", "No"], go, gro)
-        # Derivación (después del plan): lo demás solo existe si «¿Va a ser derivado?» es Sí
-        ttk.Label(f, text="Derivación (SSR)", style="H2.TLabel").pack(anchor="w", pady=(10, 2))
+        entry("ssr_obs_dx", "Observaciones del diagnóstico", go, gro)
+
+        titulo("Uso de métodos anticonceptivos")
+        gm = ttk.Frame(f)
+        gm.pack(fill="x")
+        grm = widgets.FormGrid(gm, 3)
+        combo("ssr_consejeria", "¿Recibió consejería anticoncepción?", ["Si", "No"], gm, grm)
+        self.w["ssr_consejeria"].bind("<<ComboboxSelected>>", lambda e: self._ssr_condicionales())
+        self._ssr_gm = gm
+        self.ssr_met = ttk.Frame(f)      # solo si hubo consejería
+        gm2 = ttk.Frame(self.ssr_met)
+        gm2.pack(fill="x")
+        self._ssr_gm2 = gm2
+        grm2 = widgets.FormGrid(gm2, 3)
+        combo("ssr_ya_planifica", "¿Ya planifica?", ai.SI_NO, gm2, grm2)
+        self.w["ssr_ya_planifica"].bind("<<ComboboxSelected>>", lambda e: self._ssr_condicionales())
+        combo("ssr_acceso", "Acceso", ai.SI_NO, gm2, grm2)
+        self.ssr_actuales = ttk.Frame(self.ssr_met)    # solo si ya planifica
+        ttk.Label(self.ssr_actuales, text="Método/s anticonceptivo/s actual/es").pack(anchor="w", pady=(6, 0))
+        self.w["ssr_metodos_actuales"] = ChecksField(self.ssr_actuales, ai.SSR_METODOS_ACTUALES, columns=2)
+        self.w["ssr_metodos_actuales"].pack(anchor="w")
+        ttk.Label(self.ssr_met, text="Método/s anticonceptivo/s elegido/s").pack(anchor="w", pady=(6, 0))
+        self.w["ssr_metodos_elegidos"] = ChecksField(self.ssr_met, ai.SSR_METODOS_ELEGIDOS, columns=2)
+        self.w["ssr_metodos_elegidos"].pack(anchor="w")
+
+        titulo("Plan (SSR)")
+        nota("Por ahora solo «Plan». Vacío = no se llena.")
+        self.ssr_plan = caja("Plan", 4, defaults.get("plan", ""))
+
+        titulo("Derivación (SSR)")
         gd = ttk.Frame(f)
         gd.pack(fill="x")
         grd = widgets.FormGrid(gd, 3)
-        add5("ssr_va_derivado", "¿Va a ser derivado?", ai.VA_DERIVADO, gd, grd)
+        combo("ssr_va_derivado", "¿Va a ser derivado?", ai.VA_DERIVADO, gd, grd)
+        self.w["ssr_va_derivado"].bind("<<ComboboxSelected>>", lambda e: self._mostrar_ssr_der())
         self.ssr_der_extra = ttk.Frame(f)
         gd2 = ttk.Frame(self.ssr_der_extra)
         gd2.pack(fill="x")
         grd2 = widgets.FormGrid(gd2, 3)
-        add5("ssr_transfronteriza", "Referencia Transfronteriza", ai.VA_DERIVADO, gd2, grd2)
-        add5("ssr_servicio_brindado", "Servicio brindado", ai.SERVICIOS_BRINDADOS, gd2, grd2)
-        add5("ssr_servicio_salud", "Salud (si el servicio es Salud)", ai.SSR_SERVICIOS_SALUD, gd2, grd2)
-        self.w["ssr_va_derivado"].bind("<<ComboboxSelected>>", lambda e: self._mostrar_ssr_der())
-        gv = ttk.Frame(f)
-        self.ssr_f_victima = gv
-        grv = widgets.FormGrid(gv, 3)
-        add5("ssr_victima_sexual", "¿Víctima de violencia sexual?", ai.SI_NO, gv, grv)
+        combo("ssr_transfronteriza", "Referencia Transfronteriza", ai.VA_DERIVADO, gd2, grd2)
+        combo("ssr_servicio_brindado", "Servicio brindado", ai.SERVICIOS_BRINDADOS, gd2, grd2)
+        combo("ssr_servicio_salud", "Salud (si el servicio es Salud)", ai.SSR_SERVICIOS_SALUD, gd2, grd2)
+        self.ssr_f_victima = ttk.Frame(f)
+        grv = widgets.FormGrid(self.ssr_f_victima, 3)
+        combo("ssr_victima_sexual", "¿Víctima de violencia sexual?", ai.SI_NO, self.ssr_f_victima, grv)
+        self._ssr_condicionales()
         self._mostrar_ssr_der()
         self._mostrar_ssr()
+
+    def _ssr_condicionales(self):
+        """Muestra u oculta lo que en ActivityInfo solo aparece según lo elegido (violencia, ITS, ITU, consejería)."""
+        for fr in (self.ssr_viol_g, self.ssr_viol_o, self.ssr_its_x, self.ssr_itu_x, self.ssr_met):
+            fr.pack_forget()
+        v = self.w["ssr_violencia"].get_value()
+        if v == "Violencia Basada en Género":
+            self.ssr_viol_g.pack(fill="x", after=self._ssr_gf5)
+        elif v == "Otra Situación de Violencia":
+            self.ssr_viol_o.pack(fill="x", after=self._ssr_gf5)
+        ancla = self._ssr_ga
+        if self.w["ssr_its"].get_value() == "Sí":
+            self.ssr_its_x.pack(fill="x", after=ancla)
+            ancla = self.ssr_its_x
+        if self.w["ssr_itu"].get_value() == "Sí":
+            self.ssr_itu_x.pack(fill="x", after=ancla)
+        cons = self.w["ssr_consejeria"].get_value() == "Si"
+        if cons:
+            self.ssr_met.pack(fill="x", after=self._ssr_gm)
+        self.ssr_actuales.pack_forget()
+        if cons and self.w["ssr_ya_planifica"].get_value() == "Sí":
+            self.ssr_actuales.pack(fill="x", after=self._ssr_gm2)
 
     def _mostrar_ssr_der(self):
         self.ssr_der_extra.pack_forget()
         self.ssr_f_victima.pack_forget()
         if self.w["ssr_va_derivado"].get_value() == "Sí":
-            self.ssr_der_extra.pack(fill="x")
+            self.ssr_der_extra.pack(fill="x", after=self.w["ssr_va_derivado"].master)
         self.ssr_f_victima.pack(fill="x", pady=(6, 0))
+
+    def _sync_ssr_hea(self):
+        """La HEA de SSR copia la de APS mientras la persona no la haya editado."""
+        actual = self.ssr_hea.get("1.0", "end").strip()
+        if actual == self._ssr_hea_auto.strip():
+            nuevo = self.hea.get("1.0", "end").strip()
+            self.ssr_hea.delete("1.0", "end")
+            self.ssr_hea.insert("1.0", nuevo)
+            self._ssr_hea_auto = nuevo
 
     def _mostrar_ssr(self):
         if "Salud Sexual y Reproductiva" in self.w["consultas"].get_value():
             self.f_ssr.pack(fill="x")
+            self._sync_ssr_hea()
         else:
             self.f_ssr.pack_forget()
 
@@ -411,6 +510,8 @@ class ActivityInfoDialog(_Modal):
         self.hea.insert("1.0", texto)
         self._hea_auto = texto
         self.hea_aviso.configure(text="\n".join("⚠ " + a for a in avisos))
+        if hasattr(self, "ssr_hea"):
+            self._sync_ssr_hea()
 
     def run(self):                      # ya tiene tamaño y posición propios (900 x 700, centrada)
         self.deiconify()
@@ -448,6 +549,8 @@ class ActivityInfoDialog(_Modal):
         data["dx"] = dx
         data["recordar_dx"] = bool(self.recordar.get())
         quiere_ssr = "Salud Sexual y Reproductiva" in data["consultas"]
+        if quiere_ssr:
+            self._sync_ssr_hea()
         ssr_dx, malos_ssr = [], []
         if quiere_ssr:
             for cb in self.ssr_rows:
@@ -476,20 +579,29 @@ class ActivityInfoDialog(_Modal):
             data.pop(k)
         if quiere_ssr:
             tipo = self.w["ssr_tipo"].get_value() or (data.get("tipo_consulta") if data.get("tipo_consulta") in ai.TIPOS_SSR else "")
-            data["ssr"] = {"mismo_punto": self.w["ssr_mismo_punto"].get_value(), "mismo_proy": self.w["ssr_mismo_proy"].get_value(),
-                           "tipo": tipo, "ficha": self.w["ssr_ficha"].get_value(),
-                           "recibio_aps": self.w["ssr_recibio_aps"].get_value() if "Atención Primaria de Salud" in data["consultas"] else "",
+            W = lambda k: self.w[k].get_value()  # noqa: E731
+            data["ssr"] = {"mismo_punto": W("ssr_mismo_punto"), "mismo_proy": W("ssr_mismo_proy"),
+                           "tipo": tipo, "ficha": W("ssr_ficha"),
+                           "recibio_aps": W("ssr_recibio_aps") if "Atención Primaria de Salud" in data["consultas"] else "",
                            "dx": ssr_dx, "n_dx": len(ssr_dx) or "",
-                           "violencia": self.w["ssr_violencia"].get_value(), "its": self.w["ssr_its"].get_value(),
-                           "itu": self.w["ssr_itu"].get_value(), "vph": self.w["ssr_vph"].get_value(),
-                           "papanicolau": self.w["ssr_papanicolau"].get_value(),
-                           "examen_mama": self.w["ssr_examen_mama"].get_value(),
-                           "vacunacion": self.w["ssr_vacunacion"].get_value(),
-                           "observaciones": self.w["ssr_observaciones"].get_value().strip(),
-                           "obs_dx": self.w["ssr_obs_dx"].get_value().strip(),
-                           "consejeria": self.w["ssr_consejeria"].get_value(),
-                           "va_derivado": self.w["ssr_va_derivado"].get_value(),
-                           "victima_sexual": self.w["ssr_victima_sexual"].get_value()}
+                           "violencia": W("ssr_violencia"),
+                           "viol_genero": W("ssr_viol_genero") if W("ssr_violencia") == "Violencia Basada en Género" else "",
+                           "viol_otras": W("ssr_viol_otras") if W("ssr_violencia") == "Otra Situación de Violencia" else "",
+                           "hea": self.ssr_hea.get("1.0", "end").strip(),
+                           "its": W("ssr_its"), "its_cual": W("ssr_its_cual").strip() if W("ssr_its") == "Sí" else "",
+                           "itu": W("ssr_itu"),
+                           "itu_complicada": W("ssr_itu_complicada") if W("ssr_itu") == "Sí" else "",
+                           "itu_episodios": W("ssr_itu_episodios").strip() if W("ssr_itu") == "Sí" else "",
+                           "vph": W("ssr_vph"), "papanicolau": W("ssr_papanicolau"), "examen_mama": W("ssr_examen_mama"),
+                           "vacunacion": W("ssr_vacunacion"), "observaciones": W("ssr_observaciones").strip(),
+                           "examen_fisico": self.ssr_examen.get("1.0", "end").strip(),
+                           "obs_dx": W("ssr_obs_dx").strip(), "consejeria": W("ssr_consejeria"),
+                           "ya_planifica": W("ssr_ya_planifica") if W("ssr_consejeria") == "Si" else "",
+                           "acceso": W("ssr_acceso") if W("ssr_consejeria") == "Si" else "",
+                           "metodos_actuales": W("ssr_metodos_actuales") if W("ssr_ya_planifica") == "Sí" and W("ssr_consejeria") == "Si" else [],
+                           "metodos_elegidos": W("ssr_metodos_elegidos") if W("ssr_consejeria") == "Si" else [],
+                           "plan": self.ssr_plan.get("1.0", "end").strip(),
+                           "va_derivado": W("ssr_va_derivado"), "victima_sexual": W("ssr_victima_sexual")}
             if data["ssr"]["va_derivado"] == "Sí":
                 data["ssr"].update({"transfronteriza": self.w["ssr_transfronteriza"].get_value(),
                                     "servicio_brindado": self.w["ssr_servicio_brindado"].get_value(),
