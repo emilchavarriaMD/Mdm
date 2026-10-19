@@ -13,6 +13,7 @@ from pathlib import Path
 
 import config
 from services import cie11_catalog as cat
+from services import cie11_ssr
 from services import hea_banco
 from services.hea import generate_hea
 
@@ -66,6 +67,15 @@ SERVICIOS_SALUD = ["MdM - Atención primaria", "MdM - Salud sexual y reproductiv
                    "Atención hospitalaria (de emergencia o no)", "Atención primaria-establecimiento de salud local",
                    "Médico especialista privado", "Otras organizaciones con servicios de salud"]
 PLAN_BASE = "Plan"
+
+# Salud Sexual y Reproductiva (subformulario SSR de la ficha integral)
+TIPOS_SSR = ["Primera", "Reconsulta", "Seguimiento"]
+SSR_FICHAS = ["Corta", "Larga"]
+SI_NO = ["Sí", "No"]
+SSR_MAX_DX = 2                      # «Número de diagnósticos» del SSR solo admite 1 o 2
+# La persona permitió que el programa pulse «Está hecho» SOLO en el subformulario de Atención primaria (cuando el paciente
+# lleva también SSR) para volver a la ficha y abrir el de SSR. Nunca se pulsa «Guardar registro» ni «Guardar como borrador».
+PERMITIR_ESTA_HECHO_EN_APS = True
 
 # Texto inicial de «Examen Físico» (después habrá una biblioteca de exámenes). La talla no se toma ni se llena.
 EXAMEN_FISICO_BASE = "Cefalo-caudal"
@@ -175,9 +185,16 @@ def build_defaults(db, rec: dict) -> dict:
         hea = hea_banco.compose(persona["sexo"], persona["edad"], descs, persona["unidad"])[0]
     else:
         hea = generate_hea(rec, desc)
+    ssr_dx = []
+    for x in dxs:
+        d2 = cie11_ssr.suggest(x["abrev"])[:1]
+        if d2 and d2[0][0] not in [y["descripcion"] for y in ssr_dx]:
+            ssr_dx.append({"abrev": x["abrev"], "descripcion": d2[0][0], "cie11": d2[0][1]})
     vit = vitales_defecto(persona["sexo"], persona["edad"], persona["unidad"])
     return {
-        "hea": hea, "hea_persona": persona, **vit, "peso": "", "examen_fisico": EXAMEN_FISICO_BASE,
+        "hea": hea, "hea_persona": persona, **vit,
+        "ssr_mismo_punto": "Sí", "ssr_mismo_proy": "Sí", "ssr_ficha": "Larga", "ssr_recibio_aps": "Sí",
+        "ssr_tipo": "", "ssr_dx": ssr_dx[:SSR_MAX_DX], "peso": "", "examen_fisico": EXAMEN_FISICO_BASE,
         "plan": PLAN_BASE, "va_derivado": "", "n_servicios": "", "transfronteriza": "",
         "servicio_brindado": "Salud", "servicio_salud": SERVICIOS_SALUD[0],
         "lugar": st["ai_lugar"], "punto_especifico": "", "fecha": (rec.get("fecha") or "")[:10], "genero": genero,
@@ -193,7 +210,8 @@ def build_defaults(db, rec: dict) -> dict:
 
 def payload(data: dict) -> dict:
     """Lo que se envía al formulario. Los campos vacíos no se tocan."""
-    d = {k: v for k, v in data.items() if k not in ("dx", "recordar_dx")}
+    d = {k: v for k, v in data.items() if k not in ("dx", "recordar_dx") and not k.startswith("ssr_")}
+    d["permitir_esta_hecho"] = PERMITIR_ESTA_HECHO_EN_APS
     dx = [{"abrev": x.get("abrev", ""), "descripcion": x.get("descripcion", ""), "cie11": x.get("cie11", "")}
           for x in (data.get("dx") or [])][:3]
     d["dx"] = dx

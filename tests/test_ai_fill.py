@@ -49,6 +49,15 @@ LEER = """() => {
     desc1: v('#desc1 input'), code1: v('#code1 input'), desc2: v('#desc2 input'), code2: v('#code2 input'),
     desc3: v('#desc3 input'),
     saved: window.__saved, clicks: window.__clicks,
+    ssr: (() => { const q = (sel) => document.querySelector('#ssr ' + sel);
+      const rr = (name) => { const e = document.querySelector(`#ssr input[name="${name}"]:checked`); return e ? e.value : null; };
+      if (!document.getElementById('ssr')) return null;
+      return { prof: (q('#prof input') || {}).value, mismo_punto: rr('mismo_punto'), mismo_proy: rr('mismo_proy'), tipo: rr('tipo'),
+        ficha: rr('ficha'), recibio_aps: (q('#recibio_aps input') || {}).value, hea: q('#hea').value, examen: q('#examen').value, ndx: rr('ndx'),
+        desc1: (q('#desc1 input') || {}).value, code1: (q('#code1 input') || {}).value,
+        desc2: (q('#desc2 input') || {}).value, code2: (q('#code2 input') || {}).value, plan: q('#plan').value,
+        titles: [...document.querySelectorAll('#ssr h4')].map(x => x.textContent) }; })(),
+    aps_abierto: !!document.getElementById('aps'),
   };
 }"""
 
@@ -104,6 +113,49 @@ class T08_LlenadoSimulado(unittest.TestCase):
         self.assertEqual(v["desc3"], "")
         self.assertTrue(any("Inventado" in x for x in rep["aps"]), rep)
         self.assertEqual(len(rep["info"]), 2, rep)
+
+    def _ssr_payload(self, **kw):
+        p = dict(PAYLOAD, consultas=["Atención Primaria de Salud", "Salud Sexual y Reproductiva"], permitir_esta_hecho=True,
+                 dx=PAYLOAD["dx"][:1], n_dx=1,
+                 ssr={"mismo_punto": "Sí", "mismo_proy": "Sí", "tipo": "Primera", "ficha": "Larga", "recibio_aps": "Sí",
+                      "dx": [{"abrev": "Vaginosis", "descripcion": "Vaginosis bacteriana", "cie11": "MF3A"},
+                             {"abrev": "Cand", "descripcion": "Candidiasis vulvovaginal", "cie11": "1F23.10"}], "n_dx": 2})
+        p.update(kw)
+        return p
+
+    def test_ssr_se_llena_con_su_propia_lista_y_solo_se_cierra_aps(self):
+        rep, v = self._run(self._ssr_payload())
+        self.assertEqual(rep["ssr"], [], rep)
+        self.assertEqual(rep["ficha"], [], rep)
+        self.assertEqual(rep["aps"], [], rep)
+        self.assertFalse(v["saved"])
+        self.assertEqual(v["clicks"].count("Está hecho"), 1, v["clicks"])      # solo el de APS
+        self.assertNotIn("Guardar registro", v["clicks"])
+        self.assertNotIn("Guardar como borrador", v["clicks"])
+        self.assertFalse(v["aps_abierto"])
+        s = v["ssr"]
+        self.assertEqual((s["prof"], s["mismo_punto"], s["mismo_proy"], s["tipo"], s["ficha"], s["recibio_aps"]),
+                         ("Nadia Alejandra Chavarría López", "Sí", "Sí", "Primera", "Larga", "Sí"))
+        self.assertEqual(s["hea"], PAYLOAD["hea"])
+        self.assertEqual(s["examen"], "Cefalo-caudal")
+        self.assertEqual(s["plan"], "Plan")
+        self.assertEqual(s["ndx"], "2")
+        self.assertEqual((s["desc1"], s["code1"]), ("Vaginosis bacteriana", "MF3A"))
+        self.assertEqual((s["desc2"], s["code2"]), ("Candidiasis vulvovaginal", "1F23.10"))
+
+    def test_ssr_sin_permiso_no_pulsa_esta_hecho(self):
+        rep, v = self._run(self._ssr_payload(permitir_esta_hecho=False))
+        self.assertNotIn("Está hecho", v["clicks"])
+        self.assertIsNone(v["ssr"])
+        self.assertTrue(rep["ssr"], rep)
+
+    def test_ssr_sin_aps_no_pulsa_nada(self):
+        p = self._ssr_payload(consultas=["Salud Sexual y Reproductiva"])
+        p["ssr"]["recibio_aps"] = ""
+        rep, v = self._run(p)
+        self.assertNotIn("Está hecho", v["clicks"])
+        self.assertEqual(v["ssr"]["desc1"], "Vaginosis bacteriana")
+        self.assertFalse(v["saved"])
 
     def test_sin_lugar_otro_no_hay_especifique(self):
         p = dict(PAYLOAD, lugar="San Pedro Sula", dx=PAYLOAD["dx"][:1], n_dx=1)

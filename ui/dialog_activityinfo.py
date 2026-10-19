@@ -4,6 +4,7 @@ from tkinter import ttk
 
 from services import activityinfo as ai
 from services import cie11_catalog as cat
+from services import cie11_ssr as ssr_cat
 from services import hea_banco
 from ui import dialogs, widgets
 from ui.dialogs import _Modal
@@ -12,13 +13,14 @@ from ui.dialogs import _Modal
 class ChecksField(ttk.Frame):
     """Varias opciones marcables a la vez (por ejemplo, las consultas a realizar)."""
 
-    def __init__(self, parent, options, columns=2):
+    def __init__(self, parent, options, columns=2, command=None):
         super().__init__(parent)
         self.vars = {}
+        self.command = command
         for i, opt in enumerate(options):
             v = tk.BooleanVar(value=False)
             self.vars[opt] = v
-            ttk.Checkbutton(self, text=opt, variable=v).grid(row=i // columns, column=i % columns,
+            ttk.Checkbutton(self, text=opt, variable=v, command=lambda: self.command and self.command()).grid(row=i // columns, column=i % columns,
                                                              sticky="w", padx=(0, 18), pady=1)
 
     def set_value(self, values):
@@ -91,7 +93,8 @@ class ActivityInfoDialog(_Modal):
         add("derivado", "¿Ha sido derivado/a?", C(ai.DERIVADO))
         add("nacionalidad", "País de nacionalidad", E())
         add("idioma", "Idioma", E())
-        add("consultas", "Consulta a realizar (puede marcar más de una)", ChecksField(gf, ai.CONSULTAS), span=3)
+        add("consultas", "Consulta a realizar (puede marcar más de una)",
+            ChecksField(gf, ai.CONSULTAS, command=lambda: self._mostrar_ssr()), span=3)
         add("profesional", "Profesional que atiende (APS)", E())
         add("tipo_consulta", "Tipo de consulta (APS)", C(ai.TIPOS_CONSULTA))
         # Orden de la página de ActivityInfo (subformulario APS): HEA, signos vitales y peso, examen físico, diagnósticos
@@ -107,6 +110,7 @@ class ActivityInfoDialog(_Modal):
         f_plan.pack(fill="x")
         f_der = ttk.Frame(body)
         f_der.pack(fill="x")
+        self.f_ssr = ttk.Frame(body)           # al final de todo; solo se ve si se marca Salud Sexual y Reproductiva
         ttk.Label(f_vit, text="Signos vitales y peso (frecuencia respiratoria: en niños, elíjala; vacío = no se llena)", style="H2.TLabel").pack(anchor="w", pady=(12, 2))
         gf2 = ttk.Frame(f_vit)
         gf2.pack(fill="x")
@@ -215,6 +219,7 @@ class ActivityInfoDialog(_Modal):
         add3("servicio_salud", "Salud (si el servicio es Salud)", ai.SERVICIOS_SALUD, gf4, g4)
         self.w["va_derivado"].bind("<<ComboboxSelected>>", lambda e: self._mostrar_derivacion())
         self._mostrar_derivacion()
+        self._construir_ssr(defaults)
         self._hea_auto = defaults.get("hea", "")      # último texto generado: si la persona lo cambia, se respeta
         self._dx_vistos = self._clave_hea()
         # si se corrige el género o la edad en esta ventana, la HEA se actualiza (salvo que ya la haya editado)
@@ -225,12 +230,13 @@ class ActivityInfoDialog(_Modal):
         ttk.Button(bar, text="Abrir Chrome y llenar", style="Accent.TButton", command=self._ok).pack(
             side="right", padx=8)
 
-    def _filtrar(self, cb, event):
+    def _filtrar(self, cb, event, labels=None):
         """Al escribir en un diagnóstico, la lista desplegable muestra solo las opciones que contienen ese texto."""
         if event.keysym in ("Up", "Down", "Return", "Escape", "Tab"):
             return
+        labels = labels or self._labels
         q = cat.plain(cb.get_value())
-        cb.set_values([x for x in self._labels if q in cat.plain(x)] or self._labels if q else self._labels)
+        cb.set_values([x for x in labels if q in cat.plain(x)] or labels if q else labels)
 
     def _marcar_fuentes(self):
         """Debajo de cada diagnóstico: qué HEA del banco se está usando (o que no hay una preparada)."""
@@ -259,6 +265,56 @@ class ActivityInfoDialog(_Modal):
         if edad.isdigit() and edad != "0" and edad != p.get("edad"):   # «0» = menor de 1 año: se queda en meses/días
             p["edad"], p["unidad"] = edad, "años"
         return p
+
+    def _construir_ssr(self, defaults):
+        """Sección de Salud Sexual y Reproductiva: se despliega abajo del todo al marcar esa consulta. La HEA, el examen
+        físico, el plan y el profesional son los mismos de Atención primaria; los diagnósticos tienen su propia lista."""
+        f = self.f_ssr
+        ttk.Label(f, text="Salud Sexual y Reproductiva — se llena en su subformulario (después del de Atención primaria)",
+                  style="H2.TLabel").pack(anchor="w", pady=(16, 2))
+        ttk.Label(f, text="Usa la misma HEA, el mismo examen físico, el mismo plan y el mismo profesional de Atención primaria "
+                  "(los de arriba). El programa pulsa «Está hecho» solo en el de Atención primaria para poder abrir este; en "
+                  "este NO pulsa nada: usted lo revisa y lo termina.", style="Muted.TLabel", wraplength=780,
+                  justify="left").pack(anchor="w")
+        gf5 = ttk.Frame(f)
+        gf5.pack(fill="x")
+        g5 = widgets.FormGrid(gf5, 3)
+
+        def add5(key, label, vals):
+            w = widgets.ComboField(gf5, [""] + list(vals), readonly=True, width=26)
+            self.w[key] = w
+            w.set_value(defaults.get(key, ""))
+            g5.add(label, w)
+
+        add5("ssr_mismo_punto", "¿Mismo punto de atención de la ficha?", ai.SI_NO)
+        add5("ssr_mismo_proy", "¿Mismo proyecto de la ficha?", ai.SI_NO)
+        add5("ssr_tipo", "Tipo de consulta (vacío = el mismo de APS)", ai.TIPOS_SSR)
+        add5("ssr_ficha", "¿Ficha corta o larga?", ai.SSR_FICHAS)
+        add5("ssr_recibio_aps", "¿Recibió APS el mismo día?", ai.SI_NO)
+        ttk.Label(f, text="Diagnósticos SSR — lista de ActivityInfo para Salud Sexual y Reproductiva (máximo 2)",
+                  style="H2.TLabel").pack(anchor="w", pady=(10, 2))
+        self._ssr_labels = [ssr_cat.label(d) for d in ssr_cat.descriptions()]
+        self.ssr_rows = []
+        sug = defaults.get("ssr_dx") or []
+        for i in range(ai.SSR_MAX_DX):
+            row = ttk.Frame(f)
+            row.pack(fill="x", pady=2)
+            ttk.Label(row, text=f"Diagnóstico SSR {i + 1}", width=22).pack(side="left")
+            cb = widgets.ComboField(row, self._ssr_labels, readonly=False, width=78)
+            if i < len(sug):
+                cb.set_value(ssr_cat.label(sug[i]["descripcion"]))
+            cb.pack(side="left", fill="x", expand=True)
+            cb.bind("<KeyRelease>", lambda e, c=cb: self._filtrar(c, e, self._ssr_labels))
+            self.ssr_rows.append(cb)
+        ttk.Label(f, text="Se sugiere según los diagnósticos del ATA; elija o corrija en la lista (puede escribir para buscar). "
+                  "Si deja uno vacío, no se llena.", style="Muted.TLabel", wraplength=780, justify="left").pack(anchor="w")
+        self._mostrar_ssr()
+
+    def _mostrar_ssr(self):
+        if "Salud Sexual y Reproductiva" in self.w["consultas"].get_value():
+            self.f_ssr.pack(fill="x")
+        else:
+            self.f_ssr.pack_forget()
 
     def _mostrar_derivacion(self):
         """«Servicio brindado» y lo demás solo existen en la página cuando «¿Va a ser derivado?» es Sí."""
@@ -335,6 +391,20 @@ class ActivityInfoDialog(_Modal):
             return
         data["dx"] = dx
         data["recordar_dx"] = bool(self.recordar.get())
+        quiere_ssr = "Salud Sexual y Reproductiva" in data["consultas"]
+        ssr_dx, malos_ssr = [], []
+        if quiere_ssr:
+            for cb in self.ssr_rows:
+                texto = cb.get_value().strip()
+                desc, code = ssr_cat.from_label(texto)
+                if texto and not desc:
+                    malos_ssr.append(texto)
+                if desc and desc not in [x["descripcion"] for x in ssr_dx]:
+                    ssr_dx.append({"abrev": "", "descripcion": desc, "cie11": code})
+            if malos_ssr:
+                dialogs.info(self, "Estos diagnósticos no están en la lista de Salud Sexual y Reproductiva; elíjalos de la "
+                             "lista desplegable:\n\n" + "\n".join(f"• {m}" for m in malos_ssr))
+                return
         data["hea"] = self.hea.get("1.0", "end").strip()
         data["examen_fisico"] = self.examen.get("1.0", "end").strip()
         data["plan"] = self.plan.get("1.0", "end").strip()
@@ -342,5 +412,13 @@ class ActivityInfoDialog(_Modal):
             for k in ("n_servicios", "transfronteriza", "servicio_brindado", "servicio_salud"):
                 data[k] = ""
         data["tiene_fecha_nac"] = "No"  # siempre se usa la edad
+        for k in [k for k in data if k.startswith("ssr_")]:
+            data.pop(k)
+        if quiere_ssr:
+            tipo = self.w["ssr_tipo"].get_value() or (data.get("tipo_consulta") if data.get("tipo_consulta") in ai.TIPOS_SSR else "")
+            data["ssr"] = {"mismo_punto": self.w["ssr_mismo_punto"].get_value(), "mismo_proy": self.w["ssr_mismo_proy"].get_value(),
+                           "tipo": tipo, "ficha": self.w["ssr_ficha"].get_value(),
+                           "recibio_aps": self.w["ssr_recibio_aps"].get_value() if "Atención Primaria de Salud" in data["consultas"] else "",
+                           "dx": ssr_dx, "n_dx": len(ssr_dx) or ""}
         self.result = data
         self.destroy()

@@ -97,7 +97,17 @@ propio del programa) abre el formulario y **lo llena**. El programa **nunca guar
   «MdM - Atención primaria» (se puede elegir otra). Todo en el orden de la página.
 - Necesita internet y Google Chrome.
 
+## Salud Sexual y Reproductiva (1.4)
+Al marcar «Salud Sexual y Reproductiva» en la ventana de «Añadir registro» se despliega, abajo del todo, su sección: defaults
+(mismo punto = Sí, mismo proyecto = Sí, ficha Larga, recibió APS = Sí) y **dos listas de diagnósticos distintas**: la de
+Atención primaria (la de siempre) y la de SSR (105 diagnósticos, máximo 2). La HEA, el examen físico, el plan y el profesional
+son los mismos de Atención primaria. En ActivityInfo el programa pulsa «Está hecho» **solo en el subformulario de Atención
+primaria** (únicamente si también hay SSR; vuelve a la ficha, no guarda nada) para poder abrir el de SSR; en SSR no pulsa nada,
+ni «Guardar registro» ni «Guardar como borrador». No se llenan (hágalo a mano): derivación de SSR y los demás campos obligatorios
+propios de SSR.
+
 ## Cambios
+- **1.4** — Salud Sexual y Reproductiva: sección propia en la ventana, lista de diagnósticos de SSR, llenado del subformulario.
 - **1.3** — Peso y examen físico («Cefalo-caudal»); signos vitales con listas desplegables; HEA sin el prefijo «HEA:»; el lugar de atención espera más a que cargue la lista.
 - **1.2** — HEA según edad y sexo; abreviaturas del ATA (PF, RC, FAB, FAV, tiña pedis, cervicalgia, vaginosis…);
   búsqueda al escribir en los diagnósticos y «HEA usa» por diagnóstico; «11» como comillas de ídem en el ATA;

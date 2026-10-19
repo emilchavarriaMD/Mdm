@@ -1,6 +1,6 @@
 /* Llena el formulario de ActivityInfo. NUNCA pulsa Guardar registro ni Guardar como borrador. */
 (function () {
-  const VERSION = 15;
+  const VERSION = 16;
   if (window.__mdm && window.__mdm.version === VERSION) return;   // una versión vieja en la pestaña se reemplaza
   const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
   const norm = (s) => (s || "").replace(/\s+/g, " ").replace(/\*/g, "").replace(/OBLIGATORIO/g, "").trim().toLowerCase();
@@ -159,22 +159,35 @@
   }
 
   // Subformulario de Atención Primaria de Salud (se abre con su botón; no se pulsa «Está hecho»).
-  async function openAps() {
-    const b = await waitFor(() => [...document.querySelectorAll("button")].find((x) => /Nuevo registro en Atención primaria de salud/i.test(x.innerText)), 5000);
-    if (!b) throw new Error("No encontré el botón del subformulario de Atención primaria");
+  async function openSub(boton, nombre) {
+    const b = await waitFor(() => [...document.querySelectorAll("button")].find((x) => boton.test(x.innerText)), 6000);
+    if (!b) throw new Error("No encontré el botón del subformulario de " + nombre);
     b.scrollIntoView({ block: "center" });
     ["pointerdown", "mousedown", "pointerup", "mouseup", "click"].forEach((t) => b.dispatchEvent(new MouseEvent(t, { bubbles: true, cancelable: true, view: window })));
     await waitFor(() => findLabel("Profesional que atiende"), 6000);
     await sleep(500);
   }
+  const openAps = () => openSub(/Nuevo registro en Atención primaria de salud/i, "Atención primaria");
+  const openSsr = () => openSub(/Nuevo registro en Salud Sexual y Reproductiva/i, "Salud Sexual y Reproductiva");
+  // ÚNICO lugar donde se pulsa «Está hecho»: el de Atención primaria, y solo si hay que seguir con SSR y la persona lo
+  // permitió. «Está hecho» solo devuelve a la ficha (nada se crea ni se guarda). Se busca por el texto EXACTO.
+  async function terminarAps() {
+    const b = [...document.querySelectorAll("button")].filter(visible).find((x) => norm(x.innerText) === "está hecho");
+    if (!b) throw new Error("no encontré «Está hecho» en el subformulario de Atención primaria");
+    b.scrollIntoView({ block: "center" });
+    ["pointerdown", "mousedown", "pointerup", "mouseup", "click"].forEach((t) => b.dispatchEvent(new MouseEvent(t, { bubbles: true, cancelable: true, view: window })));
+    const ok = await waitFor(() => !findLabel("Profesional que atiende") || [...document.querySelectorAll("button")].some((x) => /Nuevo registro en Salud Sexual y Reproductiva/i.test(x.innerText) && visible(x)), 8000);
+    if (!ok) throw new Error("«Está hecho» no cerró el subformulario de Atención primaria (revise los campos obligatorios que falten)");
+    await sleep(600);
+  }
   // Diagnósticos del subformulario APS: «Diagnóstico APS», «Diagnóstico APS 2», «3». Cada uno tiene dos listas
   // (descripción de la morbilidad CIE-11 y código); al elegir una, ActivityInfo llena la otra.
   function input_focus(el) { el.scrollIntoView({ block: "center" }); el.focus(); }
-  async function fillDx(d, log, info) {
-    const dxs = d.dx || [];
+  async function fillDx(dxs, base, log, info) {
+    dxs = dxs || [];
     for (let i = 0; i < dxs.length && i < 3; i++) {
       const dx = dxs[i];
-      const nombre = i === 0 ? "Diagnóstico APS" : "Diagnóstico APS " + (i + 1);
+      const nombre = i === 0 ? base : base + " " + (i + 1);
       const tag = `Diagnóstico ${i + 1} (${dx.abrev})`;
       try {
         const h = await waitFor(() => [...document.querySelectorAll("h4")].find((x) => norm(x.textContent) === norm(nombre)), 6000);
@@ -250,7 +263,7 @@
     if (d.n_dx) {
       await S("¿Cuántos diagnósticos?", () => setText("¿Cuántos diagnósticos?", String(d.n_dx)));
       await sleep(900);
-      await fillDx(d, log, info);
+      await fillDx(d.dx, "Diagnóstico APS", log, info);
     }
     // Plan, derivación y servicio brindado (en el orden de la página). «Servicio brindado» solo aparece con
     // «¿Va a ser derivado?» = Sí; al elegir «Salud» aparece el grupo «Salud».
@@ -280,11 +293,63 @@
     }
     return log;
   }
+  // Subformulario de Salud Sexual y Reproductiva (en el orden de la página). No pulsa «Está hecho» ni guarda.
+  async function fillSsr(d, info) {
+    const log = [];
+    const S = (n, f) => step(log, n, f);
+    const x = d.ssr || {};
+    try { await openSsr(); } catch (e) { return ["Subformulario SSR: " + e.message]; }
+    if (d.profesional) {
+      await S("SSR: Profesional que atiende", () => {
+        const g = findLabel("Profesional que atiende");
+        return setLookup("Nombre y Apellidos", d.profesional, g && (g.closest(".forminput__field") || g.parentElement));
+      });
+      await sleep(900);
+    }
+    if (x.mismo_punto) await S("SSR: ¿Mismo punto de atención?", () => setRadio("¿Mismo punto de atención registrado en la ficha integral?", x.mismo_punto));
+    if (x.mismo_proy) await S("SSR: ¿Mismo proyecto?", () => setRadio("¿Mismo proyecto registrado en la ficha integral?", x.mismo_proy));
+    if (x.tipo) await S("SSR: Tipo de consulta", () => setRadio("Tipo de consulta", x.tipo));
+    if (x.ficha) await S("SSR: ¿Ficha corta o larga?", () => setRadio("¿Ficha corta o larga?", x.ficha));
+    if (x.recibio_aps) {
+      // solo existe si en la ficha también se marcó Atención primaria
+      const l = await waitFor(() => findLabel("¿Recibió APS el mismo día"), 2500);
+      if (l) await S("SSR: ¿Recibió APS el mismo día?", () => setAuto("¿Recibió APS el mismo día", x.recibio_aps));
+      else log.push("SSR: ¿Recibió APS el mismo día?: no apareció (solo sale si también se marcó Atención primaria)");
+    }
+    if (d.hea) {
+      await S("SSR: Historia de la enfermedad actual", async () => {
+        const ok = await waitFor(() => findLabel("Historia de la enfermedad actual"), 5000);
+        if (!ok) throw new Error("no apareció el cuadro");
+        await setText("Historia de la enfermedad actual", d.hea);
+      });
+    }
+    if (d.examen_fisico) await S("SSR: Exámen físico", () => setText("Exámen físico", d.examen_fisico));
+    if (x.n_dx) {
+      await S("SSR: Número de diagnósticos", () => setRadio("Número de diagnósticos", String(x.n_dx)));
+      await sleep(900);
+      await fillDx(x.dx, "Diagnóstico SSR", log, info);
+    }
+    if (d.plan) await S("SSR: Plan", () => setText("Plan", d.plan));
+    return log;
+  }
   async function run(d) {
     const falla = await fillFicha(d);
     const info = [];
-    const aps = (d.consultas || []).includes("Atención Primaria de Salud") ? await fillAps(d, info) : [];
-    return { ficha: falla, aps: aps, info: info };
+    const quiereAps = (d.consultas || []).includes("Atención Primaria de Salud");
+    const quiereSsr = (d.consultas || []).includes("Salud Sexual y Reproductiva") && !!d.ssr;
+    let aps = [];
+    if (quiereAps) aps = await fillAps(d, info);
+    let ssr = [];
+    if (quiereSsr) {
+      if (quiereAps) {
+        if (d.permitir_esta_hecho !== true) ssr = ["SSR: no se llenó: falta el permiso para salir del subformulario de Atención primaria; ábralo y llénelo a mano"];
+        else {
+          try { await terminarAps(); } catch (e) { ssr = ["SSR: " + e.message]; }
+        }
+      }
+      if (!ssr.length) ssr = await fillSsr(d, info);
+    }
+    return { ficha: falla, aps: aps, ssr: ssr, info: info };
   }
-  window.__mdm = { findLabel, setText, setLookup, setRadio, setChecks, setAuto, fillFicha, fillAps, run, sleep, version: VERSION };
+  window.__mdm = { fillSsr, openSsr, terminarAps, findLabel, setText, setLookup, setRadio, setChecks, setAuto, fillFicha, fillAps, run, sleep, version: VERSION };
 })();

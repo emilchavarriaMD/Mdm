@@ -324,6 +324,32 @@ class UITests(unittest.TestCase):
         self.assertEqual(dlg.examen.get("1.0", "end").strip(), "Cefalo-caudal")
         dlg.destroy()
 
+    def test_04f_seccion_ssr(self):
+        from services import activityinfo as ai
+        from ui.dialog_activityinfo import ActivityInfoDialog
+        d = ai.build_defaults(self.db, {"nombre": "Ana Pérez López", "sexo": "M", "fecha": "2026-10-15", "edad_anios": "30",
+                                        "dx1": "Vaginosis mixta", "dx2": "Hipertensión"})
+        dlg = ActivityInfoDialog(self.root, d)
+        self.assertFalse(dlg.f_ssr.winfo_manager())            # oculta si no se marca SSR
+        dlg.w["consultas"].set_value([ai.CONSULTA_APS, "Salud Sexual y Reproductiva"])
+        dlg._mostrar_ssr()
+        self.assertEqual(dlg.f_ssr.winfo_manager(), "pack")
+        self.assertEqual(dlg.w["ssr_ficha"].get_value(), "Larga")
+        self.assertEqual(dlg.w["ssr_mismo_punto"].get_value(), "Sí")
+        self.assertIn("Vaginosis bacteriana", dlg.ssr_rows[0].get_value())
+        for k, v in {"estado_civil": "Soltero/a", "escolaridad": "Primaria", "ocupacion": "Estudiante",
+                     "discapacidad": "No", "derivado": "No", "tipo_consulta": "Primera"}.items():
+            dlg.w[k].set_value(v)
+        dlg._ok()
+        r = dlg.result
+        self.assertIsNotNone(r)
+        self.assertEqual(r["ssr"]["dx"][0]["descripcion"], "Vaginosis bacteriana")
+        self.assertEqual(r["ssr"]["n_dx"], len(r["ssr"]["dx"]))
+        p = ai.payload(r)
+        self.assertEqual(p["ssr"]["ficha"], "Larga")
+        self.assertFalse([k for k in p if k.startswith("ssr_")])
+        self.assertTrue(p["permitir_esta_hecho"])
+
     def test_05_respaldo(self):
         import backup
         db = self.db

@@ -113,10 +113,15 @@ form.appendChild(field("Sector de ocupación*", lookup("ocupacion", "Sector de o
 form.appendChild(radios("discapacidad", "¿Tiene algún tipo de discapacidad?*", ["Sí", "No"]));
 form.appendChild(field("Perfil de población*", lookup("perfil", "Perfil de población", ["Persona en riesgo de desplazamiento", "Persona retornada"])));
 form.appendChild(radios("derivado", "¿Ha sido derivado/a?*", ["Sí", "No"]));
-const consultas = checks("consultas", "Consulta a realizar*", ["Atención Primaria de Salud", "Nutrición", "Salud mental"], (o, on) => {
+const consultas = checks("consultas", "Consulta a realizar*", ["Atención Primaria de Salud", "Salud Sexual y Reproductiva", "Nutrición", "Salud mental"], (o, on) => {
   if (o === "Atención Primaria de Salud" && on && !document.getElementById("btnAps")) {
     const b = button("Nuevo registro en Atención primaria de salud", openAps);
     b.id = "btnAps";
+    consultas.after(b);
+  }
+  if (o === "Salud Sexual y Reproductiva" && on && !document.getElementById("btnSsr")) {
+    const b = button("Nuevo registro en Salud Sexual y Reproductiva", openSsr);
+    b.id = "btnSsr";
     consultas.after(b);
   }
 });
@@ -181,9 +186,43 @@ function openAps() {
   });
   const derBox = field("¿Va a ser derivado?", der);
   aps.appendChild(derBox);
-  aps.appendChild(button("Está hecho", () => { window.__saved = true; }));
+  aps.appendChild(button("Está hecho", () => { aps.remove(); }));   // solo vuelve a la ficha; no guarda
   aps.appendChild(button("Cancelar", () => { window.__saved = true; }));
   document.getElementById("btnAps").after(aps);
+}
+
+// --- Subformulario de Salud Sexual y Reproductiva ---
+const CAT_SSR = { "Vaginosis bacteriana": "MF3A", "Candidiasis vulvovaginal": "1F23.10", "Cervicitis": "GA04" };
+function openSsr() {
+  if (document.getElementById("ssr") || document.getElementById("aps")) return;   // APS debe estar cerrado
+  const ssr = $(`<div id="ssr"><h3>Nuevo registro en Salud Sexual y Reproductiva</h3></div>`);
+  ssr.appendChild(field("Profesional que atiende*", lookup("prof", "Nombre y Apellidos",
+    ["Nadia Alejandra Chavarría López", "Otra Persona"]), lookup("prof_pais", "País", ["Honduras"])));
+  ssr.appendChild(radios("mismo_punto", "¿Mismo punto de atención registrado en la ficha integral?*", ["Sí", "No"]));
+  ssr.appendChild(radios("mismo_proy", "¿Mismo proyecto registrado en la ficha integral?*", ["Sí", "No"]));
+  ssr.appendChild(radios("tipo", "Tipo de consulta*", ["Primera", "Reconsulta"]));
+  ssr.appendChild(radios("ficha", "¿Ficha corta o larga?*", ["Corta", "Larga"]));
+  ssr.appendChild(field("¿Recibió APS el mismo día en que se le brindó atención de SSR?*",
+    lookup("recibio_aps", "¿Recibió APS el mismo día en que se le brindó atención de SSR?", ["Sí", "No"])));
+  ssr.appendChild(text("hea", "Historia de la enfermedad actual", true));
+  ssr.appendChild(text("examen", "Exámen físico", true));
+  const nd = radios("ndx", "Número de diagnósticos*", ["1", "2"], (v) => {
+    document.querySelectorAll(".dxbox").forEach((x) => x.remove());
+    let last = nd;
+    for (let i = 1; i <= parseInt(v, 10); i++) {
+      const box = $(`<div class="forminput__field dxbox"><h4>${i === 1 ? "Diagnóstico SSR*" : "Diagnóstico SSR 2*"}</h4></div>`);
+      const code = lookup(`code${i}`, "Código CIE.11", Object.values(CAT_SSR));
+      const desc = lookup(`desc${i}`, "Descripción de la morbilidad CIE-11", Object.keys(CAT_SSR), (v2) => {
+        code.querySelector("input").value = CAT_SSR[v2];
+      });
+      box.appendChild(desc); box.appendChild(code);
+      last.after(box); last = box;
+    }
+  });
+  ssr.appendChild(nd);
+  ssr.appendChild(text("plan", "Plan", true));
+  ssr.appendChild(button("Está hecho", () => { window.__saved = true; }));
+  document.getElementById("btnSsr").after(ssr);
 }
 </script>
 </body></html>

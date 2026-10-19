@@ -181,9 +181,11 @@ class PacientesPage(Page):
         if exc is not None:
             dialogs.error(self, f"No se pudo llenar el formulario:\n{exc}")
             return
-        falta = (report.get("ficha") or []) + (report.get("aps") or [])
+        falta = (report.get("ficha") or []) + (report.get("aps") or []) + (report.get("ssr") or [])
         msg = f"Se llenó el formulario de {nombre} en Chrome. REVÍSELO y cree la ficha usted en ActivityInfo " \
               "(el programa no guarda nada)."
+        if (data.get("ssr") or {}).get("dx") is not None and "Salud Sexual y Reproductiva" in (data.get("consultas") or []):
+            msg += "\nEl subformulario de Salud Sexual y Reproductiva quedó abierto: revíselo y pulse «Está hecho» usted."
         info = report.get("info") or []
         if info:
             msg += "\n\nDiagnósticos elegidos en ActivityInfo (verifíquelos):\n" + "\n".join(f"• {i}" for i in info)
