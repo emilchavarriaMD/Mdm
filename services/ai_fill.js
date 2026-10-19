@@ -1,6 +1,6 @@
 /* Llena el formulario de ActivityInfo. NUNCA pulsa Guardar registro ni Guardar como borrador. */
 (function () {
-  const VERSION = 21;
+  const VERSION = 22;
   if (window.__mdm && window.__mdm.version === VERSION) return;   // una versión vieja en la pestaña se reemplaza
   const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
   const norm = (s) => (s || "").replace(/\s+/g, " ").replace(/\*/g, "").replace(/OBLIGATORIO/g, "").trim().toLowerCase();
@@ -177,7 +177,9 @@
     if (!b) throw new Error("no encontré «Está hecho» en el subformulario de Atención primaria");
     b.scrollIntoView({ block: "center" });
     ["pointerdown", "mousedown", "pointerup", "mouseup", "click"].forEach((t) => b.dispatchEvent(new MouseEvent(t, { bubbles: true, cancelable: true, view: window })));
-    const ok = await waitFor(() => !findLabel("Profesional que atiende") || [...document.querySelectorAll("button")].some((x) => /Nuevo registro en Salud Sexual y Reproductiva/i.test(x.innerText) && visible(x)), 8000);
+    const ssrBtn = () => [...document.querySelectorAll("button")].some((x) => /Nuevo registro en Salud Sexual y Reproductiva/i.test(x.innerText) && visible(x));
+    const apsAbierto = () => { const l = findLabel("Historia de la enfermedad actual"); return !!(l && visible(l)); };
+    const ok = await waitFor(() => ssrBtn() && !apsAbierto(), 12000);
     if (!ok) throw new Error("«Está hecho» no cerró el subformulario de Atención primaria (revise los campos obligatorios que falten)");
     await sleep(600);
   }
