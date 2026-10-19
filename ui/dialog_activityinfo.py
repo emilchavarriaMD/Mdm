@@ -223,7 +223,8 @@ class ActivityInfoDialog(_Modal):
         self._hea_auto = defaults.get("hea", "")      # último texto generado: si la persona lo cambia, se respeta
         self._dx_vistos = self._clave_hea()
         # si se corrige el género o la edad en esta ventana, la HEA se actualiza (salvo que ya la haya editado)
-        self.w["genero"].bind("<<ComboboxSelected>>", lambda e: (self._ajustar_vitales(), self._regen_hea(True)))
+        self.w["genero"].bind("<<ComboboxSelected>>", lambda e: (self._ajustar_vitales(), self._regen_hea(True),
+                                                                 self._ssr_condicionales()))
         self.w["edad"].bind("<FocusOut>", lambda e: (self._ajustar_vitales(), self._regen_hea(True)))
         self._marcar_fuentes()
         ttk.Button(bar, text="Cancelar", command=self.cancel).pack(side="right")
@@ -309,6 +310,7 @@ class ActivityInfoDialog(_Modal):
         combo("ssr_mismo_proy", "¿Mismo proyecto de la ficha?", ai.SI_NO, gf5, g5)
         combo("ssr_tipo", "Tipo de consulta (vacío = el mismo de APS)", ai.TIPOS_SSR, gf5, g5)
         combo("ssr_ficha", "¿Ficha corta o larga?", ai.SSR_FICHAS, gf5, g5)
+        self.w["ssr_ficha"].bind("<<ComboboxSelected>>", lambda e: self._ssr_condicionales())
         combo("ssr_recibio_aps", "¿Recibió APS el mismo día?", ai.SI_NO, gf5, g5)
         combo("ssr_violencia", "¿Ha sufrido violencia?", ai.SSR_VIOLENCIA, gf5, g5)
         self.w["ssr_violencia"].bind("<<ComboboxSelected>>", lambda e: self._ssr_condicionales())
@@ -327,6 +329,25 @@ class ActivityInfoDialog(_Modal):
         self._ssr_hea_auto = defaults.get("hea", "")
 
         titulo("Antecedentes")
+        ttk.Label(f, text="Antecedentes personales patológicos").pack(anchor="w")
+        self.ssr_app = caja("APP", 2, "")
+        self.ssr_larga = ttk.Frame(f)           # solo con ficha «Larga»; según el género salen unos u otros, como en la página
+        self._ssr_larga_mujer = ttk.Frame(self.ssr_larga)
+        gm_ = widgets.FormGrid(self._ssr_larga_mujer, 3)
+        entry("ssr_menarquia", "Menarquía (edad en años, 9 a 20)", self._ssr_larga_mujer, gm_)
+        entry("ssr_ritmo", "Ritmo menstrual", self._ssr_larga_mujer, gm_)
+        combo("ssr_trast_mens", "Trastorno menstrual", ai.SI_NO, self._ssr_larga_mujer, gm_)
+        combo("ssr_menopausia", "Menopausia", ai.SI_NO, self._ssr_larga_mujer, gm_)
+        wcit = widgets.CalendarEntry(self._ssr_larga_mujer)
+        self.w["ssr_citologia"] = wcit
+        gm_.add("Última citología (escoja el día)", wcit)
+        combo("ssr_prueba_vph", "¿Prueba de VPH el último año?", ai.SSR_SI_NO_NS, self._ssr_larga_mujer, gm_)
+        combo("ssr_autoex_mamas", "¿Autoexamen de mamas el último mes?", ai.SSR_SI_NO_NS, self._ssr_larga_mujer, gm_)
+        self._ssr_larga_hombre = ttk.Frame(self.ssr_larga)
+        gh_ = widgets.FormGrid(self._ssr_larga_hombre, 3)
+        entry("ssr_espermarquia", "Espermarquia (edad en años)", self._ssr_larga_hombre, gh_)
+        combo("ssr_autoex_test", "¿Autoexamen de testículos el último mes?", ai.SSR_SI_NO_NS, self._ssr_larga_hombre, gh_)
+        combo("ssr_tamizaje_prost", "¿Tamizaje de próstata el último año?", ai.SSR_SI_NO_NS, self._ssr_larga_hombre, gh_)
         ga = ttk.Frame(f)
         ga.pack(fill="x")
         col_its = ttk.Frame(ga)
@@ -430,20 +451,30 @@ class ActivityInfoDialog(_Modal):
         gm2.pack(fill="x")
         self._ssr_gm2 = gm2
         grm2 = widgets.FormGrid(gm2, 3)
-        combo("ssr_ya_planifica", "¿Ya planifica?", ai.SI_NO, gm2, grm2)
+        combo("ssr_ya_planifica", "¿Ya planifica? (usa un método hoy)", ai.SI_NO, gm2, grm2)
         self.w["ssr_ya_planifica"].bind("<<ComboboxSelected>>", lambda e: self._ssr_condicionales())
-        combo("ssr_acceso", "Acceso", ai.SI_NO, gm2, grm2)
-        self.ssr_actuales = ttk.Frame(self.ssr_met)    # solo si ya planifica
+        self.ssr_actuales = ttk.LabelFrame(self.ssr_met, text=" 1) Método que USA ACTUALMENTE (antes de esta consulta) ",
+                                           padding=8)
+        ttk.Label(self.ssr_actuales, text="Elija hasta 2 métodos que la persona ya está usando.",
+                  style="Muted.TLabel").pack(anchor="w")
         ga2 = ttk.Frame(self.ssr_actuales)
         ga2.pack(fill="x")
-        gra = widgets.FormGrid(ga2, 3)
-        combo("ssr_act_1", "Método actual 1", ai.SSR_METODOS_ACTUALES, ga2, gra)
-        combo("ssr_act_2", "Método actual 2 (opcional)", ai.SSR_METODOS_ACTUALES, ga2, gra)
-        ge2 = ttk.Frame(self.ssr_met)
+        gra = widgets.FormGrid(ga2, 2)
+        combo("ssr_act_1", "Método actual", ai.SSR_METODOS_ACTUALES, ga2, gra)
+        combo("ssr_act_2", "Otro método actual (opcional)", ai.SSR_METODOS_ACTUALES, ga2, gra)
+        marco_e = ttk.LabelFrame(self.ssr_met, text=" 2) Método ELEGIDO HOY (después de la consejería) ", padding=8)
+        marco_e.pack(fill="x", pady=(8, 0))
+        ttk.Label(marco_e, text="Elija hasta 2 métodos que la persona decidió usar a partir de esta consulta "
+                  "(se recomienda protección dual). «Ninguno» si no eligió.", style="Muted.TLabel", wraplength=740,
+                  justify="left").pack(anchor="w")
+        ge2 = ttk.Frame(marco_e)
         ge2.pack(fill="x")
-        gre2 = widgets.FormGrid(ge2, 3)
-        combo("ssr_eleg_1", "Método elegido 1", ai.SSR_METODOS_ELEGIDOS, ge2, gre2)
-        combo("ssr_eleg_2", "Método elegido 2 (opcional)", ai.SSR_METODOS_ELEGIDOS, ge2, gre2)
+        gre2 = widgets.FormGrid(ge2, 2)
+        combo("ssr_eleg_1", "Método elegido", ai.SSR_METODOS_ELEGIDOS, ge2, gre2)
+        combo("ssr_eleg_2", "Otro método elegido (opcional)", ai.SSR_METODOS_ELEGIDOS, ge2, gre2)
+        ga3 = ttk.Frame(self.ssr_met)
+        ga3.pack(fill="x", pady=(8, 0))
+        combo("ssr_acceso", "Acceso: ¿la persona tiene acceso al método elegido?", ai.SI_NO, ga3, widgets.FormGrid(ga3, 1))
         ttk.Label(self.ssr_met, text="Las listas van de los métodos más usados a los menos usados.",
                   style="Muted.TLabel").pack(anchor="w")
 
@@ -476,6 +507,15 @@ class ActivityInfoDialog(_Modal):
         for fr in (self.ssr_viol_g, self.ssr_viol_o, self.ssr_its_x, self.ssr_itu_x, self.ssr_met, self.ssr_emb_x,
                    self.ssr_fum_x, self.ssr_egm_x, self.ssr_cpn_x, self.ssr_ant_obst):
             fr.pack_forget()
+        self.ssr_larga.pack_forget()
+        self._ssr_larga_mujer.pack_forget()
+        self._ssr_larga_hombre.pack_forget()
+        if self.w["ssr_ficha"].get_value() == "Larga" and self.w["genero"].get_value():
+            self.ssr_larga.pack(fill="x", after=self.ssr_app)
+            if self.w["genero"].get_value() in ("Mujer CIS", "Hombre TRANS"):
+                self._ssr_larga_mujer.pack(fill="x")
+            else:
+                self._ssr_larga_hombre.pack(fill="x")
         v = self.w["ssr_violencia"].get_value()
         if v == "Violencia Basada en Género":
             self.ssr_viol_g.pack(fill="x", after=self._ssr_gf5)
@@ -502,7 +542,7 @@ class ActivityInfoDialog(_Modal):
             self.ssr_met.pack(fill="x", after=self._ssr_gm)
         self.ssr_actuales.pack_forget()
         if cons and self.w["ssr_ya_planifica"].get_value() == "Sí":
-            self.ssr_actuales.pack(fill="x", after=self._ssr_gm2)
+            self.ssr_actuales.pack(fill="x", after=self._ssr_gm2, pady=(6, 0))
 
     def _mostrar_ssr_der(self):
         self.ssr_der_extra.pack_forget()
@@ -652,6 +692,13 @@ class ActivityInfoDialog(_Modal):
                            "viol_genero": W("ssr_viol_genero") if W("ssr_violencia") == "Violencia Basada en Género" else "",
                            "viol_otras": W("ssr_viol_otras") if W("ssr_violencia") == "Otra Situación de Violencia" else "",
                            "hea": self.ssr_hea.get("1.0", "end").strip(),
+                           "app": self.ssr_app.get("1.0", "end").strip(),
+                           **({k: W("ssr_" + k).strip() if isinstance(W("ssr_" + k), str) else W("ssr_" + k)
+                               for k in ("menarquia", "ritmo", "trast_mens", "menopausia", "citologia", "prueba_vph",
+                                         "autoex_mamas")}
+                              if W("ssr_ficha") == "Larga" and W("genero") in ("Mujer CIS", "Hombre TRANS") else {}),
+                           **({k: W("ssr_" + k).strip() for k in ("espermarquia", "autoex_test", "tamizaje_prost")}
+                              if W("ssr_ficha") == "Larga" and W("genero") and W("genero") not in ("Mujer CIS", "Hombre TRANS") else {}),
                            "its": W("ssr_its"), "its_cual": W("ssr_its_cual").strip() if W("ssr_its") == "Sí" else "",
                            "itu": W("ssr_itu"),
                            "itu_complicada": W("ssr_itu_complicada") if W("ssr_itu") == "Sí" else "",

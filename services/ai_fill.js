@@ -1,6 +1,6 @@
 /* Llena el formulario de ActivityInfo. NUNCA pulsa Guardar registro ni Guardar como borrador. */
 (function () {
-  const VERSION = 20;
+  const VERSION = 21;
   if (window.__mdm && window.__mdm.version === VERSION) return;   // una versión vieja en la pestaña se reemplaza
   const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
   const norm = (s) => (s || "").replace(/\s+/g, " ").replace(/\*/g, "").replace(/OBLIGATORIO/g, "").trim().toLowerCase();
@@ -330,6 +330,16 @@
         if (!ok) throw new Error("no apareció el cuadro");
         await setText("Historia de la enfermedad actual", hea);
       });
+    }
+    // Antecedentes personales y de ficha larga (según el género): menarquía, ritmo, citología, etc.
+    if (x.app) await S("SSR: Antecedentes personales patológicos", () => setText("Antecedentes personales patológicos", x.app));
+    for (const [k, lab, auto] of [["menarquia", "Menarquía", false], ["espermarquia", "Espermarquia", false], ["ritmo", "Ritmo menstrual", false],
+         ["trast_mens", "Transtorno Menstrual", true], ["menopausia", "Menopausia", true], ["citologia", "Última citología", false],
+         ["prueba_vph", "¿Se ha realizado la prueba de detección de VPH el último año?", true],
+         ["autoex_mamas", "¿Se ha realizado autoexamen de mamas en el último mes?", true],
+         ["autoex_test", "¿Se ha realizado el autoexamen de testículos en el último mes?", true],
+         ["tamizaje_prost", "¿Se ha realizado el tamizaje de próstata en el último año?", true]]) {
+      if (x[k]) await S("SSR: " + lab, () => (auto ? setAuto(lab, x[k]) : setText(lab, x[k])));
     }
     // Antecedentes (en el orden de la página). Con «Sí» aparecen campos nuevos.
     if (x.its) {

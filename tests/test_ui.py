@@ -348,6 +348,9 @@ class UITests(unittest.TestCase):
         self.assertEqual(dlg.ssr_examen.get("1.0", "end").strip(), "Cefalo-caudal")
         self.assertEqual(dlg.ssr_plan.get("1.0", "end").strip(), "Plan")
         self.assertFalse(dlg.ssr_its_x.winfo_manager())
+        self.assertEqual(dlg.ssr_larga.winfo_manager(), "pack")            # ficha larga: menarquía, citología…
+        self.assertEqual(dlg._ssr_larga_mujer.winfo_manager(), "pack")
+        dlg.w["ssr_menarquia"].set_value("12")
         dlg.w["ssr_its"].set_value("Sí"); dlg.w["ssr_itu"].set_value("Sí"); dlg.w["ssr_violencia"].set_value("Violencia Basada en Género")
         dlg.w["ssr_consejeria"].set_value("Si"); dlg.w["ssr_ya_planifica"].set_value("Sí")
         dlg._ssr_condicionales()
@@ -365,6 +368,8 @@ class UITests(unittest.TestCase):
         self.assertEqual((r["ssr"]["its_cual"], r["ssr"]["metodos_actuales"], r["ssr"]["ya_planifica"], r["ssr"]["embarazo_actual"]),
                          ("Sífilis", ["DIU"], "Sí", "Sí"))
         self.assertEqual(r["ssr"]["fum"], "2026-08-01")
+        self.assertEqual(r["ssr"]["menarquia"], "12")
+        self.assertNotIn("espermarquia", r["ssr"])
         self.assertEqual(ai.SSR_METODOS_ELEGIDOS[:2], ["Píldora anticonceptiva", "Inyección hormonal / DEPO"])
         self.assertEqual(ai.SSR_METODOS_ELEGIDOS[-2], "Anillo vaginal")
         self.assertEqual(r["ssr"]["dx"][0]["descripcion"], "Vaginosis bacteriana")
