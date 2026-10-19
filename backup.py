@@ -97,13 +97,35 @@ def list_backups():
     return files
 
 
-def auto_backup(db) -> Path:
-    """Copia automática (al cerrar el programa). Conserva solo las más recientes."""
-    path = create_backup(db, prefix="auto")
-    autos = [p for p in list_backups() if p.name.startswith("auto_")]
-    for old in autos[KEEP_AUTO_BACKUPS:]:
+def _rotar(folder, prefix, keep):
+    """Conserva solo las `keep` copias más recientes con ese prefijo en la carpeta."""
+    files = sorted(Path(folder).glob(f"{prefix}_*.db"), key=lambda p: p.stat().st_mtime, reverse=True)
+    for old in files[keep:]:
         try:
             old.unlink()
         except OSError:
             pass
+
+
+def extra_dir(db):
+    """Segunda ubicación de respaldo elegida por la persona (OneDrive, USB…), o None."""
+    d = (db.get_setting("respaldo_extra_dir", "") or "").strip()
+    return Path(d) if d else None
+
+
+def auto_backup(db, prefix="auto", keep=KEEP_AUTO_BACKUPS) -> Path:
+    """Copia automática (al cerrar o cada cierto tiempo). Conserva solo las más recientes y, si hay una
+    segunda ubicación configurada, deja ahí otra copia (un fallo en esa ubicación no impide la copia local)."""
+    path = create_backup(db, prefix=prefix)
+    _rotar(backups_dir(), prefix, keep)
+    extra = extra_dir(db)
+    if extra is not None:
+        try:
+            extra.mkdir(parents=True, exist_ok=True)
+            create_backup(db, extra, prefix=prefix)
+            _rotar(extra, prefix, keep)
+            db.set_setting("respaldo_extra_error", "")
+        except Exception as exc:  # noqa: BLE001  (USB desconectado, carpeta sin permiso…)
+            db.set_setting("respaldo_extra_error", str(exc))
+    db.set_setting("respaldo_ultimo", _stamp())
     return path

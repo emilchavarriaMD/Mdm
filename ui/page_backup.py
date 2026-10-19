@@ -40,6 +40,20 @@ class BackupPage(Page):
         self.status = ttk.Label(s2, text="", style="Saved.TLabel")
         self.status.pack(anchor="w", pady=(6, 0))
 
+        s2b = widgets.section(self, "Segunda ubicación (recomendado)")
+        ttk.Label(s2b, text="Cada copia automática se deja también en esta carpeta: elija una carpeta de OneDrive, una "
+                  "memoria USB o un disco externo, para no depender de un solo equipo. Si la unidad no está conectada, "
+                  "la copia local se hace igual.", style="Hint.TLabel", wraplength=900, justify="left").pack(anchor="w")
+        self.extra_lbl = ttk.Label(s2b, text="", wraplength=900, justify="left")
+        self.extra_lbl.pack(anchor="w", pady=(6, 0))
+        row = ttk.Frame(s2b)
+        row.pack(anchor="w", pady=(6, 0))
+        ttk.Button(row, text="Elegir carpeta…", command=self.choose_extra).pack(side="left")
+        ttk.Button(row, text="Quitar", command=self.clear_extra).pack(side="left", padx=8)
+        self.periodico = widgets.CheckField(s2b, text="Además, crear una copia automática cada 30 minutos mientras el programa esté abierto")
+        self.periodico.configure(command=self._periodico_changed)
+        self.periodico.pack(anchor="w", pady=(10, 0))
+
         s3 = widgets.section(self, "Restaurar")
         ttk.Label(s3, text="Al restaurar se reemplazan los datos actuales por los de la copia. "
                   "Antes se guarda automáticamente una copia 'previa_restauracion' de lo actual.",
@@ -62,6 +76,11 @@ class BackupPage(Page):
         self.path_lbl.configure(text=f"Base de datos: {config.db_path()}\n"
                                      f"Copias automáticas y manuales: {config.backups_dir()}")
         self.auto.set_value(self.db.get_setting("respaldo_al_salir", "1") == "1")
+        extra = backup.extra_dir(self.db)
+        err = self.db.get_setting("respaldo_extra_error", "")
+        self.extra_lbl.configure(text=(f"Carpeta: {extra}" if extra else "Sin segunda ubicación configurada.")
+                                 + (f"\n⚠ La última copia ahí falló: {err}" if extra and err else ""))
+        self.periodico.set_value(self.db.get_setting("respaldo_periodico", "1") == "1")
         files = backup.list_backups()
         self._files = {str(p): p for p in files}
         widgets.fill_tree(self.tree, [(
@@ -70,6 +89,28 @@ class BackupPage(Page):
 
     def _auto_changed(self):
         self.db.set_setting("respaldo_al_salir", "1" if self.auto.get_value() else "0")
+
+    def _periodico_changed(self):
+        self.db.set_setting("respaldo_periodico", "1" if self.periodico.get_value() else "0")
+
+    def choose_extra(self):
+        folder = dialogs.ask_directory(self, "Elija la carpeta de la segunda ubicación (OneDrive, USB, disco externo)")
+        if not folder:
+            return
+        try:
+            backup.create_backup(self.db, folder, prefix="auto")
+        except Exception as exc:  # noqa: BLE001
+            dialogs.error(self, f"No se puede escribir en esa carpeta:\n{exc}")
+            return
+        self.db.set_setting("respaldo_extra_dir", str(folder))
+        self.db.set_setting("respaldo_extra_error", "")
+        self.status.configure(text="Segunda ubicación guardada; se hizo una primera copia ahí.")
+        self.refresh()
+
+    def clear_extra(self):
+        self.db.set_setting("respaldo_extra_dir", "")
+        self.db.set_setting("respaldo_extra_error", "")
+        self.refresh()
 
     def create_here(self):
         try:

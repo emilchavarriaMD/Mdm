@@ -127,7 +127,21 @@ class App:
             self.root.destroy()
             return
         self.show("ata")
+        self._programar_respaldo()
         self.root.mainloop()
+
+    INTERVALO_RESPALDO_MS = 30 * 60 * 1000
+
+    def _programar_respaldo(self):
+        """Copia automática cada 30 minutos mientras el programa está abierto (si no se desactivó)."""
+        def tick():
+            try:
+                if self.db.get_setting("respaldo_periodico", "1") == "1":
+                    backup.auto_backup(self.db, prefix="periodica", keep=12)
+            except Exception:  # noqa: BLE001
+                pass
+            self._respaldo_job = self.root.after(self.INTERVALO_RESPALDO_MS, tick)
+        self._respaldo_job = self.root.after(self.INTERVALO_RESPALDO_MS, tick)
 
     def close(self):
         if self.current is not None and not self.current.can_leave():

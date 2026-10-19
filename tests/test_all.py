@@ -16,6 +16,7 @@ sys.path.insert(0, str(ROOT))
 _TMP = tempfile.mkdtemp(prefix="brigadas_test_")
 os.environ["BRIGADAS_DATA_DIR"] = _TMP
 
+import time
 import backup  # noqa: E402
 from database import Database  # noqa: E402
 from reports import excel, pdf  # noqa: E402
@@ -525,6 +526,27 @@ class T06_Persistencia(unittest.TestCase):
         self.assertEqual(db2.get_setting("encabezado_institucion"), "Mi Brigada")
         self.assertEqual(db2.scalar("SELECT COUNT(*) FROM catalogs WHERE category='departamento'"), 18)
         db2.close()
+
+    def test_14b_respaldo_segunda_ubicacion(self):
+        d = tempfile.mkdtemp(dir=_TMP)
+        db = Database(Path(d) / "p.db")
+        make_patient(db)
+        extra = Path(d) / "usb" / "MDm"
+        db.set_setting("respaldo_extra_dir", str(extra))
+        for _ in range(3):
+            backup.auto_backup(db, prefix="periodica", keep=2)
+            time.sleep(1.1)
+        copias = sorted(extra.glob("periodica_*.db"))
+        self.assertEqual(len(copias), 2)                          # rota también en la segunda ubicación
+        self.assertEqual(backup.validate_backup(copias[-1])["pacientes"], 1)
+        self.assertEqual(db.get_setting("respaldo_extra_error"), "")
+        # ubicación inaccesible: la copia local se hace igual y queda el aviso
+        bloqueo = Path(d) / "archivo.txt"
+        bloqueo.write_text("x")
+        db.set_setting("respaldo_extra_dir", str(bloqueo / "sub"))
+        local = backup.auto_backup(db)
+        self.assertTrue(local.exists())
+        self.assertNotEqual(db.get_setting("respaldo_extra_error"), "")
 
     def test_14_respaldo_y_restauracion(self):
         d = tempfile.mkdtemp(dir=_TMP)
