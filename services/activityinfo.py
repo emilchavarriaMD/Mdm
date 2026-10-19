@@ -135,9 +135,21 @@ def build_defaults(db, rec: dict) -> dict:
 
 def payload(data: dict) -> dict:
     """Lo que se envía al formulario. Los campos vacíos no se tocan."""
-    d = {k: v for k, v in data.items() if k != "dx"}
-    d["n_dx"] = min(len(data.get("dx") or []), 3) or ""
+    d = {k: v for k, v in data.items() if k not in ("dx", "recordar_dx")}
+    dx = [{"abrev": x.get("abrev", ""), "descripcion": x.get("descripcion", ""), "cie11": x.get("cie11", "")}
+          for x in (data.get("dx") or [])][:3]
+    d["dx"] = dx
+    d["n_dx"] = len(dx) or ""
     return d
+
+
+def remember_dx(db, data: dict):
+    """Guarda las equivalencias abreviatura → descripción/código que la persona dejó en la ventana."""
+    if not data.get("recordar_dx"):
+        return
+    for x in data.get("dx") or []:
+        if x.get("abrev") and (x.get("descripcion") or x.get("cie11")):
+            save_dx_map(db, x["abrev"], x.get("descripcion", ""), x.get("cie11", ""))
 
 
 # -- navegador -----------------------------------------------------------------------

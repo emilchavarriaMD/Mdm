@@ -1,6 +1,6 @@
 /* Llena el formulario de ActivityInfo. NUNCA pulsa Guardar registro ni Guardar como borrador. */
 (function () {
-  const VERSION = 7;
+  const VERSION = 9;
   if (window.__mdm && window.__mdm.version === VERSION) return;   // una versión vieja en la pestaña se reemplaza
   const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
   const norm = (s) => (s || "").replace(/\s+/g, " ").replace(/\*/g, "").replace(/OBLIGATORIO/g, "").trim().toLowerCase();
@@ -160,7 +160,55 @@
     await waitFor(() => findLabel("Profesional que atiende"), 6000);
     await sleep(500);
   }
-  async function fillAps(d) {
+  // Diagnósticos del subformulario APS: «Diagnóstico APS», «Diagnóstico APS 2», «3». Cada uno tiene dos listas
+  // (descripción de la morbilidad CIE-11 y código); al elegir una, ActivityInfo llena la otra.
+  function input_focus(el) { el.scrollIntoView({ block: "center" }); el.focus(); }
+  async function fillDx(d, log, info) {
+    const dxs = d.dx || [];
+    for (let i = 0; i < dxs.length && i < 3; i++) {
+      const dx = dxs[i];
+      const nombre = i === 0 ? "Diagnóstico APS" : "Diagnóstico APS " + (i + 1);
+      const tag = `Diagnóstico ${i + 1} (${dx.abrev})`;
+      try {
+        const h = await waitFor(() => [...document.querySelectorAll("h4")].find((x) => norm(x.textContent) === norm(nombre)), 6000);
+        if (!h) throw new Error("no apareció el campo " + nombre);
+        const box = h.closest(".forminput__field");
+        const keys = [...box.querySelectorAll("label.forminput__lookup__key")];
+        const inD = keys[0] && keys[0].querySelector("input"), inC = keys[1] && keys[1].querySelector("input");
+        if (!inD || !inC) throw new Error("no encontré las listas de descripción y código");
+        let elegido = null;
+        const probar = async (input, texto, esCodigo) => {
+          input.scrollIntoView({ block: "center" }); input.focus(); click(input);
+          setNative(input, ""); await sleep(150); setNative(input, texto);
+          const want = plain(texto);
+          // Nunca se elige una opción que no se parezca a lo buscado (un diagnóstico equivocado es peor que ninguno).
+          const it = await waitFor(() => {
+            const items = [...document.querySelectorAll(".listpicker__item")].filter(visible);
+            if (esCodigo) return items.find((x) => plain(x.innerText) === want) || items.find((x) => plain(x.innerText).startsWith(want)) || null;
+            return items.find((x) => plain(x.innerText) === want) || items.find((x) => plain(x.innerText).startsWith(want)) || items.find((x) => plain(x.innerText).includes(want)) || null;
+          }, 5000);
+          if (!it) { setNative(input, ""); input.blur(); return null; }
+          const txt = it.innerText.trim(); click(it); await sleep(900); return txt;
+        };
+        // La descripción viene de la lista del propio formulario: se elige por ella y ActivityInfo pone el código.
+        const texto = dx.descripcion || dx.abrev;
+        if (texto) elegido = await probar(inD, texto, false);
+        if (!elegido && texto) {
+          // Plan B: abrir la lista completa (sin escribir) y tomar solo la opción idéntica.
+          const want = plain(texto);
+          setNative(inD, ""); input_focus(inD);
+          const trig = inD.closest("label").querySelector(".field__trigger");
+          if (trig) click(trig);
+          const it = await waitFor(() => [...document.querySelectorAll(".listpicker__item")].filter(visible).find((x) => plain(x.innerText) === want) || null, 4000);
+          if (it) { elegido = it.innerText.trim(); it.scrollIntoView({ block: "center" }); click(it); await sleep(900); }
+        }
+        if (!elegido) throw new Error("no encontré «" + texto + "» en la lista de ActivityInfo; elíjalo a mano");
+        const code = inC.value.trim();
+        info.push(`${dx.abrev}: «${inD.value.trim()}» ${code}` + (dx.cie11 && code && plain(dx.cie11) !== plain(code) ? ` — el programa tenía ${dx.cie11}, revise` : ""));
+      } catch (e) { log.push(tag + ": " + e.message); }
+    }
+  }
+  async function fillAps(d, info) {
     const log = [];
     const S = (n, f) => step(log, n, f);
     try { await openAps(); } catch (e) { return ["Subformulario APS: " + e.message]; }
@@ -174,13 +222,18 @@
     await S("¿Mismo punto de atención?", () => setRadio("¿Mismo punto de atención registrado en la ficha integral?", "Sí"));
     await S("¿Mismo proyecto?", () => setRadio("¿Mismo proyecto registrado en la ficha integral?", "Sí"));
     if (d.tipo_consulta) await S("Tipo de consulta", () => setRadio("Tipo de consulta", d.tipo_consulta));
-    if (d.n_dx) await S("¿Cuántos diagnósticos?", () => setText("¿Cuántos diagnósticos?", String(d.n_dx)));
+    if (d.n_dx) {
+      await S("¿Cuántos diagnósticos?", () => setText("¿Cuántos diagnósticos?", String(d.n_dx)));
+      await sleep(900);
+      await fillDx(d, log, info);
+    }
     return log;
   }
   async function run(d) {
     const falla = await fillFicha(d);
-    const aps = (d.consultas || []).includes("Atención Primaria de Salud") ? await fillAps(d) : [];
-    return { ficha: falla, aps: aps };
+    const info = [];
+    const aps = (d.consultas || []).includes("Atención Primaria de Salud") ? await fillAps(d, info) : [];
+    return { ficha: falla, aps: aps, info: info };
   }
   window.__mdm = { findLabel, setText, setLookup, setRadio, setChecks, setAuto, fillFicha, fillAps, run, sleep, version: VERSION };
 })();

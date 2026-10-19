@@ -156,9 +156,10 @@ class PacientesPage(Page):
                 self, "Ya registrado", f"{rec['nombre']} ya está marcado como registrado en "
                 "ActivityInfo. ¿Llenar el formulario otra vez?", yes="Llenar de nuevo", no="Cancelar"):
             return
-        data = ActivityInfoDialog(self, activityinfo.build_defaults(self.db, rec)).run()
+        data = ActivityInfoDialog(self, activityinfo.build_defaults(self.db, rec), db=self.db).run()
         if not data:
             return
+        activityinfo.remember_dx(self.db, data)
         self._busy = True
         self.count.configure(text="Abriendo Chrome… si pide iniciar sesión, hágalo en esa ventana.")
         threading.Thread(target=self._worker, args=(rid, rec["nombre"], data), daemon=True).start()
@@ -183,11 +184,9 @@ class PacientesPage(Page):
         falta = (report.get("ficha") or []) + (report.get("aps") or [])
         msg = f"Se llenó el formulario de {nombre} en Chrome. REVÍSELO y cree la ficha usted en ActivityInfo " \
               "(el programa no guarda nada)."
-        dx = data.get("dx") or []
-        if dx:
-            msg += "\n\nDiagnósticos por elegir a mano (CIE-11):\n" + "\n".join(
-                f"• {d['abrev']}" + (f" → {d['descripcion']} {d['cie11']}".rstrip() if d['descripcion'] or d['cie11'] else "")
-                for d in dx)
+        info = report.get("info") or []
+        if info:
+            msg += "\n\nDiagnósticos elegidos en ActivityInfo (verifíquelos):\n" + "\n".join(f"• {i}" for i in info)
         if falta:
             msg += "\n\nNo se pudieron llenar (hágalo a mano):\n" + "\n".join(f"• {f}" for f in falta)
         dialogs.info(self, msg, title="Formulario llenado")

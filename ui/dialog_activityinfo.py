@@ -3,6 +3,7 @@ import tkinter as tk
 from tkinter import ttk
 
 from services import activityinfo as ai
+from services import cie11_catalog as cat
 from ui import dialogs, theme, widgets
 from ui.dialogs import _Modal
 
@@ -28,8 +29,9 @@ class ChecksField(ttk.Frame):
 
 
 class ActivityInfoDialog(_Modal):
-    def __init__(self, parent, defaults: dict, title="Añadir registro en ActivityInfo"):
+    def __init__(self, parent, defaults: dict, title="Añadir registro en ActivityInfo", db=None):
         super().__init__(parent, title)
+        self.db = db
         self.defaults = defaults
         self.w = {}
         body = ttk.Frame(self, padding=(18, 14, 18, 8))
@@ -75,15 +77,31 @@ class ActivityInfoDialog(_Modal):
         add("tipo_consulta", "Tipo de consulta (APS)", C(ai.TIPOS_CONSULTA))
 
         dxs = defaults.get("dx") or []
-        ttk.Label(body, text="Diagnósticos del ATA (se anota la cantidad; el diagnóstico CIE-11 "
-                  "se elige a mano en ActivityInfo)", style="H2.TLabel").pack(anchor="w", pady=(10, 2))
+        ttk.Label(body, text="Diagnósticos — lista de ActivityInfo (descripción y código)",
+                  style="H2.TLabel").pack(anchor="w", pady=(10, 2))
+        self.dx_rows = []
+        labels = [cat.label(d) for d in cat.descriptions()]
         if dxs:
-            for i, d in enumerate(dxs, 1):
-                cie = f"{d['descripcion']} · {d['cie11']}" if d["descripcion"] or d["cie11"] else \
-                    "(sin equivalencia: agréguela en Configuración → Equivalencias CIE-11)"
-                ttk.Label(body, text=f"{i}. {d['abrev']}  →  {cie}", wraplength=760, justify="left").pack(
-                    anchor="w")
+            for i, d in enumerate(dxs):
+                row = ttk.Frame(body)
+                row.pack(fill="x", pady=2)
+                ttk.Label(row, text=f"{i + 1}. {d['abrev']}", width=22).pack(side="left")
+                cb = widgets.ComboField(row, labels, readonly=False, width=78)
+                desc, code = cat.from_label(d.get("descripcion", ""))
+                if not desc:
+                    sug = cat.suggest(d.get("abrev", ""))
+                    desc, code = sug[0] if sug else ("", "")
+                cb.set_value(cat.label(desc) if desc else "")
+                cb.pack(side="left", fill="x", expand=True)
+                self.dx_rows.append((d["abrev"], cb))
+            ttk.Label(body, text="Elija en la lista de ActivityInfo (puede escribir para buscar). Al elegir la "
+                      "descripción, ActivityInfo pone el código solo. Si deja una vacía, ese diagnóstico no se llena.",
+                      style="Muted.TLabel", wraplength=780, justify="left").pack(anchor="w")
+            self.recordar = tk.BooleanVar(value=True)
+            ttk.Checkbutton(body, text="Recordar estas equivalencias para los próximos pacientes",
+                            variable=self.recordar).pack(anchor="w")
         else:
+            self.recordar = tk.BooleanVar(value=False)
             ttk.Label(body, text="El ATA no trae diagnósticos para este paciente.",
                       style="Muted.TLabel").pack(anchor="w")
         ttk.Label(body, text="HEA (historia de la enfermedad actual) — armada con sexo, edad y diagnósticos del ATA; "
@@ -116,9 +134,22 @@ class ActivityInfoDialog(_Modal):
                 "en ActivityInfo:\n\n" + "\n".join(f"• {t}" for t in falta) + "\n\n¿Abrir Chrome de todos modos?",
                 yes="Abrir de todos modos", no="Volver y elegir"):
             return
+        dx, malos = [], []
+        for a, cb in self.dx_rows:
+            texto = cb.get_value().strip()
+            desc, code = cat.from_label(texto)
+            if texto and not desc:
+                malos.append(texto)
+            if desc:
+                dx.append({"abrev": a, "descripcion": desc, "cie11": code})
+        if malos:
+            dialogs.info(self, "Estos diagnósticos no están en la lista de ActivityInfo; elíjalos de la lista "
+                         "desplegable:\n\n" + "\n".join(f"• {m}" for m in malos))
+            return
+        data["dx"] = dx
+        data["recordar_dx"] = bool(self.recordar.get())
         data["hea"] = self.hea.get("1.0", "end").strip()
         data["hea_a_observaciones"] = "Si" if self.hea_obs.get() and data["hea"] else ""
         data["tiene_fecha_nac"] = "No"  # siempre se usa la edad
-        data["dx"] = self.defaults.get("dx") or []
         self.result = data
         self.destroy()

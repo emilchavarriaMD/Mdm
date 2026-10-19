@@ -140,7 +140,7 @@ class UITests(unittest.TestCase):
         seen = {}
 
         class FakeDialog:
-            def __init__(self, parent, defaults):
+            def __init__(self, parent, defaults, db=None):
                 seen["defaults"] = defaults
 
             def run(self):
@@ -232,7 +232,7 @@ class UITests(unittest.TestCase):
         self.assertEqual(d["dx"][0]["descripcion"], "")  # sin equivalencia: no se inventa
         p = ai.payload(d)
         self.assertEqual(p["n_dx"], 1)
-        self.assertNotIn("dx", p)
+        self.assertEqual(p["dx"][0]["abrev"], "HTA")
 
     def test_04b_ventana_con_varias_consultas(self):
         from services import activityinfo as ai
@@ -250,6 +250,29 @@ class UITests(unittest.TestCase):
         self.assertEqual(dlg.result["tiene_fecha_nac"], "No")
         self.assertEqual(dlg.result["edad"], "30")
         self.assertEqual(ai.payload(dlg.result)["consultas"], [ai.CONSULTA_APS, "Nutrición"])
+
+    def test_04c_diagnosticos_lista_activityinfo(self):
+        from services import activityinfo as ai
+        from services import cie11_catalog as cat
+        from ui.dialog_activityinfo import ActivityInfoDialog
+        self.assertEqual(len(cat.CATALOG), 260)
+        self.assertEqual(cat.suggest("HTA")[0][1], "BA00.Z")
+        self.assertEqual(cat.suggest("zzzz"), [])
+        d = ai.build_defaults(self.db, {"nombre": "Ana", "sexo": "M", "edad_anios": "30", "fecha": "2026-10-15",
+                                        "dx1": "Gastritis", "dx2": "RC", "dx3": "HTA"})
+        dlg = ActivityInfoDialog(self.root, d, db=self.db)
+        self.assertEqual(len(dlg.dx_rows), 3)
+        self.assertIn("DA42.Z", dlg.dx_rows[0][1].get_value())      # sugerido de la lista
+        dlg.dx_rows[1][1].set_value("")                              # sin equivalente: no se llena
+        dlg.w["consultas"].set_value([ai.CONSULTA_APS])
+        for k, v in {"estado_civil": "Soltero/a", "escolaridad": "Primaria", "ocupacion": "Estudiante",
+                     "discapacidad": "No", "derivado": "No", "tipo_consulta": "Primera"}.items():
+            dlg.w[k].set_value(v)
+        dlg._ok()
+        self.assertEqual([x["cie11"] for x in dlg.result["dx"]], ["DA42.Z", "BA00.Z"])
+        ai.remember_dx(self.db, dlg.result)
+        self.assertEqual(ai.dx_map(self.db)["hta"]["cie11"], "BA00.Z")
+        self.assertEqual(ai.payload(dlg.result)["n_dx"], 2)
 
     def test_05_respaldo(self):
         import backup
