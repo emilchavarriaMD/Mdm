@@ -11,6 +11,8 @@ import webbrowser
 from pathlib import Path
 
 import config
+from services import cie11_catalog as cat
+from services import hea_banco
 from services.hea import generate_hea
 
 FORM_URL = "https://www.activityinfo.org/app#form/cgagdtzm4cnphz5kmo/newRecord"
@@ -120,8 +122,29 @@ def build_defaults(db, rec: dict) -> dict:
         dxs.append({"abrev": txt, "descripcion": m["descripcion"] if m else "",
                     "cie11": (m["cie11"] if m else "") or cie})
     desc = {k: v["descripcion"] for k, v in dxmap.items() if v["descripcion"]}
+    meses = (rec.get("edad_meses") or "").strip()
+    dias = (rec.get("edad_dias") or "").strip()
+    if anios and anios != "0":
+        persona = {"sexo": sexo, "edad": anios, "unidad": "años"}
+    elif meses:
+        persona = {"sexo": sexo, "edad": meses, "unidad": "meses"}
+    elif dias:
+        persona = {"sexo": sexo, "edad": dias, "unidad": "días"}
+    else:
+        persona = {"sexo": sexo, "edad": "", "unidad": "años"}
+    descs = []
+    for x in dxs:
+        d = cat.from_label(x["descripcion"])[0] if x["descripcion"] else ""
+        if not d:
+            sug = cat.suggest(x["abrev"])
+            d = sug[0][0] if sug else ""
+        descs.append(d)
+    if any(descs):
+        hea = hea_banco.compose(persona["sexo"], persona["edad"], descs, persona["unidad"])[0]
+    else:
+        hea = generate_hea(rec, desc)
     return {
-        "hea": generate_hea(rec, desc),
+        "hea": hea, "hea_persona": persona,
         "lugar": st["ai_lugar"], "punto_especifico": "", "fecha": (rec.get("fecha") or "")[:10], "genero": genero,
         "donante": st["ai_donante"], "proyecto": st["ai_proyecto"], "perfin": st["ai_perfin"],
         "lgtbiq": "", "pueblo": "", "nacionalidad": st["ai_nacionalidad"], "idioma": st["ai_idioma"],

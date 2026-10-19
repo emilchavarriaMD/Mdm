@@ -79,7 +79,7 @@ _CUADROS = [
 
 def _persona(rec):
     sexo = (rec.get("sexo") or "").upper()
-    sust = {"M": "Beneficiaria femenina", "H": "Beneficiario masculino"}.get(sexo, "Beneficiario/a")
+    sust = {"M": "Beneficiaria Fem", "H": "Beneficiario Masc"}.get(sexo, "Beneficiaria/o Fem/Masc")
     anios = (rec.get("edad_anios") or "").strip()
     meses = (rec.get("edad_meses") or "").strip()
     dias = (rec.get("edad_dias") or "").strip()
@@ -127,7 +127,7 @@ def generate_hea(rec, descripciones=None):
     """rec: fila del ATA. descripciones: {abrev_en_minúscula: descripción} (tabla de equivalencias)."""
     descripciones = descripciones or {}
     sust, edad = _persona(rec)
-    cabecera = sust + (f" de {edad}" if edad else "")
+    cabecera = sust + (f" de {edad} de edad" if edad else "")
     dxs = [(rec.get(f"dx{i}") or "").strip() for i in (1, 2, 3)]
     dxs = [d for d in dxs if d]
     if not dxs:

@@ -4,6 +4,7 @@ from tkinter import ttk
 
 from services import activityinfo as ai
 from services import cie11_catalog as cat
+from services import hea_banco
 from ui import dialogs, theme, widgets
 from ui.dialogs import _Modal
 
@@ -111,6 +112,8 @@ class ActivityInfoDialog(_Modal):
                     desc, code = sug[0] if sug else ("", "")
                 cb.set_value(cat.label(desc) if desc else "")
                 cb.pack(side="left", fill="x", expand=True)
+                cb.bind("<<ComboboxSelected>>", lambda e: self._regen_hea(True))
+                cb.bind("<FocusOut>", lambda e: self._regen_hea(True))
                 self.dx_rows.append((d["abrev"], cb))
             ttk.Label(body, text="Elija en la lista de ActivityInfo (puede escribir para buscar). Al elegir la "
                       "descripción, ActivityInfo pone el código solo. Si deja una vacía, ese diagnóstico no se llena.",
@@ -122,15 +125,44 @@ class ActivityInfoDialog(_Modal):
             self.recordar = tk.BooleanVar(value=False)
             ttk.Label(body, text="El ATA no trae diagnósticos para este paciente.",
                       style="Muted.TLabel").pack(anchor="w")
-        ttk.Label(body, text="HEA — se escribe en «Historia de la enfermedad actual» de APS. Armada con sexo, edad y diagnósticos del ATA; "
-                  "revísela y corríjala con lo que el paciente refirió", style="H2.TLabel",
-                  wraplength=780, justify="left").pack(anchor="w", pady=(10, 2))
-        self.hea = tk.Text(body, height=5, wrap="word", font=("Segoe UI", 10), relief="solid", bd=1)
+        hh = ttk.Frame(body)
+        hh.pack(fill="x", pady=(10, 2))
+        ttk.Label(hh, text="HEA — se escribe en «Historia de la enfermedad actual» de APS", style="H2.TLabel").pack(
+            side="left")
+        ttk.Button(hh, text="Otra versión", command=lambda: self._regen_hea(False)).pack(side="right")
+        ttk.Label(body, text="Una sola historia con los diagnósticos elegidos (crónicos como antecedente, el agudo como cuadro "
+                  "actual, los demás como síntomas). Revísela y corríjala con lo que el paciente refirió; si la edita a "
+                  "mano, ya no se reemplaza sola.", style="Muted.TLabel", wraplength=780, justify="left").pack(anchor="w")
+        self.hea = tk.Text(body, height=6, wrap="word", font=("Segoe UI", 10), relief="solid", bd=1)
         self.hea.insert("1.0", defaults.get("hea", ""))
         self.hea.pack(fill="x")
+        self.hea_aviso = ttk.Label(body, text="", style="Muted.TLabel", wraplength=780, justify="left")
+        self.hea_aviso.pack(anchor="w")
+        self._hea_auto = defaults.get("hea", "")      # último texto generado: si la persona lo cambia, se respeta
+        self._dx_vistos = self._dx_actuales()
         ttk.Button(bar, text="Cancelar", command=self.cancel).pack(side="right")
         ttk.Button(bar, text="Abrir Chrome y llenar", style="Accent.TButton", command=self._ok).pack(
             side="right", padx=8)
+
+    def _dx_actuales(self):
+        return [cat.from_label(cb.get_value())[0] for _a, cb in self.dx_rows]
+
+    def _regen_hea(self, solo_si_cambio):
+        """Vuelve a armar la HEA con los diagnósticos elegidos. Si la persona editó el texto a mano, no lo pisa
+        (salvo con «Otra versión»)."""
+        dxs = self._dx_actuales()
+        if solo_si_cambio:
+            if dxs == self._dx_vistos:
+                return
+            self._dx_vistos = dxs
+            if self.hea.get("1.0", "end").strip() != self._hea_auto.strip():
+                return
+        p = self.defaults.get("hea_persona") or {}
+        texto, avisos = hea_banco.compose(p.get("sexo"), p.get("edad"), [d for d in dxs if d], p.get("unidad", "años"))
+        self.hea.delete("1.0", "end")
+        self.hea.insert("1.0", texto)
+        self._hea_auto = texto
+        self.hea_aviso.configure(text="\n".join("⚠ " + a for a in avisos))
 
     def run(self):                      # ya tiene tamaño y posición propios (900 x 700, centrada)
         self.deiconify()
