@@ -34,8 +34,24 @@ class ActivityInfoDialog(_Modal):
         self.db = db
         self.defaults = defaults
         self.w = {}
-        body = ttk.Frame(self, padding=(18, 14, 18, 8))
+        self.resizable(True, True)
+        sw, sh = self.winfo_screenwidth(), self.winfo_screenheight()
+        w, h = min(900, sw - 40), min(700, sh - 90)
+        self.geometry(f"{w}x{h}+{max(0, (sw - w) // 2)}+{max(0, (sh - h) // 3)}")
+        self.minsize(640, 420)
+        bar = ttk.Frame(self, padding=(18, 8, 18, 12))
+        bar.pack(side="bottom", fill="x")          # botones siempre visibles
+        sf = widgets.ScrollFrame(self)
+        sf.pack(fill="both", expand=True)
+        body = ttk.Frame(sf.body, padding=(18, 14, 18, 8))
         body.pack(fill="both", expand=True)
+
+        def _wheel(e):
+            sf.canvas.yview_scroll(-1 if (e.delta > 0 or getattr(e, "num", 0) == 4) else 1, "units")
+            return "break"
+        self.bind("<MouseWheel>", _wheel)
+        self.bind("<Button-4>", _wheel)
+        self.bind("<Button-5>", _wheel)
         ttk.Label(body, text="Revise los datos antes de llenar el formulario", style="H2.TLabel").pack(
             anchor="w")
         ttk.Label(body, text="Solo se llena el formulario: el programa NO guarda la ficha. Usted la crea "
@@ -114,11 +130,16 @@ class ActivityInfoDialog(_Modal):
         ttk.Checkbutton(body, text="Escribir esta HEA en el campo «Observaciones» de la ficha de ActivityInfo "
                         "(el subformulario de APS no tiene campo de HEA)", variable=self.hea_obs).pack(
             anchor="w", pady=(4, 0))
-        bar = ttk.Frame(body)
-        bar.pack(fill="x", pady=(14, 0))
         ttk.Button(bar, text="Cancelar", command=self.cancel).pack(side="right")
         ttk.Button(bar, text="Abrir Chrome y llenar", style="Accent.TButton", command=self._ok).pack(
             side="right", padx=8)
+
+    def run(self):                      # ya tiene tamaño y posición propios (900 x 700, centrada)
+        self.deiconify()
+        self.grab_set()
+        self.focus_set()
+        self.wait_window(self)
+        return self.result
 
     def _ok(self):
         data = {k: (w.get_value() if isinstance(w, ChecksField) else w.get_value().strip())
