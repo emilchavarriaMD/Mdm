@@ -138,7 +138,7 @@ def build_defaults(db, rec: dict) -> dict:
         if not d:
             sug = cat.suggest(x["abrev"])
             d = sug[0][0] if sug else ""
-        descs.append(d)
+        descs.append(hea_banco.fuente_hea(x["abrev"], d))
     if any(descs):
         hea = hea_banco.compose(persona["sexo"], persona["edad"], descs, persona["unidad"])[0]
     else:

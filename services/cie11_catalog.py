@@ -300,6 +300,14 @@ def from_label(text):
 
 # Abreviaturas frecuentes del ATA → texto a buscar en la lista (solo sugerencia; la persona confirma).
 SINONIMOS = {
+    "rc": "Nasofaringitis aguda", "resfriado comun": "Nasofaringitis aguda", "fab": "Amigdalitis estreptocócica",
+    "fav": "Amigdalitis aguda", "faringoamigdalitis": "Amigdalitis aguda", "tina pedis": "Dermatofitosis del pie",
+    "tinea pedis": "Dermatofitosis del pie", "forunculosis": "Forúnculo", "dismenorrea": "Dolor abdominal o pélvico",
+    "control nino sano": "Examen de salud de rutina del niño", "nino sano": "Examen de salud de rutina del niño",
+    "parasitismo intestinal": "Parasitosis", "parasitismo": "Parasitosis",
+    "cervicalgia": "Afecciones asociadas con la columna vertebral", "dermatitis seborreica": "Dermatitis y eccema",
+    "dermatitis atopica": "Dermatitis y eccema", "dermatitis a": "Dermatitis y eccema", "mialgias": "Mialgia",
+    "asma": "Asma no especificada sin complicaciones", "eda": "Gastroenteritis o colitis infecciosa",
     "hta": "Hipertensión esencial", "hipertension arterial": "Hipertensión esencial",
     "hipertension": "Hipertensión esencial", "dm": "Diabetes mellitus", "dm2": "Diabetes mellitus",
     "diabetes": "Diabetes mellitus", "itu": "Infección urinaria", "ivu": "Infección urinaria",
@@ -328,8 +336,9 @@ def suggest(text, limit=1):
     q = plain(text)
     if not q:
         return []
-    if q in SINONIMOS:
-        q = plain(SINONIMOS[q])
+    sin = {plain(k): v for k, v in SINONIMOS.items()}
+    if q in sin:
+        q = plain(sin[q])
     words = [w for w in q.split() if len(w) > 2]
     scored = []
     for d, c in CATALOG:

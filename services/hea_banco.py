@@ -11,7 +11,7 @@ import random
 import re
 
 from services import cie11_catalog as cat
-from services.hea_data import ALIAS, BANK
+from services.hea_data import ALIAS, BANK, SINONIMOS
 
 _ID = {}
 for _n, _b in BANK.items():
@@ -20,9 +20,61 @@ for _n, _desc in ALIAS.items():
     _ID[cat.plain(_desc)] = _n
 
 
-def bank_id(descripcion):
-    """Número del banco para una descripción de la lista de ActivityInfo (o None si no hay HEA para ella)."""
-    return _ID.get(cat.plain(descripcion))
+_SIN = {cat.plain(k): v for k, v in SINONIMOS.items()}
+
+
+def bank_id(texto):
+    """Número del banco para una descripción de ActivityInfo o un diagnóstico/abreviatura del ATA (None si no hay)."""
+    p = cat.plain(texto)
+    if not p:
+        return None
+    if p in _ID:
+        return _ID[p]
+    if p in _SIN:
+        return _SIN[p]
+    for k, n in _SIN.items():          # «HTA crónica», «gastritis aguda», «PF (ACOS) 3 meses»…
+        if len(k) > 3 and (p.startswith(k + " ") or p.endswith(" " + k)):
+            return n
+    for k, n in _SIN.items():          # «cuerpo extraño oído izq. 1 día»
+        if len(k) > 6 and p.startswith(k):
+            return n
+    for k, n in _ID.items():           # «Gastritis» → «Gastritis, sin especificación»
+        if k.startswith(p + " ") and len(p) > 4:
+            return n
+    return None
+
+
+def fuente_hea(abrev, descripcion):
+    """Qué texto usar para la HEA de una fila: el diagnóstico del ATA si el banco lo conoce y la persona dejó la
+    sugerencia automática (más específico: «Cervicalgia» antes que «Afecciones de la columna»); si la persona eligió
+    otra opción en la lista, esa."""
+    if abrev and bank_id(abrev) is not None:
+        sug = cat.suggest(abrev)
+        if not descripcion or (sug and sug[0][0] == descripcion) or bank_id(descripcion) == bank_id(abrev):
+            return abrev
+    return descripcion or abrev
+
+
+# Enfermedades crónicas que algunas versiones mencionan de paso («…hipertensión arterial y diabetes mellitus…»):
+# esa versión solo se usa si el paciente realmente tiene ese diagnóstico.
+_MENCIONES = [
+    (r"(?<!sin )\bdiabet", {38, 66, 141}),
+    (r"\bhipertensi[oó]n\b|\bhta\b", {64, 206, 238, 183}),
+    (r"\basma\b", {15, 16}),
+    (r"renal cr[oó]nica|insuficiencia renal", {191, 213}),
+    (r"\bvih\b", {48, 247}),
+    (r"\bepilep", {50}),
+    (r"\bobesidad\b", {227}),
+]
+
+
+def _version_ok(version, ids):
+    cuerpo = " ".join(f for f in _frases(version) if not f.startswith("Niega "))
+    low = cuerpo.lower()
+    for patron, propios in _MENCIONES:
+        if re.search(patron, low) and not (propios & ids):
+            return False
+    return True
 
 
 def _frases(texto):
@@ -70,7 +122,7 @@ def compose(sexo, edad, dx_descripciones, unidad="años", rng=None):
         n = bank_id(d)
         if n is None:
             avisos.append(f"No hay HEA preparada para «{d}»; complete ese diagnóstico a mano.")
-            items.append(dict(n=None, k="S", t=re.sub(r",? sin especificación$", "", d).lower(), v=[], desc=d))
+            items.append(dict(n=None, k="S", t=re.sub(r",? sin especificación$", "", d).strip().lower(), v=[], desc=d))
         else:
             b = BANK[n]
             items.append(dict(n=n, k=b["k"], t=b["t"], v=b["v"], desc=d, s=b["s"]))
@@ -95,8 +147,10 @@ def compose(sexo, edad, dx_descripciones, unidad="años", rng=None):
     otros_s = [i for i in agud if i is not principal]
     otros_x = [i for i in ctx if i is not principal]
 
+    ids = {i["n"] for i in items if i["n"] is not None}
     if principal["v"]:
-        version = rng.choice(principal["v"])
+        buenas = [v for v in principal["v"] if _version_ok(v, ids)] or principal["v"]
+        version = rng.choice(buenas)
     else:                                   # diagnóstico sin banco
         version = principal["t"]
     ya = _raices([version])
@@ -120,17 +174,16 @@ def compose(sexo, edad, dx_descripciones, unidad="años", rng=None):
         texto = ant + cuerpo_txt
     if not texto.endswith((".", "!", "?")):
         texto += "."
-    # 2) otros agudos como síntomas
-    if otros_s:
-        texto += " Además refiere " + _lista([i["t"] for i in otros_s]) + "."
-    # 3) contexto / motivos
-    for i in otros_x:
-        t = i["t"]
-        texto += " Además, " + t + "."
-    # 4) negativos compatibles
+    # 2) negativos del cuadro principal (sin los que contradicen a los otros diagnósticos), pegados a su cuadro
     raices = _raices([i["t"] for i in otros_s] + [i["t"] for i in otros_c] + [i["t"] for i in otros_x])
     for f in neg:
         g = _filtrar_negativos(f, raices) if raices else f
         if g:
             texto += " " + g
+    # 3) otros agudos como síntomas
+    if otros_s:
+        texto += " Además refiere " + _lista([i["t"] for i in otros_s]) + "."
+    # 4) contexto / motivos
+    for j, i in enumerate(otros_x):
+        texto += (" Además, " if (j == 0 and not otros_s) else " Asimismo, ") + i["t"] + "."
     return "HEA: " + head + texto, avisos

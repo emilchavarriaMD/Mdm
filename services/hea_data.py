@@ -3939,3 +3939,77 @@ ALIAS = {20: 'Chalación, sin especificación',
  48: 'Enfermedad por virus de la inmunodeficiencia humana, sin mención de tuberculosis o malaria, sin especificación',
  179: 'Distensión o esquince del tobillo, sin especificación',
  268: 'Uña encarnada'}
+
+# Agregados al revisar ATA reales (diagnósticos frecuentes que no estaban en el banco)
+BANK.update({
+    325: {'n': 'Cervicalgia', 's': 'A', 'u': 'años', 'k': 'S', 't': 'dolor cervical',
+          'v': [
+              'dolor en región cervical posterior de 4 días de evolución, de tipo opresivo, que aumenta con los movimientos del cuello y mejora con el reposo, asociado a rigidez matutina. Niega traumatismo, fiebre o adormecimiento de brazos.',
+              'dolor cervical de 1 semana de evolución, irradiado a ambos hombros, relacionado con jornadas prolongadas frente a la computadora y el celular. Se automedicó con analgésico con alivio parcial. Niega pérdida de fuerza, mareo o fiebre.',
+              'dolor de cuello de 2 días de evolución, de aparición al despertar, con limitación para girar la cabeza y contractura de trapecios. Niega trauma, cefalea intensa o parestesias en manos.',
+              'dolor cervical intermitente de 1 mes de evolución, que empeora al final del día y con el estrés, con sensación de tensión en hombros. Niega irradiación a brazos, fiebre o pérdida de peso.',
+              'dolor en región cervical de 3 días de evolución, posterior a cargar objetos pesados sobre el hombro, que aumenta al flexionar el cuello. Se aplicó compresas tibias con mejoría leve. Niega pérdida de fuerza o alteraciones visuales.',
+              'dolor cervical de 10 días de evolución, de intensidad moderada, con crepitación al mover el cuello y cefalea occipital ocasional. Niega fiebre, trauma o adormecimiento de extremidades.',
+              'dolor y rigidez en cuello de 5 días de evolución, que inició tras dormir en mala posición, con dificultad para voltear la cabeza hacia un lado. Niega fiebre, vómitos o debilidad en brazos.',
+              'dolor cervical crónico de 3 meses de evolución, de características mecánicas, que se exacerba con el trabajo manual y mejora con el descanso. Refiere uso ocasional de antiinflamatorios. Niega irradiación, pérdida de fuerza o fiebre.',
+              'dolor en cuello y hombros de 2 semanas de evolución, asociado a preocupaciones y poco descanso, con sensación de nudos musculares. Niega trauma, fiebre o parestesias.',
+              'dolor cervical de 1 día de evolución, de inicio súbito al realizar un movimiento brusco, con contractura muscular y limitación de la movilidad. Niega traumatismo directo, cefalea intensa o adormecimiento de manos.',
+          ]},
+    326: {'n': 'Planificación familiar con anticonceptivos orales', 's': 'F', 'u': 'años', 'k': 'X',
+          't': 'utiliza anticonceptivos orales como método de planificación familiar',
+          'v': [
+              'uso de anticonceptivos orales combinados desde hace 1 año como método de planificación familiar; acude para control y entrega de su método. Refiere ciclos menstruales regulares y buena tolerancia. Niega cefalea intensa, dolor en piernas o sangrado anormal.',
+              'deseo de continuar con anticonceptivos orales, que utiliza desde hace 6 meses; acude por nuevo ciclo de pastillas. Refiere toma diaria sin olvidos. Niega retraso menstrual, dolor torácico o alteraciones visuales.',
+              'solicitud de inicio de anticonceptivos orales como método de planificación familiar. Refiere última menstruación hace 5 días y ciclos regulares. Niega posibilidad de embarazo, migraña con aura o antecedentes de trombosis.',
+              'uso de anticonceptivos orales desde hace 3 meses, con sangrado escaso entre periodos en el primer mes que ya desapareció; acude a control y entrega de método. Niega dolor pélvico, cefalea intensa o dolor en pantorrillas.',
+              'uso de anticonceptivos orales con olvido de 2 tabletas el mes pasado, por lo que acude para orientación y continuidad del método. Niega retraso menstrual, flujo anormal o dolor pélvico.',
+          ]},
+})
+
+# Abreviaturas y nombres frecuentes del ATA → número del banco (para la HEA, aunque ActivityInfo no tenga ese diagnóstico)
+SINONIMOS = {
+    'hta': 64, 'hipertension': 64, 'hipertension arterial': 64, 'dm': 38, 'dm2': 38, 'dm 2': 38, 'diabetes': 38,
+    'diabetes mellitus': 38, 'asma': 15, 'asma bronquial': 15, 'dermatitis': 35, 'dermatitis a': 35,
+    'dermatitis atopica': 35, 'dermatitis seborreica': 35, 'dermatitis de contacto': 35, 'eccema': 35,
+    'vaginosis': 137, 'vaginosis mixta': 137, 'vaginosis bacteriana': 137, 'vaginitis': 137, 'vulvovaginitis': 137,
+    'candidiasis vaginal': 21, 'candidiasis vulvovaginal': 21, 'cvv': 21,
+    'pf': 326, 'pf acos': 326, 'acos': 326, 'aco': 326, 'pf aco': 326, 'planificacion familiar': 150,
+    'pf depo': 152, 'depo': 152, 'depoprovera': 152, 'pf inyectable': 152, 'diu': 171, 'pf diu': 171,
+    'tina pedis': 128, 'tinea pedis': 128, 'pie de atleta': 128, 'tina': 36, 'tinea': 36, 'micosis': 36,
+    'forunculosis': 2, 'forunculo': 2, 'absceso': 1, 'cervicalgia': 325, 'dolor cervical': 325,
+    'dismenorrea': 182, 'parasitismo intestinal': 234, 'parasitismo': 234, 'parasitosis': 234, 'parasitosis intestinal': 234,
+    'control nino sano': 288, 'control de nino sano': 288, 'nino sano': 288, 'cns': 288, 'cred': 288,
+    'rc': 121, 'resfriado comun': 121, 'resfriado': 121, 'catarro': 121, 'rinofaringitis': 121,
+    'fab': 157, 'faringoamigdalitis bacteriana': 157, 'fav': 9, 'faringoamigdalitis viral': 9, 'faringoamigdalitis': 9,
+    'faringitis': 9, 'amigdalitis': 9, 'ira': 70, 'iras': 70, 'irs': 70, 'itu': 72, 'ivu': 72, 'iu': 72,
+    'eda': 39, 'gastroenteritis': 39, 'diarrea': 286, 'gastritis': 58, 'erge': 47, 'rge': 47, 'reflujo': 47,
+    'cefalea': 23, 'cefalea tensional': 23, 'migrana': 89, 'mialgia': 88, 'mialgias': 88, 'artralgia': 45, 'artralgias': 45,
+    'lumbalgia': 80, 'lumbago': 80, 'rinitis': 120, 'rinitis alergica': 120, 'sinusitis': 124, 'otitis': 97,
+    'conjuntivitis': 28, 'escabiosis': 51, 'sarna': 51, 'pediculosis': 145, 'anemia': 158, 'obesidad': 227,
+    'sobrepeso': 227, 'dislipidemia': 205, 'embarazo': 148, 'cpn': 148, 'control prenatal': 148,
+    'ansiedad': 290, 'depresion': 291, 'insomnio': 212, 'estrenimiento': 29, 'tos': 129, 'fiebre': 57,
+    'dolor abdominal': 46, 'vertigo': 82, 'mareo': 82, 'varicela': 269, 'dengue': 174, 'impetigo': 208,
+    'hemorroides': 297, 'neumonia': 90, 'bronquitis': 18, 'herpes zoster': 203, 'caries': 22, 'odontalgia': 22,
+}
+
+BANK.update({
+    327: {'n': 'Cuerpo extraño en oído', 's': 'A', 'u': 'años', 'k': 'S', 't': 'sensación de cuerpo extraño en el oído',
+          'v': [
+              'introducción de cuerpo extraño (semilla) en oído izquierdo hace 1 día, según refiere la madre, con molestia local y sensación de oído tapado. Niega dolor intenso, sangrado, secreción o fiebre.',
+              'sensación de cuerpo extraño en oído de 2 horas de evolución tras introducirse un objeto pequeño mientras jugaba, con disminución de la audición del mismo lado. Niega sangrado, vértigo o dolor intenso.',
+              'molestia y zumbido en oído de 1 día de evolución, que refiere inició al entrar un insecto mientras dormía, con sensación de movimiento dentro del oído. Niega sangrado, secreción o fiebre.',
+              'introducción de fragmento de borrador en oído hace 3 días, con intentos de extracción en casa sin éxito, y otalgia leve desde entonces. Niega secreción purulenta, fiebre o sangrado.',
+              'sensación de oído tapado de 2 días de evolución tras limpieza con hisopo, con sospecha de algodón retenido. Niega dolor intenso, otorrea, fiebre o mareo.',
+          ]},
+    328: {'n': 'Dermatitis seborreica', 's': 'A', 'u': 'años', 'k': 'S', 't': 'descamación y prurito en piel cabelluda y cara',
+          'v': [
+              'descamación blanco-amarillenta en cuero cabelludo de 1 mes de evolución, con prurito leve y enrojecimiento en cejas y alrededor de la nariz. Niega caída de cabello en placas, secreción o fiebre.',
+              'placas eritematosas con escamas grasosas en surcos nasogenianos y frente de 3 semanas de evolución, que empeoran con el estrés y el calor. Ha usado jabones sin mejoría. Niega dolor o secreción.',
+              'caspa abundante y prurito en cuero cabelludo de 2 meses de evolución, con lesiones descamativas detrás de las orejas. Refiere episodios similares previos. Niega lesiones en otras partes del cuerpo.',
+              'costras amarillentas en cuero cabelludo de 2 semanas de evolución, según refiere la madre, sin prurito importante ni irritabilidad. Niega fiebre, secreción o lesiones en el área del pañal.',
+              'enrojecimiento y descamación en cejas, párpados y pliegues de la nariz de 1 mes de evolución, con ardor leve. Niega alteraciones visuales, secreción o fiebre.',
+          ]},
+})
+SINONIMOS.update({'cuerpo extrano oido': 327, 'cuerpo extrano en oido': 327, 'cuerpo extrano oido izq': 327,
+                  'cuerpo extrano oido der': 327, 'cuerpo extrano oido izquierdo': 327, 'cuerpo extrano oido derecho': 327,
+                  'dermatitis seborreica': 328, 'caspa': 328})

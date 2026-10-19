@@ -145,7 +145,8 @@ class ActivityInfoDialog(_Modal):
             side="right", padx=8)
 
     def _dx_actuales(self):
-        return [cat.from_label(cb.get_value())[0] for _a, cb in self.dx_rows]
+        # descripción elegida en la lista de ActivityInfo; si se dejó vacía, el texto del ATA (la HEA lo incluye igual)
+        return [hea_banco.fuente_hea(a, cat.from_label(cb.get_value())[0]) for a, cb in self.dx_rows]
 
     def _regen_hea(self, solo_si_cambio):
         """Vuelve a armar la HEA con los diagnósticos elegidos. Si la persona editó el texto a mano, no lo pisa
