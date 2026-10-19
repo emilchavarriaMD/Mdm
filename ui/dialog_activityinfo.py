@@ -42,9 +42,9 @@ class ActivityInfoDialog(_Modal):
         self.transient("")                 # sin «transient», Windows muestra los botones de maximizar/minimizar
         self.resizable(True, True)
         sw, sh = self.winfo_screenwidth(), self.winfo_screenheight()
-        w, h = min(900, sw - 40), min(700, sh - 90)
+        w, h = min(1090, sw - 40), min(700, sh - 90)
         self.geometry(f"{w}x{h}+{max(0, (sw - w) // 2)}+{max(0, (sh - h) // 3)}")
-        self.minsize(640, 420)
+        self.minsize(760, 420)
         bar = ttk.Frame(self, padding=(18, 8, 18, 12))
         bar.pack(side="bottom", fill="x")          # botones siempre visibles
         sf = widgets.ScrollFrame(self)
@@ -244,6 +244,7 @@ class ActivityInfoDialog(_Modal):
                                                                  self._ssr_condicionales()))
         self.w["edad"].bind("<FocusOut>", lambda e: (self._ajustar_vitales(), self._regen_hea(True)))
         self._marcar_fuentes()
+        self._panel_paciente(sf)
         ttk.Button(bar, text="Cancelar", command=self.cancel).pack(side="right")
         ttk.Button(bar, text="Abrir Chrome y llenar", style="Accent.TButton", command=self._ok).pack(
             side="right", padx=8)
@@ -266,6 +267,41 @@ class ActivityInfoDialog(_Modal):
                 tag.configure(text="HEA: no hay una preparada para este diagnóstico; complétela a mano")
             else:
                 tag.configure(text="HEA usa: " + hea_banco.BANK[n]["n"])
+
+    def _panel_paciente(self, antes_de):
+        """Resumen fijo a la izquierda (no se desplaza): nombre, edad, sexo y diagnósticos, siempre a la vista."""
+        side = ttk.Frame(self, style="Card.TFrame", padding=(12, 12))
+        side.pack(side="left", fill="y", padx=(10, 0), pady=10, before=antes_de)
+        side.pack_propagate(False)
+        side.configure(width=190)
+        ttk.Label(side, text="PACIENTE", style="CardField.TLabel").pack(anchor="w")
+        self._p_nombre = ttk.Label(side, style="Card.TLabel", font=("Segoe UI", 11, "bold"), wraplength=165, justify="left")
+        self._p_nombre.pack(anchor="w", pady=(2, 8))
+        self._p_edad = ttk.Label(side, style="Card.TLabel", wraplength=165, justify="left")
+        self._p_edad.pack(anchor="w")
+        ttk.Separator(side).pack(fill="x", pady=10)
+        ttk.Label(side, text="DIAGNÓSTICOS", style="CardField.TLabel").pack(anchor="w")
+        self._p_dx = ttk.Label(side, style="Card.TLabel", wraplength=165, justify="left")
+        self._p_dx.pack(anchor="w", pady=(2, 0))
+        self._refrescar_panel()
+
+    def _refrescar_panel(self):
+        try:
+            nom = " ".join(x for x in ((self.w["nombres"].get_value() or "").strip(),
+                                        (self.w["apellidos"].get_value() or "").strip()) if x)
+            p = self._persona()
+            sexo = {"M": "Mujer", "H": "Hombre"}.get(p.get("sexo"), (self.w["genero"].get_value() or ""))
+            edad = (self.w["edad"].get_value() or "").strip()
+            u = "año" if edad == "1" else "años"
+            self._p_nombre.configure(text=nom or "—")
+            self._p_edad.configure(text=" · ".join(x for x in ((f"{edad} {u}" if edad else ""), sexo) if x) or "—")
+            dx = [d for d in self._dx_hea() if d]
+            self._p_dx.configure(text="\n".join("• " + d for d in dx) if dx else "—")
+            self.after(800, self._refrescar_panel)
+        except tk.TclError:          # la ventana ya se cerró
+            pass
+        except Exception:
+            self.after(800, self._refrescar_panel)
 
     def _dx_actuales(self):
         # descripción elegida en la lista de ActivityInfo; si se dejó vacía, el texto del ATA (la HEA lo incluye igual)

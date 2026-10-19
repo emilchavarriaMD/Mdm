@@ -324,6 +324,23 @@ class UITests(unittest.TestCase):
         self.assertEqual(dlg.examen.get("1.0", "end").strip(), "Cefalo-caudal")
         dlg.destroy()
 
+    def test_04i_panel_paciente(self):
+        from ui.dialog_activityinfo import ActivityInfoDialog
+        d = {"dx": [{"abrev": "RC", "descripcion": "", "cie11": ""}, {"abrev": "Cervicalgia", "descripcion": "", "cie11": ""}],
+             "consultas": [], "hea_persona": {"sexo": "H", "edad": "4", "unidad": "años"}, "hea": "", "edad": "4",
+             "nombres": "Luis", "apellidos": "Pérez López", "genero": "Hombre CIS"}
+        dlg = ActivityInfoDialog(self.root, d)
+        dlg.update()
+        self.assertEqual(dlg._p_nombre.winfo_manager(), "pack")
+        self.assertIn("Luis Pérez López", dlg._p_nombre.cget("text"))
+        self.assertIn("4 años", dlg._p_edad.cget("text"))
+        self.assertIn("Hombre", dlg._p_edad.cget("text"))
+        self.assertIn("Cervicalgia", dlg._p_dx.cget("text"))
+        dlg.w["edad"].set_value("7")
+        dlg._refrescar_panel()
+        self.assertIn("7 años", dlg._p_edad.cget("text"))
+        dlg.destroy()
+
     def test_04g_vitales_pediatricos(self):
         from services import activityinfo as ai
         from ui.dialog_activityinfo import ActivityInfoDialog
