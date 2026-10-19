@@ -207,7 +207,7 @@ class T09_ExamenFisico(unittest.TestCase):
         from services import examen_fisico as e
         t = e.compose([])
         import re
-        tit = re.findall(r"(?:^|(?<=\. ))([A-ZÁÉÍÓÚ][a-záéíóúñ]+): ", t)
+        tit = re.findall(r"(?:^|(?<=\. ))([A-ZÁÉÍÓÚ][A-Za-záéíóúñ]+): ", t)
         self.assertEqual(tit, ["General", "Cabeza", "ORL", "Cuello", "Tórax", "Corazón", "Pulmones", "Abdomen", "Extremidades"])
         self.assertIn("falta de espacio clínico", t)
         self.assertEqual(e.compose([], ssr=True).split(". ")[-1][:14], "Genitourinario")
