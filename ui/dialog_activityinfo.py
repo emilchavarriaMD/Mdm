@@ -34,6 +34,7 @@ class ActivityInfoDialog(_Modal):
         self.db = db
         self.defaults = defaults
         self.w = {}
+        self.transient("")                 # sin «transient», Windows muestra los botones de maximizar/minimizar
         self.resizable(True, True)
         sw, sh = self.winfo_screenwidth(), self.winfo_screenheight()
         w, h = min(900, sw - 40), min(700, sh - 90)
