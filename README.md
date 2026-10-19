@@ -81,7 +81,7 @@ propio del programa) abre el formulario y **lo llena**. El programa **nunca guar
 - **Diagnósticos**: cada diagnóstico del ATA se elige de la lista de ActivityInfo (260 opciones con su código,
   guardadas en el programa; se puede escribir para buscar). El programa escribe la descripción y ActivityInfo pone
   el código. Nunca elige una opción que no coincida: si no la encuentra, la deja vacía y lo avisa.
-- **HEA**: se arma sola con sexo, edad y diagnósticos (banco de 324 diagnósticos con 5–10 versiones cada uno) y se
+- **HEA**: se arma sola con sexo, edad y diagnósticos (banco de más de 320 diagnósticos con 5–10 versiones cada uno) y se
   escribe en «Historia de la enfermedad actual» del subformulario APS. Con 2–3 diagnósticos se escribe una sola
   historia: los crónicos como «antecedente de…», el agudo como cuadro actual y los demás como «Además refiere…».
   Respeta edad y sexo, avisa si un diagnóstico no corresponde, y el botón «Otra versión» cambia la redacción.
