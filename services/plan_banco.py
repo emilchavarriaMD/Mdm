@@ -15,14 +15,11 @@ except ImportError:  # sin banco: no se propone nada
 
 _NORM = {cat.plain(k): v for k, v in PLAN.items()}
 
-FRASES_M = ["Se recomienda {}.", "Se indica {}.", "Se aconseja {}.", "Indicaciones generales: {}.",
-            "Se educa sobre la importancia de {}."]
-FRASES_M = FRASES_M[:4]                       # la última solo sirve con sustantivos: se descarta
-FRASES_A = ["Se explican los signos de alarma y se indica acudir de inmediato si presenta {}.",
-            "Debe consultar de inmediato ante {}.",
+FRASES_M = ["Se recomienda {}.", "Se indica {}.", "Se aconseja {}.", "Se sugiere {}."]
+FRASES_A = ["Se explican los signos de alarma y se indica acudir de inmediato a un centro de salud si presenta {}.",
             "Se educa sobre signos de alarma: acudir sin demora si presenta {}.",
-            "Se indica acudir a un centro de salud de inmediato si presenta {}."]
-FRASES_S = ["Se indica {}.", "Se programa {}.", "Seguimiento: {}."]  
+            "Se indica acudir a un centro de salud de inmediato si presenta {}.",
+            "Se orienta sobre los signos de peligro: buscar atención médica urgente ante {}."]
 
 
 class _Primero:
@@ -105,12 +102,9 @@ def compose(descripciones, rng=None):
     # un párrafo corto: con varios diagnósticos solo lo de mayor peso de cada uno (las ideas repetidas se descartan)
     m = _repartir([r["m"] for r in reg], 3 if n == 1 else 4, rng, must=1, top=6)
     a = _repartir([r["a"] for r in reg], 3 if n == 1 else 4, rng, must=1, top=5)
-    s = _repartir([r["s"] for r in reg], 1, rng, must=1, top=2)
     partes = []
     if m:
         partes.append(rng.choice(FRASES_M).format(_lista(m)))
     if a:
         partes.append(rng.choice(FRASES_A).format(_lista(a)))
-    if s:
-        partes.append(rng.choice(FRASES_S).format(" y ".join(s)))
     return " ".join(partes)

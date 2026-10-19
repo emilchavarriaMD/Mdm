@@ -297,5 +297,5 @@ class T10_PlanBanco(unittest.TestCase):
         self.assertGreater(len(textos), 15)
         self.assertEqual(pb.compose(dx), pb.compose(dx))                   # sin rng: estable
         t = pb.compose(dx, rng=random.Random(3)).lower()
-        self.assertRegex(t, "inmediato|sin demora")
+        self.assertRegex(t, "inmediato|sin demora|urgente")
         self.assertEqual(pb.compose([]), "")
