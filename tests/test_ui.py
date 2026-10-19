@@ -311,6 +311,14 @@ class UITests(unittest.TestCase):
         dlg._regen_hea(False)                                     # «Otra versión» sí lo cambia
         self.assertIn("Beneficiario Masc de 7 años", dlg.hea.get("1.0", "end"))
         self.assertEqual(dlg.examen.get("1.0", "end").strip(), "")          # sin valor inicial en este caso
+        # derivación: vacía por defecto y sin los demás campos hasta elegir Sí
+        self.assertEqual(dlg.w["va_derivado"].get_value(), "")
+        dlg.update()
+        self.assertFalse(dlg.der_extra.winfo_ismapped())
+        dlg.w["va_derivado"].set_value("Sí")
+        dlg._mostrar_derivacion()
+        dlg.update()
+        self.assertTrue(dlg.der_extra.winfo_ismapped())
         dlg.destroy()
         dlg = ActivityInfoDialog(self.root, dict(d, examen_fisico="Cefalo-caudal"))
         self.assertEqual(dlg.examen.get("1.0", "end").strip(), "Cefalo-caudal")

@@ -190,24 +190,31 @@ class ActivityInfoDialog(_Modal):
         self.plan.insert("1.0", defaults.get("plan", ""))
         self.plan.pack(fill="x")
         ttk.Label(f_der, text="Derivación (hacia) y servicio brindado", style="H2.TLabel").pack(anchor="w", pady=(12, 2))
-        ttk.Label(f_der, text="«Servicio brindado» solo aparece en ActivityInfo con «¿Va a ser derivado?» = Sí (es el "
-                  "recapitulativo interno de MdM para todas las atenciones). Siempre es Salud.", style="Muted.TLabel",
+        ttk.Label(f_der, text="Si elige Sí en «¿Va a ser derivado?» se muestran los demás campos, como en ActivityInfo "
+                  "(recapitulativo interno de MdM). El servicio brindado siempre es Salud.", style="Muted.TLabel",
                   wraplength=780, justify="left").pack(anchor="w")
         gf3 = ttk.Frame(f_der)
         gf3.pack(fill="x")
         g3 = widgets.FormGrid(gf3, 3)
+        # como en la página: lo demás solo aparece cuando «¿Va a ser derivado?» es Sí
+        self.der_extra = ttk.Frame(f_der)
+        gf4 = ttk.Frame(self.der_extra)
+        gf4.pack(fill="x")
+        g4 = widgets.FormGrid(gf4, 3)
 
-        def add3(key, label, vals):
-            w = widgets.ComboField(gf3, [""] + list(vals), readonly=True, width=26)
+        def add3(key, label, vals, parent, grid):
+            w = widgets.ComboField(parent, [""] + list(vals), readonly=True, width=26)
             self.w[key] = w
             w.set_value(defaults.get(key, ""))
-            g3.add(label, w)
+            grid.add(label, w)
 
-        add3("va_derivado", "¿Va a ser derivado?", ai.VA_DERIVADO)
-        add3("n_servicios", "¿A cuántos servicios se deriva?", ai.N_SERVICIOS)
-        add3("transfronteriza", "¿Referencia Transfronteriza?", ai.VA_DERIVADO)
-        add3("servicio_brindado", "Servicio brindado", ai.SERVICIOS_BRINDADOS)
-        add3("servicio_salud", "Salud (si el servicio es Salud)", ai.SERVICIOS_SALUD)
+        add3("va_derivado", "¿Va a ser derivado?", ai.VA_DERIVADO, gf3, g3)
+        add3("n_servicios", "¿A cuántos servicios se deriva?", ai.N_SERVICIOS, gf4, g4)
+        add3("transfronteriza", "¿Referencia Transfronteriza?", ai.VA_DERIVADO, gf4, g4)
+        add3("servicio_brindado", "Servicio brindado", ai.SERVICIOS_BRINDADOS, gf4, g4)
+        add3("servicio_salud", "Salud (si el servicio es Salud)", ai.SERVICIOS_SALUD, gf4, g4)
+        self.w["va_derivado"].bind("<<ComboboxSelected>>", lambda e: self._mostrar_derivacion())
+        self._mostrar_derivacion()
         self._hea_auto = defaults.get("hea", "")      # último texto generado: si la persona lo cambia, se respeta
         self._dx_vistos = self._clave_hea()
         # si se corrige el género o la edad en esta ventana, la HEA se actualiza (salvo que ya la haya editado)
@@ -252,6 +259,13 @@ class ActivityInfoDialog(_Modal):
         if edad.isdigit() and edad != "0" and edad != p.get("edad"):   # «0» = menor de 1 año: se queda en meses/días
             p["edad"], p["unidad"] = edad, "años"
         return p
+
+    def _mostrar_derivacion(self):
+        """«Servicio brindado» y lo demás solo existen en la página cuando «¿Va a ser derivado?» es Sí."""
+        if self.w["va_derivado"].get_value() == "Sí":
+            self.der_extra.pack(fill="x")
+        else:
+            self.der_extra.pack_forget()
 
     def _ajustar_vitales(self):
         """Si cambian el género o la edad, la diastólica y la frecuencia respiratoria propuestas se ajustan
@@ -324,6 +338,9 @@ class ActivityInfoDialog(_Modal):
         data["hea"] = self.hea.get("1.0", "end").strip()
         data["examen_fisico"] = self.examen.get("1.0", "end").strip()
         data["plan"] = self.plan.get("1.0", "end").strip()
+        if data.get("va_derivado") != "Sí":       # sin Sí no existen esos campos en la página
+            for k in ("n_servicios", "transfronteriza", "servicio_brindado", "servicio_salud"):
+                data[k] = ""
         data["tiene_fecha_nac"] = "No"  # siempre se usa la edad
         self.result = data
         self.destroy()

@@ -178,7 +178,7 @@ def build_defaults(db, rec: dict) -> dict:
     vit = vitales_defecto(persona["sexo"], persona["edad"], persona["unidad"])
     return {
         "hea": hea, "hea_persona": persona, **vit, "peso": "", "examen_fisico": EXAMEN_FISICO_BASE,
-        "plan": PLAN_BASE, "va_derivado": "Sí", "n_servicios": "", "transfronteriza": "",
+        "plan": PLAN_BASE, "va_derivado": "", "n_servicios": "", "transfronteriza": "",
         "servicio_brindado": "Salud", "servicio_salud": SERVICIOS_SALUD[0],
         "lugar": st["ai_lugar"], "punto_especifico": "", "fecha": (rec.get("fecha") or "")[:10], "genero": genero,
         "donante": st["ai_donante"], "proyecto": st["ai_proyecto"], "perfin": st["ai_perfin"],
