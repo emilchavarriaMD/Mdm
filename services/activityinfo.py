@@ -31,6 +31,8 @@ PERFILES = ["Persona en tránsito", "Población desplazada interna", "Persona re
             "Migrante en proceso de retorno", "Líder/esa comunitario/a"]
 PERFIL_FIJO = "Persona en riesgo de desplazamiento"
 LGTBIQ = ["Sí", "No"]
+PUEBLOS = ["Afrodescendiente / Creole / Afromestizo", "Extranjero", "Garífuna", "Ladino / Mestizo", "Maya",
+           "Xinca", "No responde", "Lenca", "Miskito", "Tolupán", "Pech", "Tawanhka"]
 DISCAPACIDAD = ["Sí", "No", "Prefiere no contestar"]
 DERIVADO = ["Sí", "No"]
 TIPOS_CONSULTA = ["Primera", "Reconsulta", "Seguimiento", "Tamizaje de signos vitales",
@@ -40,6 +42,9 @@ CONSULTA_APS = "Atención Primaria de Salud"
 # Valores fijos que se configuran una vez (pantalla Configuración).
 SETTINGS = [
     ("ai_lugar", "Lugar de atención (al elegirlo se llenan País y Departamento)", "San Pedro Sula"),
+    ("ai_donante", "Proyecto: Donante Nombre", "ECHO"),
+    ("ai_proyecto", "Proyecto: Título del proyecto", "ECHO - COMPASS"),
+    ("ai_perfin", "Proyecto: PERFIN", "F09010020"),
     ("ai_nacionalidad", "País de nacionalidad", "Honduras"),
     ("ai_idioma", "Idioma", "Español"),
     ("ai_profesional", "Profesional que atiende (APS)", "Nadia Alejandra Chavarria Lopez"),
@@ -109,7 +114,8 @@ def build_defaults(db, rec: dict) -> dict:
                     "cie11": (m["cie11"] if m else "") or cie})
     return {
         "lugar": st["ai_lugar"], "fecha": (rec.get("fecha") or "")[:10], "genero": genero,
-        "lgtbiq": "", "nacionalidad": st["ai_nacionalidad"], "idioma": st["ai_idioma"],
+        "donante": st["ai_donante"], "proyecto": st["ai_proyecto"], "perfin": st["ai_perfin"],
+        "lgtbiq": "", "pueblo": "", "nacionalidad": st["ai_nacionalidad"], "idioma": st["ai_idioma"],
         "nombres": nombres, "apellidos": apellidos,
         "tiene_fecha_nac": "No", "edad": edad,
         "estado_civil": "", "escolaridad": "", "ocupacion": "", "discapacidad": "", "perfil": PERFIL_FIJO,

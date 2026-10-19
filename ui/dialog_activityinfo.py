@@ -31,12 +31,16 @@ class ActivityInfoDialog(_Modal):
 
         E = lambda: widgets.EntryField(gf, width=26)  # noqa: E731
         C = lambda vals, ro=True: widgets.ComboField(gf, [""] + list(vals), readonly=ro, width=26)  # noqa: E731
+        add("donante", "Proyecto: Donante Nombre", E())
+        add("proyecto", "Proyecto: Título del proyecto", E())
+        add("perfin", "Proyecto: PERFIN", E())
         add("nombres", "Nombres", E())
         add("apellidos", "Apellidos", E())
         add("genero", "Género", C(ai.GENEROS))
         add("fecha", "Fecha de consulta (AAAA-MM-DD)", E())
         add("lgtbiq", "¿Se identifica como persona LGTBIQ+?", C(ai.LGTBIQ))
-        add("edad", "Edad final (años; no se usa fecha de nacimiento)", E())
+        add("pueblo", "¿Con qué pueblo se identifica la persona atendida?", C(ai.PUEBLOS))
+        add("edad", "Años (manual) — no se usa fecha de nacimiento", E())
         add("estado_civil", "Estado civil", C(ai.ESTADOS_CIVILES))
         add("escolaridad", "Grado de escolaridad", C(ai.ESCOLARIDADES))
         add("ocupacion", "Sector de ocupación", C(ai.OCUPACIONES))

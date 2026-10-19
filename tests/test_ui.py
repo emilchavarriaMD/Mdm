@@ -164,6 +164,9 @@ class UITests(unittest.TestCase):
         self.assertEqual(seen["defaults"]["tiene_fecha_nac"], "No")
         self.assertEqual(seen["defaults"]["perfil"], "Persona en riesgo de desplazamiento")
         self.assertEqual(seen["defaults"]["idioma"], "Español")
+        self.assertEqual((seen["defaults"]["donante"], seen["defaults"]["proyecto"], seen["defaults"]["perfin"]),
+                         ("ECHO", "ECHO - COMPASS", "F09010020"))
+        self.assertEqual(seen["defaults"]["pueblo"], "")
         self.assertEqual(seen["sent"]["estado_civil"], "Soltero/a")
         self.assertEqual(seen["defaults"]["estado_civil"], "")  # lo que el ATA no trae no se inventa
         self.assertEqual(A.get_record(db, rid)["ai_estado"], "Registrado")

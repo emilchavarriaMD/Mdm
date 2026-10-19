@@ -77,19 +77,41 @@
   async function fillFicha(d) {
     const log = [];
     const S = (n, f) => step(log, n, f);
-    if (d.lugar) await S("Lugar de atención", () => setLookup("Puntos de atención sanitaria", d.lugar));
+    const val = (label) => { const l = findLabel(label); const i = l && inputFor(l); return i ? i.value.trim().toLowerCase() : ""; };
+    // Lookup que solo se toca si todavía no tiene ese valor (ActivityInfo a veces ya lo trae puesto).
+    const lk = (label, v) => (val(label) === norm(v) ? Promise.resolve() : setLookup(label, v));
+    // El formulario es dependiente: se llena en el orden en que va apareciendo y se espera a que salgan los campos nuevos.
+    // 1) Punto de atención (al elegir el lugar se llenan País y Departamento y aparecen campos nuevos, como el pueblo)
+    if (d.lugar) {
+      await S("Lugar de atención", () => lk("Puntos de atención sanitaria", d.lugar));
+      await waitFor(() => val("Centroamérica País"), 4000); await sleep(600);
+    }
+    // 2) Proyecto
+    if (d.donante) { await S("Proyecto: Donante", () => lk("Donante Nombre", d.donante)); await sleep(500); }
+    if (d.proyecto) { await S("Proyecto: Título", () => lk("PROYECTOS Título del proyecto", d.proyecto)); await sleep(500); }
+    if (d.perfin) await S("Proyecto: PERFIN", () => lk("PROYECTOS PERFIN", d.perfin));
+    // 3) Datos de la persona, en el orden de la página
     if (d.fecha) await S("Fecha consulta", () => setText("Fecha consulta", d.fecha));
     if (d.genero) await S("Género", () => setRadio("Género", d.genero));
     if (d.lgtbiq) await S("¿Se identifica como persona LGTBIQ+?", () => setLookup("¿Se identifica como persona LGTBIQ+?", d.lgtbiq));
+    if (d.pueblo) {
+      await waitFor(() => findLabel("¿Con qué pueblo se identifica la persona atendida?"), 4000);
+      await S("Pueblo con el que se identifica", () => setAuto("¿Con qué pueblo se identifica la persona atendida?", d.pueblo));
+    }
     if (d.nacionalidad) await S("País de nacionalidad", () => setLookup("País de Nacionalidad", d.nacionalidad));
     if (d.idioma) await S("Idioma", () => setLookup("Idioma", d.idioma));
     if (d.nombres) await S("Nombre", () => setText("Nombre", d.nombres));
     if (d.apellidos) await S("Apellidos", () => setText("Apellidos", d.apellidos));
     if (d.tiene_fecha_nac) {
       await S("Fecha de nacimiento SI/NO", () => setRadio("Fecha de nacimiento SI/NO", d.tiene_fecha_nac));
-      await sleep(400);
-      if (d.tiene_fecha_nac === "Si" && d.fecha_nac) await S("Fecha de nacimiento", () => setText("Fecha de nacimiento", d.fecha_nac));
-      if (d.tiene_fecha_nac === "No" && d.edad) await S("Edad final (años)", () => setText("Edad final", d.edad));
+      if (d.tiene_fecha_nac === "No" && d.edad) {
+        await waitFor(() => findLabel("Años (manual)"), 5000);
+        await S("Años (manual)", () => setText("Años (manual)", d.edad));
+      }
+      if (d.tiene_fecha_nac === "Si" && d.fecha_nac) {
+        await sleep(400);
+        await S("Fecha de nacimiento", () => setText("Fecha de nacimiento", d.fecha_nac));
+      }
     }
     if (d.estado_civil) await S("Estado civil", () => setRadio("Estado civil", d.estado_civil));
     if (d.escolaridad) await S("Grado de escolaridad", () => setRadio("Grado de escolaridad", d.escolaridad));
@@ -126,5 +148,5 @@
     const aps = d.consulta === "Atención Primaria de Salud" ? await fillAps(d) : [];
     return { ficha: falla, aps: aps };
   }
-  window.__mdm = { findLabel, setText, setLookup, setRadio, setAuto, fillFicha, fillAps, run, sleep, version: 2 };
+  window.__mdm = { findLabel, setText, setLookup, setRadio, setAuto, fillFicha, fillAps, run, sleep, version: 3 };
 })();
