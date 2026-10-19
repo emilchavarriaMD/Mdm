@@ -1,4 +1,5 @@
 """Ventana de revisión antes de llenar ActivityInfo: la persona confirma o corrige cada dato."""
+import random
 import tkinter as tk
 from tkinter import ttk
 
@@ -185,6 +186,7 @@ class ActivityInfoDialog(_Modal):
         ttk.Label(f_exa, text="Examen céfalo-caudal normal; cada sección cambia según los diagnósticos elegidos "
                   "(genitourinario solo si algún diagnóstico lo requiere). Puede corregir el texto; vacío = no se llena.", style="Muted.TLabel", wraplength=780,
                   justify="left").pack(anchor="w")
+        ttk.Button(f_exa, text="Otra versión del examen", command=lambda: self._regen_examen(True)).pack(anchor="e")
         self.examen = tk.Text(f_exa, height=11, wrap="word", font=("Segoe UI", 10), relief="solid", bd=1)
         self.examen.insert("1.0", defaults.get("examen_fisico", ""))
         self._exa_auto = defaults.get("examen_fisico", "")
@@ -609,18 +611,19 @@ class ActivityInfoDialog(_Modal):
         p = self._persona()
         return (tuple(self._dx_hea()), p.get("sexo"), p.get("edad"), p.get("unidad"))
 
-    def _regen_examen(self):
-        """Examen físico por secciones según los diagnósticos; si se editó a mano, no se pisa."""
+    def _regen_examen(self, forzar=False):
+        """Examen físico por secciones según los diagnósticos; si se editó a mano, no se pisa (salvo «Otra versión»)."""
         def poner(caja, texto, auto_attr):
-            if caja.get("1.0", "end").strip() != getattr(self, auto_attr, "").strip():
+            if not forzar and caja.get("1.0", "end").strip() != getattr(self, auto_attr, "").strip():
                 return
             caja.delete("1.0", "end")
             caja.insert("1.0", texto)
             setattr(self, auto_attr, texto)
         aps = [d for d in self._dx_actuales() if d]
-        poner(self.examen, examen_fisico.compose(aps, ssr=False), "_exa_auto")
+        rng = random.Random()
+        poner(self.examen, examen_fisico.compose(aps, ssr=False, rng=rng), "_exa_auto")
         if hasattr(self, "ssr_examen"):
-            poner(self.ssr_examen, examen_fisico.compose([d for d in self._dx_hea() if d], ssr=True), "_ssr_exa_auto")
+            poner(self.ssr_examen, examen_fisico.compose([d for d in self._dx_hea() if d], ssr=True, rng=rng), "_ssr_exa_auto")
 
     def _regen_hea(self, solo_si_cambio):
         """Vuelve a armar la HEA con los diagnósticos elegidos. Si la persona editó el texto a mano, no lo pisa

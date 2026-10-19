@@ -210,6 +210,24 @@ RULES += [
     (r"complicaciones del trabajo de parto|complicacion obstetrica|atencion materna relacionada al feto|trastornos maternos", {"genital": "altura uterina acorde o discordante con la edad gestacional, frecuencia cardíaca fetal presente"}),
 ]
 
+try:
+    from services.examen_variantes import VARIANTES
+except ImportError:
+    VARIANTES = {}
+
+
+class _Primera:
+    @staticmethod
+    def choice(op):
+        return op[0]
+
+
+def _var(texto, rng):
+    """Una redacción al azar entre las versiones de ese hallazgo (todas con la misma positividad)."""
+    op = VARIANTES.get(texto)
+    return rng.choice(op) if op else texto
+
+
 _COMPILADAS = [(re.compile(p), h) for p, h in RULES]
 
 
@@ -232,8 +250,9 @@ def _unir(items):
     return "; ".join(items)
 
 
-def compose(descripciones, ssr=False):
+def compose(descripciones, ssr=False, rng=None):
     """Texto del examen físico, una línea por sección, en el orden céfalo-caudal."""
+    rng = rng or _Primera()                # sin rng: siempre la primera redacción (estable para las pruebas)
     h = _hallazgos(descripciones)
     lineas = []
     for titulo, partes in SECCIONES:
@@ -242,14 +261,18 @@ def compose(descripciones, ssr=False):
         trozos = []
         for clave, normal in partes:
             if clave in h and clave != "abdomen":
-                trozos.append(_unir(h[clave]))
+                trozos.append(_unir([_var(x, rng) for x in h[clave]]))
             elif normal:
-                trozos.append(normal)
+                trozos.append(_var(normal, rng))
         if titulo == "Corazón" and False:
             pass
         if not trozos:
             continue
         txt = ", ".join(trozos) if titulo == "ORL" else "; ".join(trozos) if titulo not in ("Extremidades", "Genitourinario") else "; ".join(trozos)
         txt = txt.strip()
+        for pref in (titulo.lower() + " ", "extremidades " if titulo == "Extremidades" else titulo.lower() + " "):
+            if txt.lower().startswith(pref):
+                txt = txt[len(pref):]
+                break
         lineas.append(f"{titulo}: {txt[:1].upper() + txt[1:]}.")
     return "\n".join(lineas)

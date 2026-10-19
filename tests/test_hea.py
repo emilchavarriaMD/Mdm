@@ -224,3 +224,13 @@ class T09_ExamenFisico(unittest.TestCase):
         self.assertIn("amígdalas hipertróficas", t)
         self.assertIn("contractura", t)
         self.assertNotIn("Genitourinario", t)
+
+    def test_variantes(self):
+        import random
+        from services import examen_fisico as e
+        textos = {e.compose(["Vaginitis aguda"], ssr=True, rng=random.Random(i)) for i in range(30)}
+        self.assertGreater(len(textos), 10)
+        for t in textos:                      # misma positividad en todas las versiones
+            for w in ("purulent", "amarillent", "fétid", "abundante"):
+                self.assertIn(w, t)
+            self.assertIn("falta de espacio", t.replace("no contar con espacio", "falta de espacio")) if "espacio" in t else None
