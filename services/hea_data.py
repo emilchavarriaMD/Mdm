@@ -4066,3 +4066,26 @@ BANK[97]['t'] = 'otalgia'
 BANK[26]['t'] = 'dolor lumbar irradiado a la pierna'
 BANK[76]['t'] = 'fiebre, mialgias y malestar general'
 BANK[135]['t'] = 'dolor y aumento de volumen tras un golpe'
+
+# Sin cifras inventadas: las HEA no traen temperaturas, glucometrías ni presiones concretas que el paciente quizá
+# no refirió (si las hay, la persona las escribe al revisar).
+_CIFRAS = [
+    ("glucometrías en casa entre 130 y 160 mg/dl", "glucometrías en casa dentro de metas"),
+    ("con glucometría de 50 mg/dl, que mejoró", "con glucometría baja, que mejoró"),
+    ("Se tomó glucometría de 60 mg/dl", "Se tomó glucometría, que salió baja"),
+    ("Refiere cifras en casa alrededor de 130/80 mmHg", "Refiere cifras en casa dentro de lo normal"),
+    ("con temperatura en casa de 38 °C", "con temperatura elevada tomada en casa"),
+    ("de inicio súbito, de 39 °C,", "de inicio súbito,"),
+    ("cuadro febril de 39 °C", "cuadro febril"),
+    ("fiebre de 5 días de evolución, de 38 a 39 °C,", "fiebre alta de 5 días de evolución,"),
+]
+for _b in BANK.values():
+    _nv = []
+    for _v in _b['v']:
+        for _a, _c in _CIFRAS:
+            _v = _v.replace(_a, _c)
+        _v = _re.sub(r"\b(fiebre|febrícula)(\s+alta)? de \d+(?:[.,]\d+)?\s*°C", lambda m: m.group(1) + (m.group(2) or ""), _v)
+        _nv.append(_v)
+    _b['v'] = _nv
+for _b in BANK.values():   # «y» → «e» ante sonido i, también en textos partidos en el archivo
+    _b['v'] = [_re.sub(r"\by (?=(?:i|hi)(?![aeiouáéíóú])|í)", "e ", _v) for _v in _b['v']]

@@ -71,6 +71,12 @@ class T07_HEA(unittest.TestCase):
         for abrev in ("PF", "EPOC", "XYZ"):
             self.assertEqual(cat.suggest(abrev), [], abrev)   # mejor nada que una opción equivocada
 
+    def test_sin_cifras_inventadas(self):
+        for n, b in BANK.items():
+            for v in b["v"]:
+                self.assertNotRegex(v, r"\d+(?:[.,]\d+)?\s*(?:°C|mg/dl|mmHg)", n)
+                self.assertNotRegex(v, r"\by (i|hi)(?![aeiouáéíóú])", n)
+
     def test_sintoma_principal_sin_lado(self):
         for n, b in BANK.items():
             if b["k"] == "S":
