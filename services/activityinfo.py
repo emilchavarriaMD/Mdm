@@ -5,6 +5,7 @@ los campos. El programa NUNCA guarda: no pulsa «Guardar registro», «Guardar c
 «Está hecho». La ficha la crea la persona a mano, después de revisar los datos.
 Tampoco escribe contraseñas: si ActivityInfo pide iniciar sesión, la persona lo hace en la ventana.
 """
+import random
 import sys
 import time
 import webbrowser
@@ -37,6 +38,24 @@ LGTBIQ = ["Sí", "No"]
 PUEBLOS = ["Afrodescendiente / Creole / Afromestizo", "Extranjero", "Garífuna", "Ladino / Mestizo", "Maya",
            "Xinca", "No responde", "Lenca", "Miskito", "Tolupán", "Pech", "Tawanhka"]
 DISCAPACIDAD = ["Sí", "No", "Prefiere no contestar"]
+# Signos vitales: listas desplegables de la ventana de registro y valores iniciales.
+LISTA_SISTOLICA = [str(x) for x in range(60, 251, 10)]
+LISTA_DIASTOLICA = [str(x) for x in range(30, 151, 10)]
+LISTA_FC = [str(x) for x in range(40, 201)]
+LISTA_FR = [str(x) for x in range(10, 51)]
+LISTA_TEMP = [f"{x / 10:.1f}" for x in range(350, 411)]      # 35.0 a 41.0, un decimal
+
+
+def vitales_defecto(sexo, edad, unidad="años", rng=None):
+    """Valores iniciales de los signos vitales (la persona los cambia en la lista). La frecuencia respiratoria solo
+    se propone en mayores de 10 años; en pediatría (o si no se sabe la edad) queda vacía para elegirla."""
+    rng = rng or random
+    adulto = unidad == "años" and str(edad).strip().isdigit() and int(edad) > 10
+    return {"sistolica": "120", "diastolica": "70" if sexo == "M" else "80",
+            "fc": str(rng.randint(65, 90)), "fr": str(rng.randint(12, 20)) if adulto else "",
+            "temperatura": f"{rng.randint(360, 372) / 10:.1f}"}
+
+
 DERIVADO = ["Sí", "No"]
 TIPOS_CONSULTA = ["Primera", "Reconsulta", "Seguimiento", "Tamizaje de signos vitales",
                   "Nuevo motivo de consulta", "Procedimiento terapéutico no quirúrgico"]
@@ -142,8 +161,9 @@ def build_defaults(db, rec: dict) -> dict:
         hea = hea_banco.compose(persona["sexo"], persona["edad"], descs, persona["unidad"])[0]
     else:
         hea = generate_hea(rec, desc)
+    vit = vitales_defecto(persona["sexo"], persona["edad"], persona["unidad"])
     return {
-        "hea": hea, "hea_persona": persona,
+        "hea": hea, "hea_persona": persona, **vit,
         "lugar": st["ai_lugar"], "punto_especifico": "", "fecha": (rec.get("fecha") or "")[:10], "genero": genero,
         "donante": st["ai_donante"], "proyecto": st["ai_proyecto"], "perfin": st["ai_perfin"],
         "lgtbiq": "", "pueblo": "", "nacionalidad": st["ai_nacionalidad"], "idioma": st["ai_idioma"],

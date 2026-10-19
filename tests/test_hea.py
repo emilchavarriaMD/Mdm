@@ -135,5 +135,25 @@ class T07_HEA(unittest.TestCase):
         self.assertNotIn("Además", t)
 
 
+
+class T09_SignosVitales(unittest.TestCase):
+    def test_listas_y_valores_iniciales(self):
+        from services import activityinfo as ai
+        self.assertEqual((ai.LISTA_SISTOLICA[0], ai.LISTA_SISTOLICA[-1], len(ai.LISTA_SISTOLICA)), ("60", "250", 20))
+        self.assertEqual((ai.LISTA_DIASTOLICA[0], ai.LISTA_DIASTOLICA[-1]), ("30", "150"))
+        self.assertEqual((len(ai.LISTA_FC), ai.LISTA_FC[0], ai.LISTA_FC[-1]), (161, "40", "200"))
+        self.assertEqual((ai.LISTA_FR[0], ai.LISTA_FR[-1]), ("10", "50"))
+        self.assertEqual((ai.LISTA_TEMP[0], ai.LISTA_TEMP[-1], ai.LISTA_TEMP[1]), ("35.0", "41.0", "35.1"))
+        for _ in range(300):
+            m = ai.vitales_defecto("M", "30")
+            h = ai.vitales_defecto("H", "30")
+            self.assertEqual((m["sistolica"], m["diastolica"], h["diastolica"]), ("120", "70", "80"))
+            self.assertTrue(65 <= int(m["fc"]) <= 90 and m["fc"] in ai.LISTA_FC)
+            self.assertTrue(12 <= int(m["fr"]) <= 20)
+            self.assertTrue(36.0 <= float(m["temperatura"]) <= 37.2 and m["temperatura"] in ai.LISTA_TEMP)
+        for edad, unidad in (("10", "años"), ("5", "años"), ("8", "meses"), ("", "años")):
+            self.assertEqual(ai.vitales_defecto("H", edad, unidad)["fr"], "", (edad, unidad))
+        self.assertTrue(ai.vitales_defecto("H", "11")["fr"])
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)

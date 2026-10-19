@@ -94,6 +94,13 @@ class ActivityInfoDialog(_Modal):
         add("consultas", "Consulta a realizar (puede marcar más de una)", ChecksField(gf, ai.CONSULTAS), span=3)
         add("profesional", "Profesional que atiende (APS)", E())
         add("tipo_consulta", "Tipo de consulta (APS)", C(ai.TIPOS_CONSULTA))
+        V = lambda vals: widgets.ComboField(gf, [""] + list(vals), readonly=False, width=26)  # noqa: E731
+        add("sistolica", "Sistólica (mayor) mmHg", V(ai.LISTA_SISTOLICA))
+        add("diastolica", "Diastólica (menor) mmHg", V(ai.LISTA_DIASTOLICA))
+        add("fc", "Frecuencia cardiaca o pulso (latidos/min)", V(ai.LISTA_FC))
+        add("fr", "Frecuencia respiratoria (resp/min) — en niños, elíjala", V(ai.LISTA_FR))
+        add("temperatura", "Temperatura (ºC)", V(ai.LISTA_TEMP))
+        self._vit_auto = {k: self.w[k].get_value() for k in ("diastolica", "fr")}
 
         dxs = defaults.get("dx") or []
         ttk.Label(body, text="Diagnósticos — lista de ActivityInfo (descripción y código)",
@@ -147,8 +154,8 @@ class ActivityInfoDialog(_Modal):
         self._hea_auto = defaults.get("hea", "")      # último texto generado: si la persona lo cambia, se respeta
         self._dx_vistos = self._clave_hea()
         # si se corrige el género o la edad en esta ventana, la HEA se actualiza (salvo que ya la haya editado)
-        self.w["genero"].bind("<<ComboboxSelected>>", lambda e: self._regen_hea(True))
-        self.w["edad"].bind("<FocusOut>", lambda e: self._regen_hea(True))
+        self.w["genero"].bind("<<ComboboxSelected>>", lambda e: (self._ajustar_vitales(), self._regen_hea(True)))
+        self.w["edad"].bind("<FocusOut>", lambda e: (self._ajustar_vitales(), self._regen_hea(True)))
         self._marcar_fuentes()
         ttk.Button(bar, text="Cancelar", command=self.cancel).pack(side="right")
         ttk.Button(bar, text="Abrir Chrome y llenar", style="Accent.TButton", command=self._ok).pack(
@@ -188,6 +195,16 @@ class ActivityInfoDialog(_Modal):
         if edad.isdigit() and edad != "0" and edad != p.get("edad"):   # «0» = menor de 1 año: se queda en meses/días
             p["edad"], p["unidad"] = edad, "años"
         return p
+
+    def _ajustar_vitales(self):
+        """Si cambian el género o la edad, la diastólica y la frecuencia respiratoria propuestas se ajustan
+        (solo si la persona no las había cambiado)."""
+        p = self._persona()
+        nuevo = ai.vitales_defecto(p.get("sexo"), p.get("edad"), p.get("unidad", "años"))
+        for k in ("diastolica", "fr"):
+            if self.w[k].get_value() == self._vit_auto.get(k):
+                self.w[k].set_value(nuevo[k])
+                self._vit_auto[k] = nuevo[k]
 
     def _clave_hea(self):
         p = self._persona()

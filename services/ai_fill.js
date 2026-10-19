@@ -1,6 +1,6 @@
 /* Llena el formulario de ActivityInfo. NUNCA pulsa Guardar registro ni Guardar como borrador. */
 (function () {
-  const VERSION = 12;
+  const VERSION = 13;
   if (window.__mdm && window.__mdm.version === VERSION) return;   // una versión vieja en la pestaña se reemplaza
   const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
   const norm = (s) => (s || "").replace(/\s+/g, " ").replace(/\*/g, "").replace(/OBLIGATORIO/g, "").trim().toLowerCase();
@@ -236,6 +236,13 @@
         if (!ok) throw new Error("no apareció el cuadro (con «Tamizaje de signos vitales» no existe)");
         await setText("Historia de la enfermedad actual", d.hea);
       });
+    }
+    // Signos vitales (después de la HEA y antes de los diagnósticos); solo se escribe lo que no está vacío.
+    const vit = [["Sistólica (mayor)", d.sistolica], ["Diastólica (menor)", d.diastolica],
+                 ["Frecuencia Cardiaca o Pulso", d.fc], ["Frecuencia Respiratoria", d.fr], ["Temperatura", d.temperatura]];
+    if (vit.some((x) => x[1]) && d.tipo_consulta) await waitFor(() => findLabel("Sistólica (mayor)"), 5000);
+    for (const [nombre, valor] of vit) {
+      if (valor) await S(nombre, () => setText(nombre, String(valor)));
     }
     if (d.n_dx) {
       await S("¿Cuántos diagnósticos?", () => setText("¿Cuántos diagnósticos?", String(d.n_dx)));

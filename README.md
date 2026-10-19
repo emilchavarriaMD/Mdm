@@ -86,9 +86,14 @@ propio del programa) abre el formulario y **lo llena**. El programa **nunca guar
   historia: los crónicos como «antecedente de…», el agudo como cuadro actual y los demás como «Además refiere…».
   Respeta edad y sexo, avisa si un diagnóstico no corresponde, y el botón «Otra versión» cambia la redacción.
   Siempre se puede corregir a mano antes de abrir Chrome.
+- **Signos vitales**: listas desplegables en la ventana (sistólica 60–250 de 10 en 10, diastólica 30–150 de 10 en 10,
+  frecuencia cardiaca 40–200, respiratoria 10–50, temperatura 35.0–41.0). Valores iniciales: 120 / 80 (hombre) o 70 (mujer),
+  pulso al azar 65–90, respiratoria al azar 12–20 solo en mayores de 10 años (en niños se elige), temperatura al azar
+  36.0–37.2. Se escriben en el subformulario APS; lo que se deje vacío no se toca.
 - Necesita internet y Google Chrome.
 
 ## Cambios
+- **1.3** — Signos vitales con listas desplegables; HEA sin el prefijo «HEA:»; el lugar de atención espera más a que cargue la lista.
 - **1.2** — HEA según edad y sexo; abreviaturas del ATA (PF, RC, FAB, FAV, tiña pedis, cervicalgia, vaginosis…);
   búsqueda al escribir en los diagnósticos y «HEA usa» por diagnóstico; «11» como comillas de ídem en el ATA;
   pruebas del banco de HEA y del llenado.

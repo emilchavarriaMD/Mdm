@@ -143,6 +143,8 @@ function openAps() {
     if (v === "Tamizaje de signos vitales" && hea) hea.remove();
   });
   aps.appendChild(tipo);
+  [["sis", "Sistólica (mayor)"], ["dia", "Diastólica (menor)"], ["fc", "Frecuencia Cardiaca o Pulso"],
+   ["fr", "Frecuencia Respiratoria"], ["temp", "Temperatura"]].forEach(([id, t]) => aps.appendChild(text(id, t)));
   const ndx = text("ndx", "¿Cuántos diagnósticos?");
   ndx.querySelector("input").addEventListener("change", (e) => {
     const n = Math.min(3, parseInt(e.target.value || "0", 10));
