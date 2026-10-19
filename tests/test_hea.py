@@ -267,6 +267,12 @@ class T09_ExamenFisico(unittest.TestCase):
         self.assertIn("contractura", t)
         self.assertIn("puño percusión", e.compose(["Infección urinaria, sitio no especificado"]))
 
+    def test_dx_como_en_el_ata(self):
+        from services import examen_fisico as e
+        t = e.compose(["HTA", "Dermatitis"])
+        self.assertIn("Piel y faneras: Lesiones", t)
+        self.assertNotIn("uñas y cabello de implantación", t)
+
     def test_variantes(self):
         import random
         from services import examen_fisico as e

@@ -288,10 +288,28 @@ EXCLUSIVAS = [
 ]
 
 
+def _hallazgos_directos(d):
+    nombre = re.sub(r"\s+", " ", cat.plain(d or "")).strip()
+    return any(re.search(p, nombre) for p, _h in EXCLUSIVAS) or any(rx.search(nombre) for rx, _h in _COMPILADAS)
+
+
+def _resueltos(descripciones):
+    """Un diagnóstico escrito como en el ATA («Dermatitis», «HTA») se traduce a su descripción de la lista de
+    ActivityInfo; si ya es una descripción de la lista (APS o SSR) se deja igual."""
+    from services import cie11_ssr as ssr
+    from services import hea_banco
+    out = []
+    for d in descripciones:
+        if d and d not in cat.BY_DESC and d not in ssr.BY_DESC and not cat.from_label(d)[0] and not _hallazgos_directos(d):
+            d = hea_banco.sugerir_lista(d)[0] or d
+        out.append(d)
+    return out
+
+
 def _hallazgos(descripciones):
     """{parte: [textos]} sumando los de cada diagnóstico (sin repetir)."""
     out = {}
-    for d in descripciones:
+    for d in _resueltos(descripciones):
         nombre = re.sub(r"\s+", " ", cat.plain(d or "")).strip()
         if not nombre:
             continue
