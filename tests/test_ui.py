@@ -324,6 +324,26 @@ class UITests(unittest.TestCase):
         self.assertEqual(dlg.examen.get("1.0", "end").strip(), "Cefalo-caudal")
         dlg.destroy()
 
+    def test_04g_vitales_pediatricos(self):
+        from services import activityinfo as ai
+        from ui.dialog_activityinfo import ActivityInfoDialog
+        d = ai.build_defaults(self.db, {"nombre": "Luis Pérez López", "sexo": "H", "fecha": "2026-10-15", "edad_anios": "4",
+                                        "dx1": "Fiebre"})
+        dlg = ActivityInfoDialog(self.root, d)
+        self.upd()
+        sis, dia, fc, fr = (int(dlg.w[k].get_value()) for k in ("sistolica", "diastolica", "fc", "fr"))
+        self.assertTrue(95 <= sis <= 110 and 60 <= dia <= 75 and 70 <= fc <= 115 and 20 <= fr <= 25, (sis, dia, fc, fr))
+        dlg.w["edad"].set_value("8")                                  # pasa a la franja de 6 a 12 años
+        dlg._ajustar_vitales()
+        sis, dia, fc, fr = (int(dlg.w[k].get_value()) for k in ("sistolica", "diastolica", "fc", "fr"))
+        self.assertTrue(100 <= sis <= 120 and 60 <= dia <= 75 and 60 <= fc <= 100 and 14 <= fr <= 22, (sis, dia, fc, fr))
+        dlg.w["fc"].set_value("99")                                   # lo escrito a mano no se pisa
+        dlg.w["edad"].set_value("14")
+        dlg._ajustar_vitales()
+        self.assertEqual(dlg.w["fc"].get_value(), "99")
+        self.assertTrue(70 <= int(dlg.w["diastolica"].get_value()) <= 80)
+        dlg.destroy()
+
     def test_04f_seccion_ssr(self):
         from services import activityinfo as ai
         from ui.dialog_activityinfo import ActivityInfoDialog

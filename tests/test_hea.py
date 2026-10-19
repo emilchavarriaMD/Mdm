@@ -151,9 +151,32 @@ class T09_SignosVitales(unittest.TestCase):
             self.assertTrue(65 <= int(m["fc"]) <= 90 and m["fc"] in ai.LISTA_FC)
             self.assertTrue(12 <= int(m["fr"]) <= 20)
             self.assertTrue(36.0 <= float(m["temperatura"]) <= 37.2 and m["temperatura"] in ai.LISTA_TEMP)
-        for edad, unidad in (("10", "años"), ("5", "años"), ("8", "meses"), ("", "años")):
-            self.assertEqual(ai.vitales_defecto("H", edad, unidad)["fr"], "", (edad, unidad))
-        self.assertTrue(ai.vitales_defecto("H", "11")["fr"])
+        self.assertEqual(ai.vitales_defecto("H", "", "años")["fr"], "")       # sin edad: FR vacía
+        self.assertTrue(ai.vitales_defecto("H", "30")["fr"])
+
+    def test_vitales_pediatricos_por_edad(self):
+        from services import activityinfo as ai
+        tabla = [  # (edad, unidad, sist, diast, fc, fr) según la tabla de valores normales
+            ("0", "días", (65, 85), (45, 55), (110, 160), (30, 60)), ("2", "meses", (65, 85), (45, 55), (110, 160), (30, 60)),
+            ("3", "meses", (70, 90), (50, 65), (100, 150), (30, 45)), ("5", "meses", (70, 90), (50, 65), (100, 150), (30, 45)),
+            ("6", "meses", (80, 100), (55, 65), (90, 130), (25, 40)), ("11", "meses", (80, 100), (55, 65), (90, 130), (25, 40)),
+            ("1", "años", (90, 105), (55, 70), (80, 125), (20, 30)), ("2", "años", (90, 105), (55, 70), (80, 125), (20, 30)),
+            ("3", "años", (95, 110), (60, 75), (70, 115), (20, 25)), ("5", "años", (95, 110), (60, 75), (70, 115), (20, 25)),
+            ("6", "años", (100, 120), (60, 75), (60, 100), (14, 22)), ("11", "años", (100, 120), (60, 75), (60, 100), (14, 22)),
+            ("12", "años", (100, 120), (70, 80), (60, 100), (12, 18)), ("17", "años", (100, 120), (70, 80), (60, 100), (12, 18)),
+        ]
+        for edad, unidad, sis, dia, fc, fr in tabla:
+            vistos = set()
+            for _ in range(200):
+                v = ai.vitales_defecto("H", edad, unidad)
+                vistos.add(v["fc"])
+                for k, (lo, hi) in (("sistolica", sis), ("diastolica", dia), ("fc", fc), ("fr", fr)):
+                    self.assertTrue(lo <= int(v[k]) <= hi, (edad, unidad, k, v[k]))
+            self.assertGreater(len(vistos), 5, (edad, unidad))               # son aleatorios
+        adulto = ai.vitales_defecto("M", "18", "años")                         # 18 años: ya es adulto
+        self.assertEqual((adulto["sistolica"], adulto["diastolica"]), ("120", "70"))
+        self.assertNotEqual(ai.grupo_vitales("H", "4", "años"), ai.grupo_vitales("H", "8", "años"))
+        self.assertEqual(ai.grupo_vitales("H", "4", "años"), ai.grupo_vitales("M", "5", "años"))
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)

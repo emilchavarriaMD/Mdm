@@ -130,7 +130,9 @@ class ActivityInfoDialog(_Modal):
         add2("fr", "Frec. respiratoria (por min)", V(ai.LISTA_FR))
         add2("temperatura", "Temperatura (ºC)", V(ai.LISTA_TEMP))
         add2("peso", "Peso (kg) — escríbalo", widgets.EntryField(gf2, width=26))
-        self._vit_auto = {k: self.w[k].get_value() for k in ("diastolica", "fr")}
+        self._vit_auto = {k: self.w[k].get_value() for k in ("sistolica", "diastolica", "fc", "fr")}
+        _p0 = defaults.get("hea_persona") or {}
+        self._vit_grupo = ai.grupo_vitales(_p0.get("sexo"), _p0.get("edad"), _p0.get("unidad", "años"))
 
         dxs = defaults.get("dx") or []
         ttk.Label(f_dx, text="Diagnósticos — lista de ActivityInfo (descripción y código)",
@@ -598,11 +600,15 @@ class ActivityInfoDialog(_Modal):
             self.der_extra.pack_forget()
 
     def _ajustar_vitales(self):
-        """Si cambian el género o la edad, la diastólica y la frecuencia respiratoria propuestas se ajustan
-        (solo si la persona no las había cambiado)."""
+        """Si cambian el género o la edad a otra franja (p. ej. de lactante a escolar), se proponen de nuevo los signos
+        vitales de esa franja, solo en los campos que la persona no había cambiado."""
         p = self._persona()
+        grupo = ai.grupo_vitales(p.get("sexo"), p.get("edad"), p.get("unidad", "años"))
+        if grupo == self._vit_grupo:
+            return
+        self._vit_grupo = grupo
         nuevo = ai.vitales_defecto(p.get("sexo"), p.get("edad"), p.get("unidad", "años"))
-        for k in ("diastolica", "fr"):
+        for k in ("sistolica", "diastolica", "fc", "fr"):
             if self.w[k].get_value() == self._vit_auto.get(k):
                 self.w[k].set_value(nuevo[k])
                 self._vit_auto[k] = nuevo[k]

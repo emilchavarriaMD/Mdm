@@ -47,14 +47,53 @@ LISTA_FR = [str(x) for x in range(10, 51)]
 LISTA_TEMP = [f"{x / 10:.1f}" for x in range(350, 411)]      # 35.0 a 41.0, un decimal
 
 
+# Valores normales en pediatría por edad (meses de edad desde, hasta sin incluir): sistólica, diastólica, FC, FR
+VITALES_PEDIATRIA = [
+    (0, 3, (65, 85), (45, 55), (110, 160), (30, 60)),
+    (3, 6, (70, 90), (50, 65), (100, 150), (30, 45)),
+    (6, 12, (80, 100), (55, 65), (90, 130), (25, 40)),
+    (12, 36, (90, 105), (55, 70), (80, 125), (20, 30)),
+    (36, 72, (95, 110), (60, 75), (70, 115), (20, 25)),
+    (72, 144, (100, 120), (60, 75), (60, 100), (14, 22)),
+    (144, 216, (100, 120), (70, 80), (60, 100), (12, 18)),
+]
+
+
+def edad_en_meses(edad, unidad="años"):
+    """Edad en meses, o None si no se sabe. Los días cuentan como recién nacido (0 meses)."""
+    try:
+        n = int(str(edad).strip())
+    except ValueError:
+        return None
+    u = (unidad or "años").lower()
+    return n * 12 if u.startswith("a") else n if u.startswith("m") else 0
+
+
+def grupo_vitales(sexo, edad, unidad="años"):
+    """Grupo de valores de referencia (cambia solo al pasar a otra franja de edad o de sexo)."""
+    m = edad_en_meses(edad, unidad)
+    if m is None:
+        return ("sin_edad", sexo)
+    for i, (lo, hi, *_r) in enumerate(VITALES_PEDIATRIA):
+        if lo <= m < hi:
+            return ("ped", i)
+    return ("adulto", sexo)
+
+
 def vitales_defecto(sexo, edad, unidad="años", rng=None):
-    """Valores iniciales de los signos vitales (la persona los cambia en la lista). La frecuencia respiratoria solo
-    se propone en mayores de 10 años; en pediatría (o si no se sabe la edad) queda vacía para elegirla."""
+    """Valores iniciales de los signos vitales (la persona los cambia en la lista). En menores de 18 años se eligen al
+    azar dentro del rango normal para su edad; en adultos, valores habituales. Si no se sabe la edad, la frecuencia
+    respiratoria queda vacía."""
     rng = rng or random
-    adulto = unidad == "años" and str(edad).strip().isdigit() and int(edad) > 10
+    temp = f"{rng.randint(360, 372) / 10:.1f}"
+    g = grupo_vitales(sexo, edad, unidad)
+    if g[0] == "ped":
+        _lo, _hi, sis, dia, fc, fr = VITALES_PEDIATRIA[g[1]]
+        return {"sistolica": str(rng.randint(*sis)), "diastolica": str(rng.randint(*dia)),
+                "fc": str(rng.randint(*fc)), "fr": str(rng.randint(*fr)), "temperatura": temp}
     return {"sistolica": "120", "diastolica": "70" if sexo == "M" else "80",
-            "fc": str(rng.randint(65, 90)), "fr": str(rng.randint(12, 20)) if adulto else "",
-            "temperatura": f"{rng.randint(360, 372) / 10:.1f}"}
+            "fc": str(rng.randint(65, 90)), "fr": str(rng.randint(12, 20)) if g[0] == "adulto" else "",
+            "temperatura": temp}
 
 
 # Derivación (hacia) / Servicio brindado: «recapitulativo interno MdM para todas las atenciones».
