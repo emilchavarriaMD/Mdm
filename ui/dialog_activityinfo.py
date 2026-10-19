@@ -361,14 +361,17 @@ class ActivityInfoDialog(_Modal):
         ge = ttk.Frame(self.ssr_emb_x)
         ge.pack(fill="x")
         gege = widgets.FormGrid(ge, 3)
-        combo("ssr_conoce_fum", "¿Conoce la fecha de la última menstruación?", ai.SI_NO, ge, gege)
+        combo("ssr_conoce_fum", "¿Conoce la FUM?", ai.SI_NO, ge, gege)
         self.w["ssr_conoce_fum"].bind("<<ComboboxSelected>>", lambda e: self._ssr_condicionales())
-        combo("ssr_cpn", "¿Ha tenido control prenatal anterior?", ai.SI_NO, ge, gege)
+        combo("ssr_cpn", "¿Control prenatal anterior?", ai.SI_NO, ge, gege)
         self.w["ssr_cpn"].bind("<<ComboboxSelected>>", lambda e: self._ssr_condicionales())
-        self.ssr_fum_x = ttk.Frame(self.ssr_emb_x)
-        gf_ = widgets.FormGrid(self.ssr_fum_x, 3)
-        entry("ssr_fum", "FUM (AAAA-MM-DD)", self.ssr_fum_x, gf_)
-        entry("ssr_eg_manual", "Edad gestacional (manual, semanas)", self.ssr_fum_x, gf_)
+        self.ssr_fum_x = ttk.Frame(self.ssr_emb_x)        # conoce la FUM = Sí: calendario para escoger el día
+        w = widgets.CalendarEntry(self.ssr_fum_x)
+        self.w["ssr_fum"] = w
+        w.set_value(defaults.get("ssr_fum", ""))
+        widgets.FormGrid(self.ssr_fum_x, 3).add("Última menstruación (FUM): escoja el día", w)
+        self.ssr_egm_x = ttk.Frame(self.ssr_emb_x)        # conoce la FUM = No: edad gestacional a mano
+        entry("ssr_eg_manual", "Edad gestacional (manual, semanas)", self.ssr_egm_x, widgets.FormGrid(self.ssr_egm_x, 3))
         self.ssr_cpn_x = ttk.Frame(self.ssr_emb_x)
         entry("ssr_cpn_lugar", "Lugar de control prenatal", self.ssr_cpn_x, widgets.FormGrid(self.ssr_cpn_x, 3))
         self.ssr_ant_obst = ttk.Frame(f)        # con embarazo anterior distinto de «No hubo embarazo»
@@ -471,7 +474,7 @@ class ActivityInfoDialog(_Modal):
     def _ssr_condicionales(self):
         """Muestra u oculta lo que en ActivityInfo solo aparece según lo elegido (violencia, ITS, ITU, consejería)."""
         for fr in (self.ssr_viol_g, self.ssr_viol_o, self.ssr_its_x, self.ssr_itu_x, self.ssr_met, self.ssr_emb_x,
-                   self.ssr_fum_x, self.ssr_cpn_x, self.ssr_ant_obst):
+                   self.ssr_fum_x, self.ssr_egm_x, self.ssr_cpn_x, self.ssr_ant_obst):
             fr.pack_forget()
         v = self.w["ssr_violencia"].get_value()
         if v == "Violencia Basada en Género":
@@ -484,8 +487,11 @@ class ActivityInfoDialog(_Modal):
             self.ssr_itu_x.pack(fill="x")
         if self.w["ssr_embarazo_actual"].get_value() == "Sí":
             self.ssr_emb_x.pack(fill="x", after=self._ssr_gob)
-            if self.w["ssr_conoce_fum"].get_value():
+            conoce = self.w["ssr_conoce_fum"].get_value()
+            if conoce == "Sí":
                 self.ssr_fum_x.pack(fill="x")
+            elif conoce == "No":
+                self.ssr_egm_x.pack(fill="x")
             if self.w["ssr_cpn"].get_value() == "Sí":
                 self.ssr_cpn_x.pack(fill="x")
         ant = self.w["ssr_embarazo_anterior"].get_value()
@@ -617,6 +623,13 @@ class ActivityInfoDialog(_Modal):
             if malos_ssr:
                 dialogs.info(self, "Estos diagnósticos no están en la lista de Salud Sexual y Reproductiva; elíjalos de la "
                              "lista desplegable:\n\n" + "\n".join(f"• {m}" for m in malos_ssr))
+                return
+        if quiere_ssr and self.w["ssr_embarazo_actual"].get_value() == "Sí" and self.w["ssr_conoce_fum"].get_value() == "Sí":
+            fum = self.w["ssr_fum"].get_value()
+            f = widgets.CalendarEntry.parse(fum)
+            if fum and (f is None or f > __import__("datetime").date.today()):
+                dialogs.info(self, "La fecha de la última menstruación (FUM) no es válida. Escójala con el calendario 📅 "
+                             "(formato AAAA-MM-DD, y no puede ser futura).")
                 return
         data["hea"] = self.hea.get("1.0", "end").strip()
         data["examen_fisico"] = self.examen.get("1.0", "end").strip()

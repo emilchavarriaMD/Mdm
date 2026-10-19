@@ -271,6 +271,132 @@ class DateEntry(ttk.Frame):
         self.entry.focus_set()
 
 
+class CalendarEntry(ttk.Frame):
+    """Fecha AAAA-MM-DD (el formato de ActivityInfo) con calendario para escoger el día. También se puede escribir."""
+
+    MESES = ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "septiembre", "octubre",
+             "noviembre", "diciembre"]
+    DIAS = ["dom", "lun", "mar", "mié", "jue", "vie", "sáb"]
+
+    def __init__(self, master, width=14, **kw):
+        super().__init__(master, **kw)
+        self.var = tk.StringVar()
+        self.entry = ttk.Entry(self, textvariable=self.var, width=width)
+        self.entry.pack(side="left")
+        ttk.Button(self, text="📅", width=3, style="Small.TButton", command=self.abrir, takefocus=0).pack(
+            side="left", padx=(4, 0))
+        ttk.Label(self, text="AAAA-MM-DD", style="Hint.TLabel").pack(side="left", padx=(8, 0))
+        self.entry.bind("<KeyRelease>", self._on_key)
+        self._pop = None
+
+    def _on_key(self, event):
+        if event.keysym in ("BackSpace", "Delete", "Left", "Right", "Home", "End", "Tab", "ISO_Left_Tab"):
+            return
+        d = re.sub(r"\D", "", self.var.get())[:8]       # escribir solo los números: se pone los guiones
+        new = d[:4] + ("-" + d[4:6] if len(d) > 4 else "") + ("-" + d[6:] if len(d) > 6 else "")
+        if new != self.var.get():
+            self.var.set(new)
+            self.entry.icursor("end")
+
+    @staticmethod
+    def parse(texto):
+        """Devuelve un date o None si el texto no es una fecha AAAA-MM-DD válida."""
+        from datetime import date
+        m = re.match(r"^(\d{4})-(\d{2})-(\d{2})$", (texto or "").strip())
+        if not m:
+            return None
+        try:
+            return date(int(m.group(1)), int(m.group(2)), int(m.group(3)))
+        except ValueError:
+            return None
+
+    def abrir(self):
+        import calendar
+        from datetime import date
+        if self._pop is not None:
+            self._cerrar()
+            return
+        actual = self.parse(self.var.get()) or date.today()
+        self._mes = [actual.year, actual.month]
+        pop = tk.Toplevel(self)
+        self._pop = pop
+        pop.transient(self.winfo_toplevel())
+        pop.overrideredirect(True)
+        pop.configure(bg="#7f9ba0", padx=1, pady=1)
+        cuerpo = ttk.Frame(pop, padding=8)
+        cuerpo.pack()
+        cab = ttk.Frame(cuerpo)
+        cab.pack(fill="x")
+        ttk.Button(cab, text="◀", width=3, command=lambda: self._mover(-1)).pack(side="left")
+        ttk.Button(cab, text="▶", width=3, command=lambda: self._mover(1)).pack(side="right")
+        self._tit = ttk.Label(cab, anchor="center", font=("Segoe UI", 10, "bold"))
+        self._tit.pack(fill="x", expand=True)
+        self._rej = ttk.Frame(cuerpo)
+        self._rej.pack(pady=4)
+        pie = ttk.Frame(cuerpo)
+        pie.pack(fill="x")
+        ttk.Button(pie, text="Hoy", command=lambda: self._elegir(date.today())).pack(side="left")
+        ttk.Button(pie, text="Borrar", command=lambda: self._elegir(None)).pack(side="left", padx=6)
+        ttk.Button(pie, text="Cerrar", command=self._cerrar).pack(side="right")
+        self._dibujar()
+        self.update_idletasks()
+        pop.geometry(f"+{self.entry.winfo_rootx()}+{self.entry.winfo_rooty() + self.entry.winfo_height() + 2}")
+        pop.lift()
+        pop.focus_set()
+        pop.bind("<Escape>", lambda e: self._cerrar())
+
+    def _mover(self, delta):
+        y, m = self._mes
+        m += delta
+        if m < 1:
+            m, y = 12, y - 1
+        elif m > 12:
+            m, y = 1, y + 1
+        self._mes = [y, m]
+        self._dibujar()
+
+    def _dibujar(self):
+        import calendar
+        from datetime import date
+        y, m = self._mes
+        self._tit.configure(text=f"{self.MESES[m - 1]} {y}")
+        for w in self._rej.winfo_children():
+            w.destroy()
+        for i, d in enumerate(self.DIAS):
+            ttk.Label(self._rej, text=d, width=4, anchor="center", style="Muted.TLabel").grid(row=0, column=i)
+        sel = self.parse(self.var.get())
+        hoy = date.today()
+        cal = calendar.Calendar(firstweekday=6)       # domingo primero, como ActivityInfo
+        for r, semana in enumerate(cal.monthdatescalendar(y, m), start=1):
+            for c, dia in enumerate(semana):
+                fuera = dia.month != m
+                b = tk.Button(self._rej, text=str(dia.day), width=3, relief="flat", bd=0, cursor="hand2",
+                              fg="#9aa8ab" if fuera else "#1f2d30",
+                              bg="#0f6a75" if dia == sel else ("#d9eef0" if dia == hoy else "#ffffff"),
+                              activebackground="#bfe3e7", command=lambda d=dia: self._elegir(d))
+                if dia == sel:
+                    b.configure(fg="#ffffff")
+                b.grid(row=r, column=c, padx=1, pady=1)
+
+    def _elegir(self, dia):
+        self.var.set(dia.strftime("%Y-%m-%d") if dia else "")
+        self._cerrar()
+
+    def _cerrar(self):
+        if self._pop is not None:
+            self._pop.destroy()
+            self._pop = None
+
+    def get_value(self):
+        return self.var.get().strip()
+
+    def set_value(self, value):
+        self.var.set("" if value is None else str(value))
+
+    def focus_field(self):
+        self.entry.focus_set()
+
+
 # ---------------------------------------------------------------------------
 # Distribución de formularios
 # ---------------------------------------------------------------------------

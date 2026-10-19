@@ -355,7 +355,7 @@ class UITests(unittest.TestCase):
             self.assertEqual(fr.winfo_manager(), "pack")
         self.assertFalse(dlg.ssr_viol_o.winfo_manager())
         dlg.w["ssr_its_cual"].set_value("Sífilis")
-        dlg.w["ssr_act_1"].set_value("DIU"); dlg.w["ssr_embarazo_actual"].set_value("No")
+        dlg.w["ssr_act_1"].set_value("DIU"); dlg.w["ssr_fum"].set_value("2026-08-01"); dlg.w["ssr_embarazo_actual"].set_value("Sí"); dlg.w["ssr_conoce_fum"].set_value("Sí"); dlg._ssr_condicionales()
         for k, v in {"estado_civil": "Soltero/a", "escolaridad": "Primaria", "ocupacion": "Estudiante",
                      "discapacidad": "No", "derivado": "No", "tipo_consulta": "Primera"}.items():
             dlg.w[k].set_value(v)
@@ -363,7 +363,8 @@ class UITests(unittest.TestCase):
         r = dlg.result
         self.assertIsNotNone(r)
         self.assertEqual((r["ssr"]["its_cual"], r["ssr"]["metodos_actuales"], r["ssr"]["ya_planifica"], r["ssr"]["embarazo_actual"]),
-                         ("Sífilis", ["DIU"], "Sí", "No"))
+                         ("Sífilis", ["DIU"], "Sí", "Sí"))
+        self.assertEqual(r["ssr"]["fum"], "2026-08-01")
         self.assertEqual(ai.SSR_METODOS_ELEGIDOS[:2], ["Píldora anticonceptiva", "Inyección hormonal / DEPO"])
         self.assertEqual(ai.SSR_METODOS_ELEGIDOS[-2], "Anillo vaginal")
         self.assertEqual(r["ssr"]["dx"][0]["descripcion"], "Vaginosis bacteriana")
@@ -372,6 +373,27 @@ class UITests(unittest.TestCase):
         self.assertEqual(p["ssr"]["ficha"], "Larga")
         self.assertFalse([k for k in p if k.startswith("ssr_")])
         self.assertTrue(p["permitir_esta_hecho"])
+
+    def test_04g_calendario_fum(self):
+        from datetime import date
+        from ui import widgets
+        c = widgets.CalendarEntry(self.root)
+        c.pack()
+        self.assertIsNone(widgets.CalendarEntry.parse("123"))
+        self.assertIsNone(widgets.CalendarEntry.parse("2026-02-30"))
+        self.assertEqual(widgets.CalendarEntry.parse("2026-08-01"), date(2026, 8, 1))
+        c.set_value("2026-08-01")
+        c.abrir()
+        self.root.update()
+        self.assertEqual(c._tit.cget("text"), "agosto 2026")
+        c._mover(1)
+        self.assertEqual(c._tit.cget("text"), "septiembre 2026")
+        c._elegir(date(2026, 9, 15))
+        self.assertEqual(c.get_value(), "2026-09-15")
+        self.assertIsNone(c._pop)
+        c.abrir(); c._elegir(None)
+        self.assertEqual(c.get_value(), "")
+        c.destroy()
 
     def test_05_respaldo(self):
         import backup
