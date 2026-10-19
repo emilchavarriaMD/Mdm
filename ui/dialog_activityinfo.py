@@ -181,10 +181,10 @@ class ActivityInfoDialog(_Modal):
         self.hea_aviso.pack(anchor="w")
         ttk.Label(f_exa, text="Examen físico — se escribe en «Examen Físico» de APS", style="H2.TLabel").pack(
             anchor="w", pady=(12, 2))
-        ttk.Label(f_exa, text="Por ahora solo «Cefalo-caudal»; luego habrá una biblioteca de exámenes. Puede escribir o "
+        ttk.Label(f_exa, text="Examen céfalo-caudal normal por defecto (sin genitourinario). Puede escribir o "
                   "corregir el texto; vacío = no se llena.", style="Muted.TLabel", wraplength=780,
                   justify="left").pack(anchor="w")
-        self.examen = tk.Text(f_exa, height=5, wrap="word", font=("Segoe UI", 10), relief="solid", bd=1)
+        self.examen = tk.Text(f_exa, height=7, wrap="word", font=("Segoe UI", 10), relief="solid", bd=1)
         self.examen.insert("1.0", defaults.get("examen_fisico", ""))
         self.examen.pack(fill="x")
         ttk.Label(f_plan, text="Plan — se escribe en «Plan» de APS", style="H2.TLabel").pack(anchor="w", pady=(12, 2))
@@ -423,8 +423,8 @@ class ActivityInfoDialog(_Modal):
         entry("ssr_observaciones", "Observaciones", gb, grb)
 
         titulo("Exámen físico (SSR)")
-        nota("Por ahora solo «Cefalo-caudal». Vacío = no se llena.")
-        self.ssr_examen = caja("Examen", 4, defaults.get("examen_fisico", ""))
+        nota("Examen céfalo-caudal normal, con genitourinario. Puede corregirlo; vacío = no se llena.")
+        self.ssr_examen = caja("Examen", 5, defaults.get("ssr_examen_fisico", defaults.get("examen_fisico", "")))
 
         titulo("Diagnósticos — lista de ActivityInfo SSR (descripción y código)")
         self._ssr_labels = [ssr_cat.label(d) for d in ssr_cat.descriptions()]

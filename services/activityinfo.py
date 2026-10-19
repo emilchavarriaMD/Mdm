@@ -99,7 +99,16 @@ SSR_SERVICIOS_SALUD = ["MdM - Atención primaria", "MdM-Salud sexual y reproduct
 PERMITIR_ESTA_HECHO_EN_APS = True
 
 # Texto inicial de «Examen Físico» (después habrá una biblioteca de exámenes). La talla no se toma ni se llena.
-EXAMEN_FISICO_BASE = "Cefalo-caudal"
+EXAMEN_FISICO_APS = (
+    "Paciente consciente, orientada/o, hidratada/o, afebril y en aceptable estado general. Cabeza normocéfala, sin masas ni "
+    "lesiones. Ojos con pupilas isocóricas normorreactivas, conjuntivas rosadas y escleras anictéricas; oídos con conductos "
+    "permeables y membranas timpánicas íntegras; nariz con fosas permeables sin secreción; orofaringe sin hiperemia ni exudado. "
+    "Cuello simétrico, móvil, sin adenopatías ni masas, tiroides no palpable. Tórax simétrico con buena expansibilidad, sin "
+    "tiraje. Corazón con ruidos rítmicos, sin soplos. Pulmones con murmullo vesicular conservado, sin ruidos agregados. "
+    "Abdomen no explorable de forma adecuada por falta de espacio clínico apropiado. Extremidades simétricas, sin edema ni "
+    "deformidades, con movilidad y fuerza conservadas.")
+EXAMEN_FISICO_SSR = EXAMEN_FISICO_APS + " Genitourinario sin alteraciones evidentes, puño percusión lumbar negativa."
+EXAMEN_FISICO_BASE = EXAMEN_FISICO_APS
 
 DERIVADO = ["Sí", "No"]
 TIPOS_CONSULTA = ["Primera", "Reconsulta", "Seguimiento", "Tamizaje de signos vitales",
@@ -220,7 +229,7 @@ def build_defaults(db, rec: dict) -> dict:
         "hea": hea, "hea_persona": persona, **vit,
         "ssr_mismo_punto": "Sí", "ssr_mismo_proy": "Sí", "ssr_ficha": "Larga", "ssr_recibio_aps": "Sí",
         "ssr_tipo": "", "ssr_dx": ssr_dx, "ssr_va_derivado": "", "ssr_transfronteriza": "",
-        "ssr_servicio_brindado": "Salud", "ssr_servicio_salud": SSR_SERVICIO_SALUD, "peso": "", "examen_fisico": EXAMEN_FISICO_BASE,
+        "ssr_servicio_brindado": "Salud", "ssr_servicio_salud": SSR_SERVICIO_SALUD, "peso": "", "examen_fisico": EXAMEN_FISICO_APS, "ssr_examen_fisico": EXAMEN_FISICO_SSR,
         "plan": PLAN_BASE, "va_derivado": "", "n_servicios": "", "transfronteriza": "",
         "servicio_brindado": "Salud", "servicio_salud": SERVICIOS_SALUD[0],
         "lugar": st["ai_lugar"], "punto_especifico": "", "fecha": (rec.get("fecha") or "")[:10], "genero": genero,
