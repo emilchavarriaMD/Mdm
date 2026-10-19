@@ -227,39 +227,40 @@ class T08_BancoNuevo(unittest.TestCase):
 
 class T09_ExamenFisico(unittest.TestCase):
     def test_orden_y_normal(self):
-        import re
         from services import examen_fisico as e
         t = e.compose([])
-        self.assertNotRegex(t, r"(General|Cabeza|ORL|Cuello|Tórax|Corazón|Pulmones|Abdomen|Extremidades|Genitourinario):")
-        self.assertNotIn("\n", t)                                   # un solo párrafo
-        pos = [t.lower().find(w) for w in ("consciente", "cabeza", "ojos", "cuello", "tórax", "ruidos card", "pulmon|murmullo", "abdomen")]
+        self.assertNotIn("\n", t)                                   # un solo párrafo, con etiquetas
+        etiquetas = ("Apariencia general:", "Cabeza:", "ORL:", "Cuello:", "Tórax:", "Corazón:", "Pulmones:", "Abdomen:",
+                     "Genitourinario:", "Extremidades:")
+        pos = [t.find(x) for x in etiquetas]
+        self.assertNotIn(-1, pos)
+        self.assertEqual(pos, sorted(pos))                          # genitourinario justo después del abdomen
         self.assertIn("falta de espacio clínico", t)
-        self.assertNotIn("genitourinario", t.lower())
-        self.assertIn("Genitourinario", e.compose([], ssr=True))
+        self.assertIn("No se realiza inspección genital debido a la ausencia de un espacio físico privado y adecuado, así como "
+                      "de camilla e instrumental necesario, incluidos espéculos vaginales", t)
+        self.assertEqual(e.compose([], ssr=True), t)
 
     def test_vaginitis(self):
         from services import examen_fisico as e
         t = e.compose(["Vaginitis aguda"], ssr=False)
-        self.assertIn("Genitourinario", t)
-        for w in ("purulento", "amarillento", "fétido", "abundante"):
-            self.assertIn(w, t)
+        self.assertIn("No se realiza inspección genital", t)         # no se explora: no se inventan hallazgos genitales
+        self.assertNotIn("purulento", t)
 
     def test_varios_dx(self):
         from services import examen_fisico as e
         t = e.compose(["Amigdalitis aguda, sin especificación", "Cervicalgia"])
         self.assertIn("amígdalas hipertróficas", t)
         self.assertIn("contractura", t)
-        self.assertNotIn("Genitourinario", t)
+        self.assertIn("puño percusión", e.compose(["Infección urinaria, sitio no especificado"]))
 
     def test_variantes(self):
         import random
         from services import examen_fisico as e
-        textos = {e.compose(["Vaginitis aguda"], ssr=True, rng=random.Random(i)) for i in range(30)}
+        textos = {e.compose(["Faringitis aguda"], ssr=True, rng=random.Random(i)) for i in range(30)}
         self.assertGreater(len(textos), 10)
-        for t in textos:                      # misma positividad en todas las versiones
-            for w in ("purulent", "amarillent", "fétid", "abundante"):
-                self.assertIn(w, t)
-            self.assertIn("falta de espacio", t.replace("no contar con espacio", "falta de espacio")) if "espacio" in t else None
+        for t in textos:
+            self.assertIn("No se realiza inspección genital", t)
+            self.assertRegex(t, r"Genitourinario: .*Extremidades:")
 
     def test_cobertura_y_correcciones(self):
         from services import cie11_catalog as cat, cie11_ssr as ssr

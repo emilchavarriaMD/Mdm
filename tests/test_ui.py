@@ -387,7 +387,7 @@ class UITests(unittest.TestCase):
         self.assertEqual(dlg.ssr_hea.get("1.0", "end").strip(), dlg.hea.get("1.0", "end").strip())   # HEA propia, copia de APS
         ex = dlg.ssr_examen.get("1.0", "end")
         self.assertIn("Genitourinario", ex)
-        self.assertRegex(ex, "grisáceo|grisácea|olor a pescado")                              # vaginosis → hallazgo propio en genitourinario
+        self.assertRegex(ex, "No se realiza inspección genital")                              # vaginosis → hallazgo propio en genitourinario
         self.assertRegex(dlg.ssr_plan.get("1.0", "end"), "alarma")     # plan general según los diagnósticos
         self.assertFalse(dlg.ssr_its_x.winfo_manager())
         self.assertEqual(dlg.ssr_larga.winfo_manager(), "pack")            # ficha larga: menarquía, citología…

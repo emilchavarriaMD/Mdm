@@ -10,7 +10,7 @@ import re
 from services import cie11_catalog as cat
 
 SECCIONES = [
-    ("General", [("general", "paciente consciente, orientada/o, hidratada/o, afebril y en aceptable estado general")]),
+    ("Apariencia general", [("general", "paciente consciente, orientada/o, hidratada/o, afebril y en aceptable estado general")]),
     ("Piel", [("piel", "")]),
     ("Cabeza", [("cabeza", "normocéfala, sin masas ni lesiones")]),
     ("ORL", [("ojos", "ojos con pupilas isocóricas normorreactivas, conjuntivas rosadas y escleras anictéricas"),
@@ -22,12 +22,13 @@ SECCIONES = [
     ("Corazón", [("corazon", "ruidos cardíacos rítmicos, de buena intensidad, sin soplos")]),
     ("Pulmones", [("pulmones", "murmullo vesicular conservado en ambos campos, sin ruidos agregados")]),
     ("Abdomen", [("abdomen", "no se explora de forma adecuada por falta de espacio clínico apropiado")]),
+    ("Genitourinario", [("genital", "")]),
     ("Extremidades", [("extremidades", "simétricas, sin edema ni deformidades, con movilidad y fuerza conservadas, "
                                        "llenado capilar menor de 2 segundos")]),
-    ("Genitourinario", [("genital", "genitales externos sin alteraciones evidentes"),
-                        ("lumbar", "puño percusión lumbar negativa")]),
 ]
 GU = ("genital", "lumbar")
+GENITAL_NO_EXPLORADO = ("no se realiza inspección genital debido a la ausencia de un espacio físico privado y adecuado, "
+                        "así como de camilla e instrumental necesario, incluidos espéculos vaginales")
 
 FIEBRE = {"general": "paciente en aceptable estado general, febril, con malestar general"}
 RESP_ALTA = {"nariz": "nariz con mucosa hiperémica y edematosa, con rinorrea", "orofaringe": "orofaringe con hiperemia leve"}
@@ -305,19 +306,15 @@ _ART = {"Cabeza": "la cabeza", "Cuello": "el cuello", "Tórax": "el tórax", "Co
 _ADJ = ("sin ", "simétric", "móvil", "normo", "de ", "con ", "no explorable", "libre", "sano", "blando")
 
 
+_REGION = re.compile(r"^(?:la |el |los |las )?(?:cabeza|cuello|tórax|abdomen|extremidades|piel|corazón|pulmones)\b(?: con| de)?\s+", re.I)
+
+
 def _frase(titulo, txt):
-    """Una oración del párrafo, sin etiqueta: nombra la región cuando el texto no lo hace."""
-    low = txt.lower()
-    if titulo == "General" or re.match(_PROPIO.get(titulo, "(?!x)x"), low):
-        pass
-    elif low.startswith(("se ", "no se ")):
-        txt = "En " + _ART.get(titulo, titulo.lower()) + " " + low
-    elif low.startswith(_ADJ):
-        txt = titulo + " " + low
-    else:
-        txt = titulo + " con " + low
+    """Una oración del párrafo con su etiqueta («Cabeza: …»)."""
+    txt = _REGION.sub("", txt) if titulo not in ("Apariencia general", "ORL", "Genitourinario") else txt
     txt = txt[:1].upper() + txt[1:]
-    return txt if txt.endswith(".") else txt + "."
+    txt = txt if txt.endswith(".") else txt + "."
+    return titulo + ": " + txt
 
 
 def compose(descripciones, ssr=False, rng=None):
@@ -326,7 +323,9 @@ def compose(descripciones, ssr=False, rng=None):
     h = _hallazgos(descripciones)
     lineas = []
     for titulo, partes in SECCIONES:
-        if titulo == "Genitourinario" and not ssr and not any(k in h for k in GU):
+        if titulo == "Genitourinario":      # no se explora: solo se anota por qué (y la puño percusión si el dx la pide)
+            tr = [GENITAL_NO_EXPLORADO] + [_var(x, rng) for x in h.get("lumbar", [])]
+            lineas.append(_frase(titulo, "; ".join(tr)))
             continue
         trozos = []
         for clave, normal in partes:
@@ -334,8 +333,6 @@ def compose(descripciones, ssr=False, rng=None):
                 trozos.append(_unir(_sin_repetir_general(clave, [_var(x, rng) for x in h[clave]])))
             elif normal:
                 trozos.append(_var(normal, rng))
-        if titulo == "Corazón" and False:
-            pass
         if not trozos:
             continue
         txt = (", ".join(trozos) if titulo == "ORL" else "; ".join(trozos)).strip()
