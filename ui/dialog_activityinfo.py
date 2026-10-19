@@ -145,7 +145,10 @@ class ActivityInfoDialog(_Modal):
         self.hea_aviso = ttk.Label(body, text="", style="Muted.TLabel", wraplength=780, justify="left")
         self.hea_aviso.pack(anchor="w")
         self._hea_auto = defaults.get("hea", "")      # último texto generado: si la persona lo cambia, se respeta
-        self._dx_vistos = self._dx_actuales()
+        self._dx_vistos = self._clave_hea()
+        # si se corrige el género o la edad en esta ventana, la HEA se actualiza (salvo que ya la haya editado)
+        self.w["genero"].bind("<<ComboboxSelected>>", lambda e: self._regen_hea(True))
+        self.w["edad"].bind("<FocusOut>", lambda e: self._regen_hea(True))
         self._marcar_fuentes()
         ttk.Button(bar, text="Cancelar", command=self.cancel).pack(side="right")
         ttk.Button(bar, text="Abrir Chrome y llenar", style="Accent.TButton", command=self._ok).pack(
@@ -173,18 +176,36 @@ class ActivityInfoDialog(_Modal):
         # descripción elegida en la lista de ActivityInfo; si se dejó vacía, el texto del ATA (la HEA lo incluye igual)
         return [hea_banco.fuente_hea(a, cat.from_label(cb.get_value())[0]) for a, cb in self.dx_rows]
 
+    def _persona(self):
+        """Sexo y edad para la HEA: lo del ATA, corregido con lo que se elija en esta ventana."""
+        p = dict(self.defaults.get("hea_persona") or {})
+        g = (self.w["genero"].get_value() or "").lower()
+        if g.startswith("mujer"):
+            p["sexo"] = "M"
+        elif g.startswith("hombre"):
+            p["sexo"] = "H"
+        edad = (self.w["edad"].get_value() or "").strip()
+        if edad.isdigit() and edad != "0" and edad != p.get("edad"):   # «0» = menor de 1 año: se queda en meses/días
+            p["edad"], p["unidad"] = edad, "años"
+        return p
+
+    def _clave_hea(self):
+        p = self._persona()
+        return (tuple(self._dx_actuales()), p.get("sexo"), p.get("edad"), p.get("unidad"))
+
     def _regen_hea(self, solo_si_cambio):
         """Vuelve a armar la HEA con los diagnósticos elegidos. Si la persona editó el texto a mano, no lo pisa
         (salvo con «Otra versión»)."""
         dxs = self._dx_actuales()
         self._marcar_fuentes()
         if solo_si_cambio:
-            if dxs == self._dx_vistos:
+            clave = self._clave_hea()
+            if clave == self._dx_vistos:
                 return
-            self._dx_vistos = dxs
+            self._dx_vistos = clave
             if self.hea.get("1.0", "end").strip() != self._hea_auto.strip():
                 return
-        p = self.defaults.get("hea_persona") or {}
+        p = self._persona()
         texto, avisos = hea_banco.compose(p.get("sexo"), p.get("edad"), [d for d in dxs if d], p.get("unidad", "años"))
         self.hea.delete("1.0", "end")
         self.hea.insert("1.0", texto)
