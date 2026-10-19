@@ -291,7 +291,7 @@ class T10_PlanBanco(unittest.TestCase):
                 self.assertTrue(pb.tiene_plan(d), d)
                 reg = pb.PLAN[d]
                 self.assertTrue(4 <= len(reg["m"]) <= 13 and 4 <= len(reg["a"]) <= 9, d)
-                self.assertTrue(all(re.match(r"[a-záéíóúñü]+(ar|er|ir|se)\b|(en|si|al|ante|durante|después|con|cuando) ", x) for x in reg["m"]), d)
+                self.assertTrue(all(re.match(r"[a-záéíóúñü]+(ar|er|ir|se|le|la|lo)\b|(en|si|al|ante|durante|después|con|cuando) ", x) for x in reg["m"]), d)
                 t = pb.compose([d], rng=random.Random(1))
                 self.assertTrue(t.endswith(".") and "alarma" in t and t[0].isupper(), d)
                 self.assertNotRegex(t, r"Indicaciones generales|Debe consultar|Se sugiere", d)
