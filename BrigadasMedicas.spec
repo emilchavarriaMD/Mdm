@@ -6,9 +6,9 @@ a = Analysis(
     ['main.py'],
     pathex=['.'],
     binaries=[],
-    datas=[],
+    datas=[('services/ai_fill.js', 'services')],
     hiddenimports=[
-        'ui.page_ata', 'ui.page_pacientes', 'ui.page_backup', 'ui.page_settings', 'services.ata', 'services.activityinfo',
+        'ui.page_ata', 'ui.page_pacientes', 'ui.page_backup', 'ui.page_settings', 'services.ata', 'services.activityinfo', 'ui.dialog_activityinfo', 'selenium',
     ],
     hookspath=[],
     runtime_hooks=[],

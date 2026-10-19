@@ -1,10 +1,12 @@
 """Pacientes cargados desde los ATA, con el botón «Añadir registro» al lado de cada uno."""
+import threading
 from tkinter import ttk
 
 from services import activityinfo
 from services import ata as ata_svc
 from services.validators import fmt_date
 from ui import dialogs, widgets
+from ui.dialog_activityinfo import ActivityInfoDialog
 from ui.page import Page
 
 ACTION = "➕ Añadir registro"
@@ -17,6 +19,8 @@ class PacientesPage(Page):
         super().__init__(app)
         self._after = None
         self._rows = {}
+        self._busy = False
+        self._result = None
         ttk.Label(self, text="Pacientes", style="H1.TLabel").pack(anchor="w")
         ttk.Label(self, text="Un renglón por paciente atendido. Pulse «➕ Añadir registro» (junto a cada paciente) para registrarlo en ActivityInfo.", style="Muted.TLabel").pack(
             anchor="w", pady=(0, 6))
@@ -94,20 +98,50 @@ class PacientesPage(Page):
         rid = self._selected()
         if rid is None:
             return
-        rec = self._rows.get(rid)
-        if rec and rec["ai_estado"] == "Registrado" and not dialogs.confirm(
+        rec = ata_svc.get_record(self.db, rid)
+        if rec["ai_estado"] == "Registrado" and not dialogs.confirm(
                 self, "Ya registrado", f"{rec['nombre']} ya está marcado como registrado en "
-                "ActivityInfo. ¿Añadirlo otra vez?", yes="Añadir de nuevo", no="Cancelar"):
+                "ActivityInfo. ¿Llenar el formulario otra vez?", yes="Llenar de nuevo", no="Cancelar"):
             return
+        data = ActivityInfoDialog(self, activityinfo.build_defaults(self.db, rec)).run()
+        if not data:
+            return
+        self._busy = True
+        self.count.configure(text="Abriendo Chrome… si pide iniciar sesión, hágalo en esa ventana.")
+        threading.Thread(target=self._worker, args=(rid, rec["nombre"], data), daemon=True).start()
+        self.after(400, self._poll)
+
+    def _worker(self, rid, nombre, data):
         try:
-            activityinfo.register(self.db, rid, self)
-            if dialogs.confirm(self, "¿Se registró?", f"Cuando termine de registrar a "
-                               f"{rec['nombre']} en ActivityInfo, ¿lo marco como registrado?",
-                               yes="Sí, marcar", no="Todavía no"):
-                ata_svc.set_registered(self.db, rid, True)
+            self._result = (rid, nombre, data, activityinfo.fill_form(data), None)
         except Exception as exc:  # noqa: BLE001
-            dialogs.error(self, f"No se pudo completar el registro en ActivityInfo:\n{exc}")
+            self._result = (rid, nombre, data, None, exc)
+
+    def _poll(self):
+        if self._result is None:
+            self.after(400, self._poll)
+            return
+        rid, nombre, data, report, exc = self._result
+        self._result = None
         self.load()
+        if exc is not None:
+            dialogs.error(self, f"No se pudo llenar el formulario:\n{exc}")
+            return
+        falta = (report.get("ficha") or []) + (report.get("aps") or [])
+        msg = f"Se llenó el formulario de {nombre} en Chrome. REVÍSELO y cree la ficha usted en ActivityInfo " \
+              "(el programa no guarda nada)."
+        dx = data.get("dx") or []
+        if dx:
+            msg += "\n\nDiagnósticos por elegir a mano (CIE-11):\n" + "\n".join(
+                f"• {d['abrev']}" + (f" → {d['descripcion']} {d['cie11']}".rstrip() if d['descripcion'] or d['cie11'] else "")
+                for d in dx)
+        if falta:
+            msg += "\n\nNo se pudieron llenar (hágalo a mano):\n" + "\n".join(f"• {f}" for f in falta)
+        dialogs.info(self, msg, title="Formulario llenado")
+        if dialogs.confirm(self, "¿Se registró?", f"Cuando haya creado la ficha de {nombre} en ActivityInfo, "
+                           "¿la marco como registrada?", yes="Sí, marcar", no="Todavía no"):
+            ata_svc.set_registered(self.db, rid, True)
+            self.load()
 
     def mark(self, registered):
         rid = self._selected()

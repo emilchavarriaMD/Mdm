@@ -291,6 +291,11 @@ CREATE TABLE IF NOT EXISTS ata_rows (
     ref_enviada TEXT, ref_recibida TEXT
 );
 CREATE INDEX IF NOT EXISTS idx_ata_rows_sheet ON ata_rows(sheet_id);
+CREATE TABLE IF NOT EXISTS dx_map (
+    abrev       TEXT PRIMARY KEY,
+    descripcion TEXT NOT NULL DEFAULT '',
+    cie11       TEXT NOT NULL DEFAULT ''
+);
 """
 
 

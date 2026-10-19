@@ -58,3 +58,18 @@ El programa no lee la foto por sí solo ni rellena nada: solo guarda lo que uste
 Las comillas (") en departamento, municipio y localidad se repiten desde la fila anterior.
 **Exportar Excel** genera el archivo con las columnas del ATA. La Ficha Integral tiene ahora el campo
 *Número de identidad* (opcional); también se usa en la búsqueda y en la detección de duplicados.
+
+
+## Pestañas del programa
+**Cargar ATA** (subir foto o Excel, confirmar y guardar en la base) · **Pacientes** (un renglón por paciente,
+con el botón «➕ Añadir registro») · **Copias de seguridad** · **Configuración**.
+
+## Añadir registro en ActivityInfo
+Al pulsar «➕ Añadir registro» se abre una ventana para revisar los datos, y luego Chrome (con un perfil
+propio del programa) abre el formulario y **lo llena**. El programa **nunca guarda**: no pulsa
+«Guardar registro», «Guardar como borrador» ni «Está hecho»; la ficha la crea usted a mano después de revisar.
+- Si ActivityInfo pide iniciar sesión, hágalo en esa ventana (el programa no escribe contraseñas).
+- Lo que el ATA no trae (estado civil, escolaridad, ocupación…) lo elige usted en la ventana; vacío = no se toca.
+- Valores fijos (lugar de atención, nacionalidad, profesional) y equivalencias abreviatura → CIE-11 se
+  configuran en **Configuración**. Los diagnósticos CIE-11 se eligen a mano en ActivityInfo.
+- Necesita internet y Google Chrome.

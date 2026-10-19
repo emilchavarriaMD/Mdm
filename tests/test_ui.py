@@ -106,6 +106,7 @@ class UITests(unittest.TestCase):
                      "mun": "Choloma", "loc": "Col. Rafael", "dx1": "Gastritis"}.items():
             c[0][k].set(v)
         c[1]["nombre"].set("Luis Gómez")
+        c[1]["sexo"].set("h")
         for k in ("dep", "mun", "loc"):
             c[1][k].set('"')
         c[2]["nombre"].set("Sin sexo")
@@ -133,13 +134,35 @@ class UITests(unittest.TestCase):
         pp.load()
         self.assertEqual(len(pp.tree.get_children()), 1)
         rid = int(pp.tree.get_children()[0])
-        called = []
         from services import activityinfo
-        activityinfo.register = lambda db_, r, parent=None: called.append(r)
+        import ui.page_pacientes as ppmod
+        activityinfo.save_dx_map(db, "gastritis", "Gastritis", "DA42")
+        seen = {}
+
+        class FakeDialog:
+            def __init__(self, parent, defaults):
+                seen["defaults"] = defaults
+
+            def run(self):
+                d = dict(seen["defaults"])
+                d["estado_civil"] = "Soltero/a"
+                return d
+
+        ppmod.ActivityInfoDialog = FakeDialog
+        activityinfo.fill_form = lambda data, **k: (seen.update(sent=data) or {"ficha": ["Perfil: falta"], "aps": []})
         pp.tree.selection_set(str(rid))
-        self.answers[:] = ["yes"]
+        self.answers[:] = ["ok", "yes"]  # aviso final y «marcar como registrado»
         pp.add_record()
-        self.assertEqual(called, [rid])
+        for _ in range(80):
+            self.upd()
+            if pp._result is None and self.log and len(self.log) >= 2:
+                break
+            import time as _t
+            _t.sleep(0.05)
+        self.assertEqual(seen["defaults"]["nombres"], "Luis")
+        self.assertEqual(seen["defaults"]["genero"], "Hombre CIS")
+        self.assertEqual(seen["sent"]["estado_civil"], "Soltero/a")
+        self.assertEqual(seen["defaults"]["estado_civil"], "")  # lo que el ATA no trae no se inventa
         self.assertEqual(A.get_record(db, rid)["ai_estado"], "Registrado")
         # guardar de nuevo la hoja conserva el estado registrado
         app.show("ata")
@@ -174,7 +197,22 @@ class UITests(unittest.TestCase):
         self.assertTrue(pg.save())
         self.assertEqual(A.get_sheet(db, pg.sheet_id)[1][0]["edad_meses"], "7")
 
-    def test_04_respaldo(self):
+    def test_04_activityinfo_nunca_guarda(self):
+        from services import activityinfo as ai
+        src = (ROOT / "services" / "ai_fill.js").read_text(encoding="utf-8")
+        self.assertIn("guardar|save|est[aá] hecho|cancelar", src)  # lista de botones bloqueados
+        self.assertNotIn(".submit(", src)
+        d = ai.build_defaults(self.db, {"nombre": "Ana Pérez López", "sexo": "M", "fecha": "2026-10-15",
+                                        "edad_meses": "7", "dx1": "HTA", "dx2": "", "dx3": ""})
+        self.assertEqual(d["genero"], "Mujer CIS")
+        self.assertEqual(d["edad"], "0")
+        self.assertEqual(d["lugar"], "San Pedro Sula")
+        self.assertEqual(d["dx"][0]["descripcion"], "")  # sin equivalencia: no se inventa
+        p = ai.payload(d)
+        self.assertEqual(p["n_dx"], 1)
+        self.assertNotIn("dx", p)
+
+    def test_05_respaldo(self):
         import backup
         db = self.db
         n = db.scalar("SELECT COUNT(*) FROM ata_rows")
