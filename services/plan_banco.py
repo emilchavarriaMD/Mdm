@@ -104,7 +104,8 @@ def compose(descripciones, rng=None):
     a = _repartir([r["a"] for r in reg], 3 if n == 1 else 4, rng, must=1, top=5)
     partes = []
     if m:
-        partes.append(rng.choice(FRASES_M).format(_lista(m)))
+        t = _lista(m)
+        partes.append(t[0].upper() + t[1:] + ".")
     if a:
         partes.append(rng.choice(FRASES_A).format(_lista(a)))
     return " ".join(partes)
