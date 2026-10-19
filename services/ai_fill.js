@@ -3,6 +3,7 @@
   if (window.__mdm) return;
   const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
   const norm = (s) => (s || "").replace(/\s+/g, " ").replace(/\*/g, "").replace(/OBLIGATORIO/g, "").trim().toLowerCase();
+  const plain = (s) => norm(s).normalize("NFD").replace(/[\u0300-\u036f]/g, "");   // sin tildes ni mayúsculas
   const visible = (e) => e && e.getBoundingClientRect().height > 0;
   const FORBIDDEN = /guardar|save|est[aá] hecho|cancelar/i;   // jamás se hace clic en nada que guarde, cierre o cancele
 
@@ -41,15 +42,15 @@
     inp.scrollIntoView({ block: "center" }); inp.focus(); setNative(inp, String(value));
     inp.dispatchEvent(new Event("change", { bubbles: true })); inp.blur();
   }
-  async function setLookup(label, value) {
-    const l = findLabel(label); if (!l) throw new Error("No encontré el campo: " + label);
+  async function setLookup(label, value, within) {
+    const l = findLabel(label, within); if (!l) throw new Error("No encontré el campo: " + label);
     const inp = inputFor(l); if (!inp) throw new Error("Lista sin cuadro: " + label);
     inp.scrollIntoView({ block: "center" }); inp.focus(); click(inp);
     setNative(inp, String(value));
-    const want = norm(value);
+    const want = plain(value);
     const item = await waitFor(() => {
       const items = [...document.querySelectorAll(".listpicker__item")].filter(visible);
-      return items.find((i) => norm(i.innerText) === want) || items.find((i) => norm(i.innerText).includes(want));
+      return items.find((i) => plain(i.innerText) === want) || items.find((i) => plain(i.innerText).includes(want));
     });
     if (!item) throw new Error(`No hay opción «${value}» en «${label}»`);
     click(item); await sleep(250);
@@ -81,6 +82,8 @@
     const l = findLabel(label); if (!l) throw new Error("No encontré el campo: " + label);
     const box = l.closest(".forminput__field") || l.parentElement;
     if (box.querySelector('[role="radio"], [role="checkbox"]')) return setRadio(label, value);
+    // Si es una lista desplegable, solo se acepta una opción de la lista (si no, queda en rojo): no se escribe texto libre.
+    if (box.querySelector(".field__trigger, label.forminput__lookup__key")) return setLookup(label, value);
     try { return await setLookup(label, value); } catch (e) { return setText(label, value); }
   }
   async function step(log, name, fn) { try { await fn(); } catch (e) { log.push(name + ": " + e.message); } }
@@ -89,9 +92,9 @@
   async function fillFicha(d) {
     const log = [];
     const S = (n, f) => step(log, n, f);
-    const val = (label) => { const l = findLabel(label); const i = l && inputFor(l); return i ? i.value.trim().toLowerCase() : ""; };
+    const val = (label) => { const l = findLabel(label); const i = l && inputFor(l); return i ? plain(i.value) : ""; };
     // Lookup que solo se toca si todavía no tiene ese valor (ActivityInfo a veces ya lo trae puesto).
-    const lk = (label, v) => (val(label) === norm(v) ? Promise.resolve() : setLookup(label, v));
+    const lk = (label, v) => (val(label) === plain(v) ? Promise.resolve() : setLookup(label, v));
     // El formulario es dependiente: se llena en el orden en que va apareciendo y se espera a que salgan los campos nuevos.
     // 1) Punto de atención (al elegir el lugar se llenan País y Departamento y aparecen campos nuevos, como el pueblo)
     if (d.lugar) {
@@ -148,7 +151,13 @@
     const log = [];
     const S = (n, f) => step(log, n, f);
     try { await openAps(); } catch (e) { return ["Subformulario APS: " + e.message]; }
-    if (d.profesional) await S("Profesional que atiende", () => setAuto("Profesional que atiende", d.profesional));
+    if (d.profesional) {
+      await S("Profesional que atiende", () => {
+        const g = findLabel("Profesional que atiende");
+        return setLookup("Nombre y Apellidos", d.profesional, g && (g.closest(".forminput__field") || g.parentElement));
+      });
+      await sleep(900);  // al elegirla se llenan País, Ciudad y Profesión
+    }
     await S("¿Mismo punto de atención?", () => setRadio("¿Mismo punto de atención registrado en la ficha integral?", "Sí"));
     await S("¿Mismo proyecto?", () => setRadio("¿Mismo proyecto registrado en la ficha integral?", "Sí"));
     if (d.tipo_consulta) await S("Tipo de consulta", () => setRadio("Tipo de consulta", d.tipo_consulta));
@@ -160,5 +169,5 @@
     const aps = (d.consultas || []).includes("Atención Primaria de Salud") ? await fillAps(d) : [];
     return { ficha: falla, aps: aps };
   }
-  window.__mdm = { findLabel, setText, setLookup, setRadio, setChecks, setAuto, fillFicha, fillAps, run, sleep, version: 4 };
+  window.__mdm = { findLabel, setText, setLookup, setRadio, setChecks, setAuto, fillFicha, fillAps, run, sleep, version: 5 };
 })();

@@ -53,7 +53,7 @@ SETTINGS = [
     ("ai_perfin", "Proyecto: PERFIN", "F09010020"),
     ("ai_nacionalidad", "País de nacionalidad", "Honduras"),
     ("ai_idioma", "Idioma", "Español"),
-    ("ai_profesional", "Profesional que atiende (APS)", "Nadia Alejandra Chavarria Lopez"),
+    ("ai_profesional", "Profesional que atiende (APS)", "Nadia Alejandra Chavarría López"),
 ]
 
 _driver = None
