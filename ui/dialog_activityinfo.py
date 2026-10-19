@@ -110,8 +110,7 @@ class ActivityInfoDialog(_Modal):
                 cb = widgets.ComboField(row, labels, readonly=False, width=78)
                 desc, code = cat.from_label(d.get("descripcion", ""))
                 if not desc:
-                    sug = cat.suggest(d.get("abrev", ""))
-                    desc, code = sug[0] if sug else ("", "")
+                    desc, code = hea_banco.sugerir_lista(d.get("abrev", ""))
                 cb.set_value(cat.label(desc) if desc else "")
                 cb.pack(side="left", fill="x", expand=True)
                 cb.bind("<<ComboboxSelected>>", lambda e: self._regen_hea(True))

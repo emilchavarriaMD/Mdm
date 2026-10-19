@@ -54,6 +54,28 @@ class T07_HEA(unittest.TestCase):
                               ("Cuerpo extraño oído izq", "Cuerpo extraño")):
             self.assertIn(nombre, BANK[hb.bank_id(abrev)]["n"], abrev)
 
+    def test_sinonimos_apuntan_a_diagnosticos_que_existen(self):
+        from services.hea_data import SINONIMOS
+        for k, n in SINONIMOS.items():
+            self.assertIn(n, BANK, k)
+        for t in ("SDA", "IVU", "OMA", "Lumbociatica", "Hipotiroidismo", "Onicomicosis", "Escabiasis", "Gripe",
+                  "Climaterio", "HPB", "ERC", "Artrosis", "Varices", "Pie diabetico", "Dispepsia", "Aftas"):
+            self.assertIsNotNone(hb.bank_id(t), t)
+
+    def test_sugerencia_de_lista_no_confunde_abreviaturas(self):
+        casos = {"OMA": "Otitis media", "ERC": "Enfermedad renal crónica", "Malaria": "Paludismo",
+                 "SDA": "Gastroenteritis", "RC": "Nasofaringitis", "HTA": "Hipertensión esencial",
+                 "Escabiasis": "Sarna", "Lumbociatica": "Ciática"}
+        for abrev, esperado in casos.items():
+            self.assertTrue(hb.sugerir_lista(abrev)[0].startswith(esperado), (abrev, hb.sugerir_lista(abrev)))
+        for abrev in ("PF", "EPOC", "XYZ"):
+            self.assertEqual(cat.suggest(abrev), [], abrev)   # mejor nada que una opción equivocada
+
+    def test_sintoma_principal_sin_lado(self):
+        for n, b in BANK.items():
+            if b["k"] == "S":
+                self.assertNotRegex(b["t"], r"derech|izquierd", n)
+
     def test_cabecera(self):
         self.assertEqual(hb.cabecera("M", "30"), "Beneficiaria Fem de 30 años de edad, que presenta ")
         self.assertEqual(hb.cabecera("H", "1"), "Beneficiario Masc de 1 año de edad, que presenta ")

@@ -136,8 +136,7 @@ def build_defaults(db, rec: dict) -> dict:
     for x in dxs:
         d = cat.from_label(x["descripcion"])[0] if x["descripcion"] else ""
         if not d:
-            sug = cat.suggest(x["abrev"])
-            d = sug[0][0] if sug else ""
+            d = hea_banco.sugerir_lista(x["abrev"])[0]
         descs.append(hea_banco.fuente_hea(x["abrev"], d))
     if any(descs):
         hea = hea_banco.compose(persona["sexo"], persona["edad"], descs, persona["unidad"])[0]

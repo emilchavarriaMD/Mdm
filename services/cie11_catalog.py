@@ -300,6 +300,9 @@ def from_label(text):
 
 # Abreviaturas frecuentes del ATA → texto a buscar en la lista (solo sugerencia; la persona confirma).
 SINONIMOS = {
+    "malaria": "Paludismo", "tb": "Tuberculosis respiratoria", "tuberculosis": "Tuberculosis respiratoria",
+    "oma": "Otitis media", "otitis media aguda": "Otitis media", "erc": "Enfermedad renal crónica",
+    "vih": "Enfermedad por virus de la inmunodeficiencia humana", "sda": "Gastroenteritis o colitis infecciosa",
     "rc": "Nasofaringitis aguda", "resfriado comun": "Nasofaringitis aguda", "fab": "Amigdalitis estreptocócica",
     "fav": "Amigdalitis aguda", "faringoamigdalitis": "Amigdalitis aguda", "tina pedis": "Dermatofitosis del pie",
     "tinea pedis": "Dermatofitosis del pie", "forunculosis": "Forúnculo", "dismenorrea": "Dolor abdominal o pélvico",
@@ -339,18 +342,20 @@ def suggest(text, limit=1):
     if q in sin:
         q = plain(sin[q])
     words = [w for w in q.split() if len(w) > 2]
+    corta = len(q) <= 4            # abreviaturas: «OMA», «ERC»… solo palabra completa, nunca dentro de otra palabra
     scored = []
     for d, c in CATALOG:
-        p = plain(d)
+        p = re.sub(r"\bsin mencion de [a-z ]*", "", plain(d))   # «…sin mención de tuberculosis o malaria» no cuenta
+        pal = p.split()
         if p == q:
             s = 100
-        elif p.startswith(q):
+        elif p.startswith(q + " ") or (not corta and p.startswith(q)):
             s = 80
-        elif q in p:
+        elif (q in pal) if corta else (q in p):
             s = 60
-        elif words and all(w in p for w in words):
+        elif words and all(w in p for w in words) and not corta:
             s = 40
-        elif words and sum(w in p for w in words) * 2 >= len(words) + 1:
+        elif words and not corta and sum(w in p for w in words) * 2 >= len(words) + 1:
             s = 20
         else:
             continue

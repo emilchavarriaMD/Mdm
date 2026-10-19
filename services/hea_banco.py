@@ -44,13 +44,30 @@ def bank_id(texto):
     return None
 
 
+_EN_LISTA = {cat.plain(d): d for d, _c in cat.CATALOG}
+
+
+def sugerir_lista(abrev):
+    """Sugerencia de la lista de ActivityInfo para un diagnóstico del ATA: primero lo que dice el banco de HEA
+    (que conoce las abreviaturas: SDA, OMA, PF…), si ese diagnóstico existe en la lista; si no, la búsqueda por texto.
+    Devuelve (descripción, código) o ("", "")."""
+    n = bank_id(abrev)
+    if n is not None:
+        for nombre in (ALIAS.get(n), BANK[n]["n"]):
+            d = _EN_LISTA.get(cat.plain(nombre or ""))
+            if d:
+                return cat.from_label(d)
+    sug = cat.suggest(abrev)
+    return sug[0] if sug else ("", "")
+
+
 def fuente_hea(abrev, descripcion):
     """Qué texto usar para la HEA de una fila: el diagnóstico del ATA si el banco lo conoce y la persona dejó la
     sugerencia automática (más específico: «Cervicalgia» antes que «Afecciones de la columna»); si la persona eligió
     otra opción en la lista, esa."""
     if abrev and bank_id(abrev) is not None:
-        sug = cat.suggest(abrev)
-        if not descripcion or (sug and sug[0][0] == descripcion) or bank_id(descripcion) == bank_id(abrev):
+        sug = sugerir_lista(abrev)[0]
+        if not descripcion or sug == descripcion or bank_id(descripcion) == bank_id(abrev):
             return abrev
     return descripcion or abrev
 

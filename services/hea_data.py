@@ -4017,3 +4017,52 @@ SINONIMOS.update({'cuerpo extrano oido': 327, 'cuerpo extrano en oido': 327, 'cu
 # Correcciones
 BANK[53]['k'] = 'S'
 BANK[53]['t'] = 'bochornos y ausencia de menstruación propios de la menopausia'
+
+BANK.update({
+    329: {'n': 'Hipotiroidismo', 's': 'A', 'u': 'años', 'k': 'C', 't': 'hipotiroidismo',
+          'v': [
+              'antecedente de hipotiroidismo de 3 años de diagnóstico, en tratamiento con levotiroxina diaria; acude a control refiriendo buena adherencia. Niega cansancio marcado, aumento de peso reciente o palpitaciones.',
+              'antecedente de hipotiroidismo en tratamiento con levotiroxina; refiere cansancio, intolerancia al frío y estreñimiento de 1 mes de evolución, con toma irregular del medicamento. Niega palpitaciones o pérdida de peso.',
+              'antecedente de hipotiroidismo; acude por refill de levotiroxina, que se le terminó hace 2 semanas. Refiere somnolencia y piel seca desde entonces. Niega disnea, dolor torácico o edema importante.',
+              'antecedente de hipotiroidismo sin control reciente; refiere aumento de peso, caída del cabello y lentitud de 2 meses de evolución. Niega dificultad para tragar o aumento de volumen en el cuello.',
+              'antecedente de hipotiroidismo de 8 años de diagnóstico; acude a control y solicitud de exámenes. Refiere sentirse bien con el tratamiento actual. Niega temblor, insomnio o palpitaciones.',
+          ]},
+    330: {'n': 'Onicomicosis', 's': 'A', 'u': 'años', 'k': 'S', 't': 'uñas engrosadas y amarillentas',
+          'v': [
+              'engrosamiento y coloración amarillenta de las uñas de los pies de 6 meses de evolución, con desprendimiento parcial del borde. Refiere uso frecuente de calzado cerrado. Niega dolor, secreción o enrojecimiento alrededor de la uña.',
+              'uñas quebradizas y opacas en ambos pies de 1 año de evolución, de avance lento, que le causan molestia estética. Ha aplicado remedios caseros sin mejoría. Niega dolor o signos de infección.',
+              'cambio de color y engrosamiento de la uña del dedo gordo del pie de 4 meses de evolución, con restos blanquecinos debajo de la uña. Niega trauma, dolor o fiebre.',
+              'deformidad y oscurecimiento de las uñas de las manos de 3 meses de evolución, con trabajo frecuente en agua. Niega dolor, pus o lesiones en la piel alrededor.',
+              'uñas de los pies engrosadas, con mal olor y desprendimiento de 8 meses de evolución, asociadas a picazón entre los dedos. Niega dolor intenso, enrojecimiento ascendente o fiebre.',
+          ]},
+})
+SINONIMOS.update({
+    'hipotiroidismo': 329, 'onicomicosis': 330, 'sda': 39, 'sda sin deshidratacion': 39, 'sindrome diarreico agudo': 39,
+    'oma': 97, 'otitis media aguda': 97, 'otitis externa': 96, 'oe': 96, 'gripe': 76, 'influenza': 76,
+    'escabiasis': 51, 'lumbociatica': 26, 'lumbociatalgia': 26, 'ciatica': 26, 'contusion': 135, 'policontuso': 135,
+    'esguince': 216, 'esguince de tobillo': 179, 'herida': 60, 'quemadura': 232, 'mordedura de perro': 218,
+    'picadura': 236, 'picadura de alacran': 236, 'impetigo': 208, 'prurigo': 240, 'aftas': 54, 'estomatitis': 54,
+    'candidiasis oral': 147, 'muguet': 147, 'periodontitis': 235, 'absceso dental': 4, 'ivu': 72,
+    'infeccion de vias urinarias': 72, 'ivrs': 70, 'infeccion respiratoria': 70, 'irsa': 70, 'nasofaringitis': 121,
+    'zika': 189, 'chikungunya': 190, 'chikunguna': 190, 'covid': 19, 'covid 19': 19, 'climaterio': 53,
+    'menopausia': 53, 'puerperio': 123, 'posparto': 123, 'postparto': 123, 'hpb': 63, 'hiperplasia prostatica': 63,
+    'erc': 191, 'insuficiencia renal': 213, 'neuropatia': 116, 'neuropatia diabetica': 116, 'pie diabetico': 141,
+    'varices': 77, 'insuficiencia venosa': 77, 'hipercolesterolemia': 204, 'hipertrigliceridemia': 207,
+    'desnutricion': 37, 'anemia ferropenica': 158, 'sii': 127, 'colon irritable': 127, 'dispepsia': 287,
+    'artrosis': 14, 'osteoartrosis': 14, 'gonartrosis': 59, 'artritis': 161, 'artritis reumatoide': 13,
+    'tendinitis': 252, 'bursitis': 164, 'hombro doloroso': 214, 'escoliosis': 173, 'verrugas': 271,
+    'orzuelo': 228, 'chalazion': 20, 'pterigion': 111, 'epilepsia': 50, 'convulsiones': 50,
+    'vih': 48, 'tb': 266, 'tuberculosis': 266, 'malaria': 144, 'paludismo': 144,
+})
+
+# Síntoma principal sin lado del cuerpo (en una HEA combinada no se sabe si es derecho o izquierdo)
+import re as _re  # noqa: E402
+for _b in BANK.values():
+    if _b['k'] == 'S':
+        _t = _re.sub(r' (derech|izquierd)[oa]s?\b', '', _b['t'])
+        _t = _re.sub(r'\ben (ojo|oído|hemitórax|escroto)\b', r'en un \1', _t).replace('en el un ', 'en un ')
+        _b['t'] = _t.replace('en ambos ojos', 'en ambos ojos').strip()
+BANK[97]['t'] = 'otalgia'
+BANK[26]['t'] = 'dolor lumbar irradiado a la pierna'
+BANK[76]['t'] = 'fiebre, mialgias y malestar general'
+BANK[135]['t'] = 'dolor y aumento de volumen tras un golpe'
