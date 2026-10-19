@@ -9,7 +9,7 @@ a = Analysis(
     datas=[],
     hiddenimports=[
         'ui.page_home', 'ui.page_patient', 'ui.page_search', 'ui.page_visit', 'ui.page_history',
-        'ui.page_brigades', 'ui.page_reports', 'ui.page_backup', 'ui.page_settings',
+        'ui.page_brigades', 'ui.page_ata', 'services.ata', 'ui.page_reports', 'ui.page_backup', 'ui.page_settings',
     ],
     hookspath=[],
     runtime_hooks=[],

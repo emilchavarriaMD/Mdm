@@ -9,7 +9,7 @@ from services.validators import (ValidationError, digits, fmt_date, normalize, p
 SEXOS = ["Femenino", "Masculino", "Otro"]
 UNIDADES_EDAD = ["años", "meses", "días"]
 
-PATIENT_FIELDS = ["historia_clinica", "nombres", "apellidos", "fecha_nacimiento", "edad_valor",
+PATIENT_FIELDS = ["historia_clinica", "identidad", "nombres", "apellidos", "fecha_nacimiento", "edad_valor",
                   "edad_unidad", "sexo", "telefono", "estado_migratorio", "departamento",
                   "municipio", "localidad", "fecha_creacion", "brigade_id", "observaciones"]
 
@@ -61,6 +61,7 @@ def prepare_patient(raw: dict):
     """Convierte lo ingresado en el formulario a valores de BD. Devuelve (datos, errores)."""
     errors, data = [], {}
     data["historia_clinica"] = (raw.get("historia_clinica") or "").strip()
+    data["identidad"] = (raw.get("identidad") or "").strip()
     data["nombres"] = (raw.get("nombres") or "").strip()
     data["apellidos"] = (raw.get("apellidos") or "").strip()
     if not data["nombres"]:
@@ -136,12 +137,12 @@ def create_patient(db, data: dict) -> int:
     ts = now_iso()
     with db.transaction():
         cur = db.execute(
-            """INSERT INTO patients (codigo, historia_clinica, nombres, apellidos, nombre_norm,
+            """INSERT INTO patients (codigo, historia_clinica, identidad, nombres, apellidos, nombre_norm,
                    fecha_nacimiento, edad_valor, edad_unidad, sexo, telefono, telefono_norm,
                    estado_migratorio, departamento, municipio, localidad, fecha_creacion,
                    brigade_id, observaciones, created_at, updated_at)
-               VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
-            ("TEMP", values["historia_clinica"], values["nombres"], values["apellidos"],
+               VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+            ("TEMP", values["historia_clinica"], values["identidad"], values["nombres"], values["apellidos"],
              values["nombre_norm"], values["fecha_nacimiento"], values["edad_valor"],
              values["edad_unidad"], values["sexo"], values["telefono"], values["telefono_norm"],
              values["estado_migratorio"], values["departamento"], values["municipio"],
@@ -161,7 +162,7 @@ def get_patient(db, pid):
 
 
 _LABELS = {
-    "historia_clinica": "Historia clínica", "nombres": "Nombres", "apellidos": "Apellidos",
+    "historia_clinica": "Historia clínica", "identidad": "Número de identidad", "nombres": "Nombres", "apellidos": "Apellidos",
     "fecha_nacimiento": "Fecha de nacimiento", "edad_valor": "Edad", "edad_unidad": "Unidad de edad",
     "sexo": "Sexo", "telefono": "Teléfono", "estado_migratorio": "Estado migratorio",
     "departamento": "Departamento", "municipio": "Municipio", "localidad": "Localidad",
@@ -182,11 +183,11 @@ def update_patient(db, pid: int, data: dict) -> list:
             changes.append(f"{_LABELS[key]}: '{a if a is not None else ''}' → '{b if b is not None else ''}'")
     with db.transaction():
         db.execute(
-            """UPDATE patients SET historia_clinica=?, nombres=?, apellidos=?, nombre_norm=?,
+            """UPDATE patients SET historia_clinica=?, identidad=?, nombres=?, apellidos=?, nombre_norm=?,
                    fecha_nacimiento=?, edad_valor=?, edad_unidad=?, sexo=?, telefono=?,
                    telefono_norm=?, estado_migratorio=?, departamento=?, municipio=?, localidad=?,
                    fecha_creacion=?, brigade_id=?, observaciones=?, updated_at=? WHERE id=?""",
-            (values["historia_clinica"], values["nombres"], values["apellidos"],
+            (values["historia_clinica"], values["identidad"], values["nombres"], values["apellidos"],
              values["nombre_norm"], values["fecha_nacimiento"], values["edad_valor"],
              values["edad_unidad"], values["sexo"], values["telefono"], values["telefono_norm"],
              values["estado_migratorio"], values["departamento"], values["municipio"],
@@ -212,6 +213,9 @@ def find_duplicates(db, data: dict, exclude_id=None):
         reasons = []
         if hc and p["historia_clinica"] and hc.lower() == p["historia_clinica"].strip().lower():
             reasons.append("misma historia clínica")
+        idn = digits(data.get("identidad"))
+        if idn and idn == digits(p.get("identidad")):
+            reasons.append("mismo número de identidad")
         if tel and tel == p["telefono_norm"]:
             reasons.append("mismo teléfono")
         if name_norm:
@@ -239,8 +243,9 @@ def search_patients(db, texto="", fecha_desde=None, fecha_hasta=None, brigade_id
         like = f"%{token}%"
         where.append("(p.nombre_norm LIKE ? OR LOWER(p.codigo) LIKE ? "
                      "OR LOWER(COALESCE(p.historia_clinica,'')) LIKE ? "
+                     "OR LOWER(COALESCE(p.identidad,'')) LIKE ? "
                      "OR COALESCE(p.telefono_norm,'') LIKE ?)")
-        params += [like, like, like, like]
+        params += [like, like, like, like, like]
     if fecha_desde or fecha_hasta:
         cond = []
         sub = []

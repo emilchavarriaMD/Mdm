@@ -265,6 +265,34 @@ CREATE TABLE IF NOT EXISTS ssr_interventions (
 );
 """
 
+_ATA_SCHEMA = """
+CREATE TABLE IF NOT EXISTS ata_sheets (
+    id            INTEGER PRIMARY KEY AUTOINCREMENT,
+    fecha         TEXT,
+    establecimiento TEXT,
+    profesional   TEXT,
+    codigo        TEXT,
+    tipo_establecimiento TEXT,
+    departamento  TEXT,
+    municipio     TEXT,
+    brigade_id    INTEGER REFERENCES brigades(id) ON DELETE SET NULL,
+    imagen        TEXT,
+    created_at    TEXT NOT NULL,
+    updated_at    TEXT NOT NULL
+);
+CREATE TABLE IF NOT EXISTS ata_rows (
+    id        INTEGER PRIMARY KEY AUTOINCREMENT,
+    sheet_id  INTEGER NOT NULL REFERENCES ata_sheets(id) ON DELETE CASCADE,
+    orden     INTEGER NOT NULL DEFAULT 0,
+    numero TEXT, hc TEXT, nombre TEXT, identidad TEXT, sexo TEXT,
+    fecha_nacimiento TEXT, edad_anios TEXT, edad_meses TEXT, edad_dias TEXT,
+    dep TEXT, mun TEXT, loc TEXT,
+    dx1 TEXT, cie1 TEXT, dx2 TEXT, cie2 TEXT, dx3 TEXT, cie3 TEXT,
+    ref_enviada TEXT, ref_recibida TEXT
+);
+CREATE INDEX IF NOT EXISTS idx_ata_rows_sheet ON ata_rows(sheet_id);
+"""
+
 
 def now_iso() -> str:
     return datetime.now().strftime("%Y-%m-%d %H:%M:%S")
@@ -292,8 +320,12 @@ class Database:
     def init_schema(self):
         # executescript hace COMMIT implícito, por eso se usa fuera de transacciones.
         for script in (_BASE_SCHEMA, _APS_SCHEMA, _SSR_SCHEMA,
-                       _child_tables("aps"), _child_tables("ssr"), _SSR_EXTRA):
+                       _child_tables("aps"), _child_tables("ssr"), _SSR_EXTRA, _ATA_SCHEMA):
             self.conn.executescript(script)
+        # Migración: número de identidad en la Ficha Integral (bases creadas antes de esta versión).
+        cols = [r["name"] for r in self.conn.execute("PRAGMA table_info(patients)").fetchall()]
+        if "identidad" not in cols:
+            self.conn.execute("ALTER TABLE patients ADD COLUMN identidad TEXT")
         self.conn.execute(f"PRAGMA user_version = {SCHEMA_VERSION}")
         with self.transaction():
             for key, value in DEFAULT_SETTINGS.items():

@@ -77,7 +77,7 @@ class UITests(unittest.TestCase):
 
     # ------------------------------------------------------------------
     def test_00_todas_las_paginas_abren(self):
-        for name in ("home", "search", "history", "brigades", "reports", "backup", "settings",
+        for name in ("home", "search", "history", "brigades", "ata", "reports", "backup", "settings",
                      "patient", "aps", "ssr"):
             self.assertTrue(self.app.show(name))
             self.upd()
@@ -253,6 +253,62 @@ class UITests(unittest.TestCase):
         self.answers[:] = ["yes", "ok"]
         app.pages["backup"]._restore(str(path))
         self.assertEqual(db.scalar("SELECT COUNT(*) FROM ssr_visits"), 2)
+
+    def test_03_hoja_ata(self):
+        from PIL import Image
+        from services import ata as A
+        app, db = self.app, self.db
+        app.show("ata")
+        pg = app.pages["ata"]
+        self.upd()
+        img = Path(_TMP) / "hoja.png"
+        Image.new("RGB", (800, 1000), "white").save(img)
+        pg.image_name = A.store_image(img)
+        pg._show_image(A.image_path(pg.image_name))
+        self.upd()
+        self.assertIsNotNone(pg._pil)
+        pg.h["establecimiento"].set("Brigada Prueba")
+        c = pg.cells
+        for k, v in {"nombre": "Ana Pérez", "sexo": "m", "dep": "Yoro", "mun": "El Progreso",
+                     "loc": "Aldea X", "dx1": "Faringitis", "cie1": "J02"}.items():
+            c[0][k].set(v)
+        c[1]["nombre"].set("Luis Gómez")
+        for k in ("dep", "mun", "loc"):
+            c[1][k].set('"')
+        c[2]["nombre"].set("Sin sexo")
+        c[2]["sexo"].set("X")
+        self.assertFalse(pg.save())  # sexo inválido: avisa y no guarda
+        self.assertTrue(self.errors)
+        c[2]["sexo"].set("")
+        c[2]["fecha_nacimiento"].set("31/02/2000")
+        self.assertFalse(pg.save())  # fecha imposible
+        c[2]["fecha_nacimiento"].set("")
+        self.assertTrue(pg.save())
+        sheet, rows = A.get_sheet(db, pg.sheet_id)
+        self.assertEqual(len(rows), 3)
+        self.assertEqual(rows[1]["loc"], "Aldea X")  # comillas expandidas
+        self.assertEqual(rows[0]["sexo"], "M")
+        self.assertEqual(rows[2]["dx1"], "")  # nada inventado
+        self.assertEqual(sheet["imagen"], pg.image_name)
+        pg._paste  # existe
+        out = Path(_TMP) / "ata.xlsx"
+        A.export_excel(out, sheet, rows)
+        self.assertGreater(out.stat().st_size, 1000)
+        pg.new(force=True)
+        pg._open(sheet["id"])
+        self.assertEqual(pg.cells[0]["nombre"].get(), "Ana Pérez")
+
+    def test_04_identidad(self):
+        db = self.db
+        pid = db.scalar("SELECT id FROM patients LIMIT 1")
+        p = P.get_patient(db, pid)
+        data, errs = P.prepare_patient({**p, "identidad": "0801-1990-12345",
+                                        "fecha_nacimiento": "01/01/1990",
+                                        "fecha_creacion": "01/01/2026"})
+        self.assertFalse(errs, errs)
+        P.update_patient(db, pid, data)
+        self.assertEqual(P.get_patient(db, pid)["identidad"], "0801-1990-12345")
+        self.assertTrue(P.search_patients(db, texto="0801-1990-12345"))
 
 
 if __name__ == "__main__":

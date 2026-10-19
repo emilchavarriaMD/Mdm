@@ -20,6 +20,7 @@ NAV = [
     ("ssr", "Salud Sexual y Repr. (SSR)"),
     ("history", "Historial de atenciones"),
     ("brigades", "Brigadas"),
+    ("ata", "Hojas ATA"),
     ("reports", "Reportes y exportaciones"),
     ("backup", "Copias de seguridad"),
     ("settings", "Configuración"),
@@ -106,6 +107,7 @@ class App:
     # -- páginas ----------------------------------------------------------------
     def _page(self, name):
         if name not in self.pages:
+            from ui.page_ata import AtaPage
             from ui.page_backup import BackupPage
             from ui.page_brigades import BrigadesPage
             from ui.page_history import HistoryPage
@@ -119,7 +121,7 @@ class App:
                 "home": lambda: HomePage(self), "patient": lambda: PatientPage(self),
                 "search": lambda: SearchPage(self), "aps": lambda: VisitPage(self, "aps"),
                 "ssr": lambda: VisitPage(self, "ssr"), "history": lambda: HistoryPage(self),
-                "brigades": lambda: BrigadesPage(self), "reports": lambda: ReportsPage(self),
+                "brigades": lambda: BrigadesPage(self), "ata": lambda: AtaPage(self), "reports": lambda: ReportsPage(self),
                 "backup": lambda: BackupPage(self), "settings": lambda: SettingsPage(self),
             }
             self.pages[name] = factories[name]()

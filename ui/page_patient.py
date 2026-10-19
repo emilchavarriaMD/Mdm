@@ -59,6 +59,7 @@ class PatientPage(Page):
         self._add(g, "codigo", "Código del paciente (automático)", codigo)
         self._add(g, "historia_clinica", "Número de historia clínica (si existe)",
                   widgets.EntryField(s1))
+        self._add(g, "identidad", "Número de identidad (opcional)", widgets.EntryField(s1))
         g.newline()
         self._add(g, "nombres", "Nombres", widgets.EntryField(s1), required=True)
         self._add(g, "apellidos", "Apellidos", widgets.EntryField(s1), required=True)
@@ -221,7 +222,7 @@ class PatientPage(Page):
         self.title.configure(text="Ficha Integral")
         self.badge.configure(text=f"Expediente {p['codigo']}", style="Final.TLabel")
         self.w["codigo"].set_value(p["codigo"])
-        for k in ("historia_clinica", "nombres", "apellidos", "sexo", "telefono",
+        for k in ("historia_clinica", "identidad", "nombres", "apellidos", "sexo", "telefono",
                   "estado_migratorio", "departamento", "municipio", "localidad", "observaciones"):
             self.w[k].set_value(p.get(k) or "")
         self.w["fecha_nacimiento"].set_value(p.get("fecha_nacimiento") or "")

@@ -48,3 +48,13 @@ Menú **Configuración → Seguridad**. Se guarda cifrada (PBKDF2). Si se olvida
 - No hay campo "número de identidad" en la Ficha Integral.
 - Impresión: abre el PDF en el visor predeterminado para imprimir desde allí.
 - El .exe se probó construyendo y arrancando en Linux; la compilación en Windows debe hacerla `build.bat` en su PC.
+
+
+## Hojas ATA
+
+En el menú lateral, **Hojas ATA**: cargue la foto de la hoja (queda a la vista, con acercar/alejar),
+escriba o pegue los datos en la tabla (columnas iguales a la hoja) y confirme con **Guardar**.
+El programa no lee la foto por sí solo ni rellena nada: solo guarda lo que usted confirma.
+Las comillas (") en departamento, municipio y localidad se repiten desde la fila anterior.
+**Exportar Excel** genera el archivo con las columnas del ATA. La Ficha Integral tiene ahora el campo
+*Número de identidad* (opcional); también se usa en la búsqueda y en la detección de duplicados.
