@@ -1,6 +1,6 @@
 /* Llena el formulario de ActivityInfo. NUNCA pulsa Guardar registro ni Guardar como borrador. */
 (function () {
-  const VERSION = 16;
+  const VERSION = 17;
   if (window.__mdm && window.__mdm.version === VERSION) return;   // una versión vieja en la pestaña se reemplaza
   const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
   const norm = (s) => (s || "").replace(/\s+/g, " ").replace(/\*/g, "").replace(/OBLIGATORIO/g, "").trim().toLowerCase();
@@ -93,7 +93,7 @@
   async function setAuto(label, value) {
     const l = findLabel(label); if (!l) throw new Error("No encontré el campo: " + label);
     const box = l.closest(".forminput__field") || l.parentElement;
-    if (box.querySelector('[role="radio"], [role="checkbox"]')) return setRadio(label, value);
+    if (box.querySelector('[role="radio"], [role="checkbox"], input[type=radio]')) return setRadio(label, value);
     // Si es una lista desplegable, solo se acepta una opción de la lista (si no, queda en rojo): no se escribe texto libre.
     if (box.querySelector(".field__trigger, label.forminput__lookup__key")) return setLookup(label, value);
     try { return await setLookup(label, value); } catch (e) { return setText(label, value); }
@@ -316,6 +316,7 @@
       if (l) await S("SSR: ¿Recibió APS el mismo día?", () => setAuto("¿Recibió APS el mismo día", x.recibio_aps));
       else log.push("SSR: ¿Recibió APS el mismo día?: no apareció (solo sale si también se marcó Atención primaria)");
     }
+    if (x.violencia) await S("SSR: ¿Ha sufrido violencia?", () => setAuto("¿Ha sufrido violencia?", x.violencia));
     if (d.hea) {
       await S("SSR: Historia de la enfermedad actual", async () => {
         const ok = await waitFor(() => findLabel("Historia de la enfermedad actual"), 5000);
@@ -323,13 +324,47 @@
         await setText("Historia de la enfermedad actual", d.hea);
       });
     }
+    // Antecedentes (en el orden de la página)
+    for (const [k, lab] of [["its", "Antecedentes de ITS"], ["itu", "Antecedentes de ITU"]]) {
+      if (x[k]) await S("SSR: " + lab, () => setAuto(lab, x[k]));
+    }
+    if ((x.vacunacion || []).length) await S("SSR: Vacunación", () => setChecks("Vacunación", x.vacunacion));
+    for (const [k, lab] of [["vph", "VPH"], ["papanicolau", "Papanicolau"], ["examen_mama", "Examen de mama"]]) {
+      if (x[k]) await S("SSR: " + lab, () => setAuto(lab, x[k]));
+    }
+    if (x.observaciones) await S("SSR: Observaciones", () => setText("Observaciones", x.observaciones));
     if (d.examen_fisico) await S("SSR: Exámen físico", () => setText("Exámen físico", d.examen_fisico));
     if (x.n_dx) {
       await S("SSR: Número de diagnósticos", () => setRadio("Número de diagnósticos", String(x.n_dx)));
       await sleep(900);
       await fillDx(x.dx, "Diagnóstico SSR", log, info);
     }
+    if (x.obs_dx) await S("SSR: Observaciones Diagnóstico", () => setText("Observaciones Diagnóstico", x.obs_dx));
+    if (x.consejeria) await S("SSR: ¿Ha recibido consejería anticoncepción?", () => setAuto("¿Ha recibido consejería anticoncepción durante esta consulta?", x.consejeria));
     if (d.plan) await S("SSR: Plan", () => setText("Plan", d.plan));
+    // Derivación (solo aparece «Servicio brindado» con «¿Va a ser derivado?» = Sí; con «Salud» aparece el grupo «Salud»)
+    if (x.va_derivado) { await S("SSR: ¿Va a ser derivado?", () => setAuto("¿Va a ser derivado?", x.va_derivado)); await sleep(700); }
+    if (x.transfronteriza) await S("SSR: Referencia Transfronteriza", () => setAuto("Referencia Transfronteriza", x.transfronteriza));
+    if (x.servicio_brindado) {
+      await S("SSR: Servicio brindado", async () => {
+        const ok = await waitFor(() => findLabel("Servicio brindado"), 5000);
+        if (!ok) throw new Error("no apareció (solo sale si «¿Va a ser derivado?» es Sí)");
+        await setRadio("Servicio brindado", x.servicio_brindado);
+      });
+      await sleep(600);
+    }
+    if (x.servicio_salud && x.servicio_brindado === "Salud") {
+      await S("SSR: Servicio brindado: Salud", async () => {
+        const hbox = () => { const h = [...document.querySelectorAll("h4")].find((e) => norm(e.textContent) === "salud"); return h && h.closest(".forminput__field"); };
+        const box = await waitFor(hbox, 5000);
+        if (!box) throw new Error("no apareció el grupo «Salud»");
+        const want = norm(x.servicio_salud);
+        const cand = [...box.querySelectorAll("label, div, span")].filter((e) => visible(e) && norm(e.textContent) === want);
+        if (!cand.length) throw new Error(`no hay la opción «${x.servicio_salud}»`);
+        const el = cand[cand.length - 1]; el.scrollIntoView({ block: "center" }); click(el.closest("label") || el); await sleep(200);
+      });
+    }
+    if (x.victima_sexual) await S("SSR: ¿Víctima/sobreviviente de violencia sexual reciente?", () => setAuto("¿Victima/sobreviviente de violencia sexual reciente?", x.victima_sexual));
     return log;
   }
   async function run(d) {

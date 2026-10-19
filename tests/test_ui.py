@@ -336,7 +336,13 @@ class UITests(unittest.TestCase):
         self.assertEqual(dlg.f_ssr.winfo_manager(), "pack")
         self.assertEqual(dlg.w["ssr_ficha"].get_value(), "Larga")
         self.assertEqual(dlg.w["ssr_mismo_punto"].get_value(), "Sí")
+        self.assertEqual(len(dlg.ssr_rows), 2)                 # una fila por cada diagnóstico del ATA (mismo formato que APS)
         self.assertIn("Vaginosis bacteriana", dlg.ssr_rows[0].get_value())
+        self.assertEqual(dlg.ssr_rows[1].get_value(), "")      # sin equivalente en SSR → vacío
+        self.assertFalse(dlg.ssr_der_extra.winfo_manager())
+        dlg.w["ssr_va_derivado"].set_value("Sí")
+        dlg._mostrar_ssr_der()
+        self.assertEqual(dlg.ssr_der_extra.winfo_manager(), "pack")
         for k, v in {"estado_civil": "Soltero/a", "escolaridad": "Primaria", "ocupacion": "Estudiante",
                      "discapacidad": "No", "derivado": "No", "tipo_consulta": "Primera"}.items():
             dlg.w[k].set_value(v)

@@ -72,7 +72,15 @@ PLAN_BASE = "Plan"
 TIPOS_SSR = ["Primera", "Reconsulta", "Seguimiento"]
 SSR_FICHAS = ["Corta", "Larga"]
 SI_NO = ["Sí", "No"]
-SSR_MAX_DX = 2                      # «Número de diagnósticos» del SSR solo admite 1 o 2
+SSR_MAX_DX = 2
+SSR_VIOLENCIA = ["No", "Violencia Basada en Género", "Otra Situación de Violencia"]
+SSR_SI_NO_NS = ["Sí", "No", "No sabe"]
+SSR_VACUNAS = ["Td (toxoide tetánico)", "VPH (VIRUS PAPILOMA HUMANO)", "HEPATITIS B:", "SRP (SARAMPIÓN-RUBEOLA):"]
+SSR_SERVICIO_SALUD = "MdM-Salud sexual y reproductiva"
+SSR_SERVICIOS_SALUD = ["MdM - Atención primaria", "MdM-Salud sexual y reproductiva", "MdM-Salud mental y apoyo psicosocial",
+                       "MdM - Seguimiento telefónico", "Consulta externa especializada publico",
+                       "Atención hospitalaria (de emergencia o no)", "Atención primaria-establecimiento de salud local",
+                       "Médico especialista privado", "Otras organizaciones con servicios de salud"]                      # «Número de diagnósticos» del SSR solo admite 1 o 2
 # La persona permitió que el programa pulse «Está hecho» SOLO en el subformulario de Atención primaria (cuando el paciente
 # lleva también SSR) para volver a la ficha y abrir el de SSR. Nunca se pulsa «Guardar registro» ni «Guardar como borrador».
 PERMITIR_ESTA_HECHO_EN_APS = True
@@ -185,16 +193,21 @@ def build_defaults(db, rec: dict) -> dict:
         hea = hea_banco.compose(persona["sexo"], persona["edad"], descs, persona["unidad"])[0]
     else:
         hea = generate_hea(rec, desc)
-    ssr_dx = []
+    ssr_dx = []        # una por cada diagnóstico del ATA (en el mismo orden); vacío si no hay equivalente en SSR
+    usados = set()
     for x in dxs:
-        d2 = cie11_ssr.suggest(x["abrev"])[:1]
-        if d2 and d2[0][0] not in [y["descripcion"] for y in ssr_dx]:
+        d2 = cie11_ssr.suggest(x["abrev"], estricto=True)[:1]
+        if d2 and d2[0][0] not in usados:
+            usados.add(d2[0][0])
             ssr_dx.append({"abrev": x["abrev"], "descripcion": d2[0][0], "cie11": d2[0][1]})
+        else:
+            ssr_dx.append({"abrev": x["abrev"], "descripcion": "", "cie11": ""})
     vit = vitales_defecto(persona["sexo"], persona["edad"], persona["unidad"])
     return {
         "hea": hea, "hea_persona": persona, **vit,
         "ssr_mismo_punto": "Sí", "ssr_mismo_proy": "Sí", "ssr_ficha": "Larga", "ssr_recibio_aps": "Sí",
-        "ssr_tipo": "", "ssr_dx": ssr_dx[:SSR_MAX_DX], "peso": "", "examen_fisico": EXAMEN_FISICO_BASE,
+        "ssr_tipo": "", "ssr_dx": ssr_dx, "ssr_va_derivado": "", "ssr_transfronteriza": "",
+        "ssr_servicio_brindado": "Salud", "ssr_servicio_salud": SSR_SERVICIO_SALUD, "peso": "", "examen_fisico": EXAMEN_FISICO_BASE,
         "plan": PLAN_BASE, "va_derivado": "", "n_servicios": "", "transfronteriza": "",
         "servicio_brindado": "Salud", "servicio_salud": SERVICIOS_SALUD[0],
         "lugar": st["ai_lugar"], "punto_especifico": "", "fecha": (rec.get("fecha") or "")[:10], "genero": genero,

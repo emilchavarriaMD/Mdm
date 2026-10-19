@@ -204,7 +204,15 @@ function openSsr() {
   ssr.appendChild(radios("ficha", "¿Ficha corta o larga?*", ["Corta", "Larga"]));
   ssr.appendChild(field("¿Recibió APS el mismo día en que se le brindó atención de SSR?*",
     lookup("recibio_aps", "¿Recibió APS el mismo día en que se le brindó atención de SSR?", ["Sí", "No"])));
+  ssr.appendChild(field("¿Ha sufrido violencia?", lookup("violencia", "¿Ha sufrido violencia?", ["No", "Violencia Basada en Género", "Otra Situación de Violencia"])));
   ssr.appendChild(text("hea", "Historia de la enfermedad actual", true));
+  ssr.appendChild(radios("its", "Antecedentes de ITS", ["Sí", "No", "No sabe"]));
+  ssr.appendChild(radios("itu", "Antecedentes de ITU", ["No", "Sí", "No sabe"]));
+  ssr.appendChild(checks("vacuna", "Vacunación", ["Td (toxoide tetánico)", "VPH (VIRUS PAPILOMA HUMANO)", "HEPATITIS B:", "SRP (SARAMPIÓN-RUBEOLA):"]));
+  ssr.appendChild(radios("vph", "VPH", ["Sí", "No"]));
+  ssr.appendChild(radios("papa", "Papanicolau", ["Sí", "No"]));
+  ssr.appendChild(radios("mama", "Examen de mama", ["Sí", "No"]));
+  ssr.appendChild(text("obs", "Observaciones"));
   ssr.appendChild(text("examen", "Exámen físico", true));
   const nd = radios("ndx", "Número de diagnósticos*", ["1", "2"], (v) => {
     document.querySelectorAll(".dxbox").forEach((x) => x.remove());
@@ -220,7 +228,26 @@ function openSsr() {
     }
   });
   ssr.appendChild(nd);
+  ssr.appendChild(text("obsdx", "Observaciones Diagnóstico", true));
+  ssr.appendChild(radios("conse", "¿Ha recibido consejería anticoncepción durante esta consulta?*", ["Si", "No"]));
   ssr.appendChild(text("plan", "Plan", true));
+  const dBox = field("¿Va a ser derivado?", lookup("sder", "¿Va a ser derivado?", ["Sí", "No"], (v) => {
+    if (v === "Sí" && !document.getElementById("ssvc")) {
+      const t = radios("strans", "Referencia Transfronteriza*", ["Sí", "No"]);
+      const svc = radios("ssvc", "Servicio brindado*", ["Protección", "Salud", "Educación NNA"], (o) => {
+        if (o === "Salud" && !document.getElementById("ssaludgrp")) {
+          const g = $(`<div class="forminput__field" id="ssaludgrp"><h4>Salud*</h4></div>`);
+          ["MdM - Atención primaria", "MdM-Salud sexual y reproductiva", "Médico especialista privado"].forEach((x) => {
+            g.appendChild($(`<label><input type="radio" name="ssaludsvc" value="${x}"><span>${x}</span></label>`));
+          });
+          svc.after(g);
+        }
+      });
+      dBox.after(t); t.after(svc);
+    }
+  }));
+  ssr.appendChild(dBox);
+  ssr.appendChild(radios("victima", "¿Victima/sobreviviente de violencia sexual reciente?*", ["Sí", "No"]));
   ssr.appendChild(button("Está hecho", () => { window.__saved = true; }));
   document.getElementById("btnSsr").after(ssr);
 }

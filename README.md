@@ -103,8 +103,12 @@ Al marcar «Salud Sexual y Reproductiva» en la ventana de «Añadir registro» 
 Atención primaria (la de siempre) y la de SSR (105 diagnósticos, máximo 2). La HEA, el examen físico, el plan y el profesional
 son los mismos de Atención primaria. En ActivityInfo el programa pulsa «Está hecho» **solo en el subformulario de Atención
 primaria** (únicamente si también hay SSR; vuelve a la ficha, no guarda nada) para poder abrir el de SSR; en SSR no pulsa nada,
-ni «Guardar registro» ni «Guardar como borrador». No se llenan (hágalo a mano): derivación de SSR y los demás campos obligatorios
-propios de SSR.
+ni «Guardar registro» ni «Guardar como borrador». También se llenan, en el orden de la página: ¿Ha sufrido violencia?, antecedentes (ITS, ITU, vacunación, VPH, Papanicolau, examen de mama,
+observaciones), observaciones del diagnóstico, consejería de anticoncepción, derivación y «¿Víctima de violencia sexual reciente?».
+Los diagnósticos salen en el mismo formato que los de APS (uno por cada diagnóstico del ATA; SSR admite máximo 2) y solo se sugiere
+un equivalente cuando el nombre coincide exactamente o es un sinónimo conocido. Todo queda vacío por defecto (salvo los defaults
+indicados y Servicio brindado = Salud / «MdM-Salud sexual y reproductiva»). No se llenan: campos que dependen de violencia, medicamentos
+y otros campos condicionales de SSR.
 
 ## Cambios
 - **1.4** — Salud Sexual y Reproductiva: sección propia en la ventana, lista de diagnósticos de SSR, llenado del subformulario.

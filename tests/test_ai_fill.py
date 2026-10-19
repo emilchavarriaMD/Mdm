@@ -56,7 +56,11 @@ LEER = """() => {
         ficha: rr('ficha'), recibio_aps: (q('#recibio_aps input') || {}).value, hea: q('#hea').value, examen: q('#examen').value, ndx: rr('ndx'),
         desc1: (q('#desc1 input') || {}).value, code1: (q('#code1 input') || {}).value,
         desc2: (q('#desc2 input') || {}).value, code2: (q('#code2 input') || {}).value, plan: q('#plan').value,
-        titles: [...document.querySelectorAll('#ssr h4')].map(x => x.textContent) }; })(),
+        titles: [...document.querySelectorAll('#ssr h4')].map(x => x.textContent),
+        violencia: (q('#violencia input') || {}).value, its: rr('its'), itu: rr('itu'), vph: rr('vph'), papa: rr('papa'), mama: rr('mama'),
+        vacuna: [...document.querySelectorAll('#ssr #vacuna input:checked')].map(x => x.value), obs: q('#obs').value,
+        obsdx: q('#obsdx').value, conse: rr('conse'), sder: (q('#sder input') || {}).value, strans: rr('strans'), ssvc: rr('ssvc'),
+        ssalud: rr('ssaludsvc'), victima: rr('victima') }; })(),
     aps_abierto: !!document.getElementById('aps'),
   };
 }"""
@@ -119,7 +123,11 @@ class T08_LlenadoSimulado(unittest.TestCase):
                  dx=PAYLOAD["dx"][:1], n_dx=1,
                  ssr={"mismo_punto": "Sí", "mismo_proy": "Sí", "tipo": "Primera", "ficha": "Larga", "recibio_aps": "Sí",
                       "dx": [{"abrev": "Vaginosis", "descripcion": "Vaginosis bacteriana", "cie11": "MF3A"},
-                             {"abrev": "Cand", "descripcion": "Candidiasis vulvovaginal", "cie11": "1F23.10"}], "n_dx": 2})
+                             {"abrev": "Cand", "descripcion": "Candidiasis vulvovaginal", "cie11": "1F23.10"}], "n_dx": 2,
+                      "violencia": "No", "its": "No", "itu": "Sí", "vph": "No", "papanicolau": "Sí", "examen_mama": "No",
+                      "vacunacion": ["Td (toxoide tetánico)", "HEPATITIS B:"], "observaciones": "Obs gral", "obs_dx": "Obs dx",
+                      "consejeria": "Si", "va_derivado": "Sí", "transfronteriza": "No", "servicio_brindado": "Salud",
+                      "servicio_salud": "MdM-Salud sexual y reproductiva", "victima_sexual": "No"})
         p.update(kw)
         return p
 
@@ -142,6 +150,11 @@ class T08_LlenadoSimulado(unittest.TestCase):
         self.assertEqual(s["ndx"], "2")
         self.assertEqual((s["desc1"], s["code1"]), ("Vaginosis bacteriana", "MF3A"))
         self.assertEqual((s["desc2"], s["code2"]), ("Candidiasis vulvovaginal", "1F23.10"))
+        self.assertEqual((s["violencia"], s["its"], s["itu"], s["vph"], s["papa"], s["mama"]), ("No", "No", "Sí", "No", "Sí", "No"))
+        self.assertEqual(s["vacuna"], ["Td (toxoide tetánico)", "HEPATITIS B:"])
+        self.assertEqual((s["obs"], s["obsdx"], s["conse"]), ("Obs gral", "Obs dx", "Si"))
+        self.assertEqual((s["sder"], s["strans"], s["ssvc"], s["ssalud"], s["victima"]),
+                         ("Sí", "No", "Salud", "MdM-Salud sexual y reproductiva", "No"))
 
     def test_ssr_sin_permiso_no_pulsa_esta_hecho(self):
         rep, v = self._run(self._ssr_payload(permitir_esta_hecho=False))

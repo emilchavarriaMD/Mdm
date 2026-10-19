@@ -164,7 +164,7 @@ SINONIMOS = {
 }
 
 
-def suggest(text, limit=1):
+def suggest(text, limit=1, estricto=False):
     """Mejores coincidencias de la lista SSR para el texto del ATA (la persona confirma en la ventana)."""
     q = " ".join(plain(text).split())
     if not q:
@@ -172,12 +172,18 @@ def suggest(text, limit=1):
     sin = {" ".join(plain(k).split()): v for k, v in SINONIMOS.items()}
     if q in sin:
         q = plain(sin[q])
+        estricto = False
+        exacto_sin = True
+    else:
+        exacto_sin = False
     words = [w for w in q.split() if len(w) > 2]
     corta = len(q) <= 4
     scored = []
     for d, c in CATALOG:
         p = plain(d)
         pal = p.split()
+        if estricto and p != q:
+            continue          # en modo estricto solo vale el nombre exacto o un sinónimo conocido (no coincidencias parciales)
         if p == q:
             s = 100
         elif p.startswith(q + " ") or (not corta and p.startswith(q)):
