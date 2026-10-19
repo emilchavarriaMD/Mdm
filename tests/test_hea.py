@@ -274,7 +274,8 @@ class T09_ExamenFisico(unittest.TestCase):
         self.assertGreater(len(textos), 10)
         for t in textos:
             self.assertIn("No se realiza inspección genital", t)
-            self.assertRegex(t, r"Genitourinario: .*Extremidades:")
+            self.assertRegex(t, r"Genitourinario: .*Extremidades: .*Piel y faneras: ")
+            self.assertNotRegex(t, r"Apariencia general: [^.]*\. Piel")
 
     def test_cobertura_y_correcciones(self):
         from services import cie11_catalog as cat, cie11_ssr as ssr

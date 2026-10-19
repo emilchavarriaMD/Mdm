@@ -11,7 +11,6 @@ from services import cie11_catalog as cat
 
 SECCIONES = [
     ("Apariencia general", [("general", "paciente consciente, orientada/o, hidratada/o, afebril y en aceptable estado general")]),
-    ("Piel", [("piel", "")]),
     ("Cabeza", [("cabeza", "normocéfala, sin masas ni lesiones")]),
     ("ORL", [("ojos", "ojos con pupilas isocóricas normorreactivas, conjuntivas rosadas y escleras anictéricas"),
              ("oidos", "oídos con conductos auditivos permeables y membranas timpánicas íntegras"),
@@ -25,6 +24,8 @@ SECCIONES = [
     ("Genitourinario", [("genital", "")]),
     ("Extremidades", [("extremidades", "simétricas, sin edema ni deformidades, con movilidad y fuerza conservadas, "
                                        "llenado capilar menor de 2 segundos")]),
+    ("Piel y faneras", [("piel", "sin lesiones, de coloración normal, hidratada y con turgencia conservada; "
+                                 "uñas y cabello de implantación y aspecto normales")]),
 ]
 GU = ("genital", "lumbar")
 GENITAL_NO_EXPLORADO = ("no se realiza inspección genital debido a la ausencia de un espacio físico privado y adecuado, "
@@ -175,6 +176,31 @@ RULES = [
     (r"hipoacusia", {"oidos": "hipoacusia"}),
     (r"gastritis|dispepsia|reflujo|digestivo|estrenimiento|colon irritable|intestino irritable|nausea|vomito", {}),
     (r"mastodinia|trastornos de la mama|trastornos inflamatorios de la mama|mastitis|tumor o masa en el seno|neoplasia benigna de la mama|galactorrea|neoplasias malignas de mama", {}),
+    # --- piel y faneras (uñas, cabello) como hallazgo asociado a diagnósticos sistémicos u otros
+    (r"anemia|eritrocitos", {"piel": "palidez cutánea y de lecho ungueal, con uñas frágiles y cabello seco y quebradizo"}),
+    (r"hepatitis|hiperbilirrubinemia|ictericia", {"piel": "tinte ictérico generalizado, con prurito y excoriaciones"}),
+    (r"deshidratacion", {"piel": "piel seca con turgencia disminuida (pliegue cutáneo con retorno lento) y mucosas secas"}),
+    (r"desnutricion", {"piel": "piel seca y delgada, con pérdida del panículo adiposo, cabello fino, escaso y quebradizo, y uñas frágiles"}),
+    (r"^obesidad", {"piel": "pliegues cutáneos con hiperpigmentación y maceración, acantosis nigricans en cuello y axilas, y estrías"}),
+    (r"diabetes mellitus", {"piel": "piel seca, sin úlceras ni lesiones interdigitales, uñas sin alteraciones; acantosis nigricans en cuello y axilas"}),
+    (r"enfermedad renal|insuficiencia renal", {"piel": "palidez con tinte amarillento, piel seca con xerosis y excoriaciones por prurito, uñas frágiles"}),
+    (r"inmunodeficiencia humana", {"piel": "piel seca con lesiones de dermatitis seborreica, sin lesiones violáceas; uñas con onicomicosis y cabello fino"}),
+    (r"sistema inmunitario", {"piel": "piel sin lesiones activas ni signos de infección cutánea, uñas y cabello sin alteraciones"}),
+    (r"edema$|^edema\b|linfedema|insuficiencia venosa", {"piel": "piel tensa y brillante en miembros inferiores, con fóvea, hiperpigmentación y cambios tróficos"}),
+    (r"herpes zoster", {"piel": "vesículas agrupadas sobre base eritematosa con distribución metamérica unilateral, algunas con costras, dolorosas al tacto"}),
+    (r"herpes simple|herpes simple", {"piel": "vesículas agrupadas sobre base eritematosa, algunas erosionadas o con costras, dolorosas"}),
+    (r"pediculosis", {"piel": "liendres adheridas al tallo piloso y pediculi visibles en cuero cabelludo, con excoriaciones y costras por rascado"}),
+    (r"parasitosis|infecciones? parasitaria|infecciosas o parasitarias", {"piel": "piel y uñas sin lesiones; palidez leve y excoriaciones perianales por rascado si hay prurito"}),
+    (r"hipoglucemia", {"piel": "piel pálida, fría, sudorosa y pegajosa"}),
+    (r"cardiopatia isquemica", {"piel": "piel pálida y fría, con sudoración profusa si hay dolor activo, sin cianosis"}),
+    (r"\basma|bronquitis|bronquiolitis|neumonia|insuficiencia respiratoria|epoc|enfermedad pulmonar", {"piel": "coloración normal, sin cianosis ni acropaquia, con llenado capilar menor de 2 segundos"}),
+    (r"embarazo|puerper|aborto", {"piel": "piel hidratada, con hiperpigmentación (línea nigra, cloasma) y estrías abdominales; sin lesiones"}),
+    (r"mastitis|inflamatorios de la mama", {"piel": "piel de la mama con eritema, calor y edema local en la zona afectada, sin lesiones cutáneas a distancia"}),
+    (r"alopecia", {"piel": "áreas de pérdida del cabello, con piel del cuero cabelludo sin cicatrices ni signos inflamatorios"}),
+    (r"tina del cuero|tinea capitis", {"piel": "placas alopécicas con descamación y pelos cortos y rotos en cuero cabelludo"}),
+    (r"acne", {"piel": "comedones, pápulas y pústulas en cara y región superior del tronco, con seborrea y algunas cicatrices"}),
+    (r"psoriasis", {"piel": "placas eritematosas bien delimitadas cubiertas de escamas plateadas en codos, rodillas y cuero cabelludo, con uñas con pitting"}),
+    (r"vitiligo", {"piel": "máculas despigmentadas, bien delimitadas, de color blanco lechoso, sin descamación ni prurito"}),
 ]
 # hallazgos genitourinarios y mamarios (ginecológicos), separados para claridad
 RULES += [
@@ -304,10 +330,10 @@ _PROPIO = {  # si el texto ya empieza nombrando la región, no se le antepone
     "Corazón": r"corazón|ruidos card", "Pulmones": r"pulmon|campos pulm|murmullo vesicular|ventilación",
     "Abdomen": r"abdomen", "Extremidades": r"extremidades",
     "ORL": r"ojos|oídos|nariz|fosas|conjuntiva|membrana|conducto|mucosa|faringe|orofaringe|agudeza|párpado|inyección|opacidad|caries|hipoacusia|cuerpo extraño",
-    "Piel": r"piel", "General": r"paciente|recién|en aceptable|en buen|en regular|afebril|ansios|inquiet|sudoros|somnolient|alerta",
+    "Piel y faneras": r"piel", "General": r"paciente|recién|en aceptable|en buen|en regular|afebril|ansios|inquiet|sudoros|somnolient|alerta",
 }
 _ART = {"Cabeza": "la cabeza", "Cuello": "el cuello", "Tórax": "el tórax", "Corazón": "el corazón", "Pulmones": "los pulmones",
-        "Abdomen": "el abdomen", "Extremidades": "las extremidades", "Genitourinario": "el examen genitourinario", "Piel": "la piel", "ORL": "ORL"}
+        "Abdomen": "el abdomen", "Extremidades": "las extremidades", "Genitourinario": "el examen genitourinario", "Piel y faneras": "la piel", "ORL": "ORL"}
 _ADJ = ("sin ", "simétric", "móvil", "normo", "de ", "con ", "no explorable", "libre", "sano", "blando")
 
 
