@@ -1,6 +1,6 @@
 /* Llena el formulario de ActivityInfo. NUNCA pulsa Guardar registro ni Guardar como borrador. */
 (function () {
-  const VERSION = 18;
+  const VERSION = 20;
   if (window.__mdm && window.__mdm.version === VERSION) return;   // una versión vieja en la pestaña se reemplaza
   const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
   const norm = (s) => (s || "").replace(/\s+/g, " ").replace(/\*/g, "").replace(/OBLIGATORIO/g, "").trim().toLowerCase();
@@ -344,6 +344,31 @@
         if (x.itu_episodios) await S("SSR: Número de episodios de ITU al año", () => setText("Número de episodios de ITU al año", x.itu_episodios));
       }
     }
+    // Antecedentes obstétricos (en el orden de la página): con embarazo actual «Sí» aparecen FUM, edad gestacional y control prenatal
+    if (x.embarazo_actual) {
+      await S("SSR: Embarazo actual", () => setAuto("Embarazo actual", x.embarazo_actual));
+      if (x.embarazo_actual === "Sí") {
+        await sleep(600);
+        if (x.conoce_fum) {
+          await S("SSR: ¿Conoce la fecha de la última menstruación?", () => setAuto("¿Conoce la fecha de la última menstruación", x.conoce_fum));
+          await sleep(600);
+          if (x.fum) await S("SSR: FUM", () => setText("Fecha de la última menstruación", x.fum));
+          if (x.eg_manual) await S("SSR: Edad gestacional (manual)", () => setText("Edad Gestacional (manual)", x.eg_manual));
+        }
+      }
+    }
+    if (x.embarazo_anterior) {
+      await S("SSR: Embarazo anterior", () => setAuto("Embarazo Anterior", x.embarazo_anterior));
+      await sleep(600);
+      for (const [k, lab] of [["gestaciones", "Gestaciones"], ["partos", "Partos"], ["cesareas", "Cesáreas"], ["abortos", "Abortos"], ["obitos", "Óbitos"], ["hijos_vivos", "Hijos vivos"], ["hijos_muertos", "Hijos muertos"]]) {
+        if (x[k]) await S("SSR: " + lab, () => setText(lab, x[k]));
+      }
+    }
+    if (x.embarazo_actual === "Sí" && x.cpn) {
+      await S("SSR: ¿Ha tenido control prenatal anterior?", () => setAuto("¿Ha tenido control prenatal anterior?", x.cpn));
+      if (x.cpn === "Sí" && x.cpn_lugar) { await sleep(500); await S("SSR: Lugar de control prenatal", () => setText("Lugar de Control Prenatal", x.cpn_lugar)); }
+    }
+    if (x.lactancia) await S("SSR: Lactancia materna", () => setAuto("Lactancia Materna", x.lactancia));
     if ((x.vacunacion || []).length) await S("SSR: Vacunación", () => setChecks("Vacunación", x.vacunacion));
     for (const [k, lab] of [["vph", "VPH"], ["papanicolau", "Papanicolau"], ["examen_mama", "Examen de mama"]]) {
       if (x[k]) await S("SSR: " + lab, () => setAuto(lab, x[k]));

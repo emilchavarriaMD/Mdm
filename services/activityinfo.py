@@ -81,11 +81,13 @@ SSR_VIOLENCIA_OTRAS = ["Desórdenes civiles", "Disturbios internos", "Represión
                        "Violencia de maras, pandillas y/o crimen organizado", "Amenazas de muerte", "Extorsión",
                        "Reclutamiento forzado", "Despojo de tierras", "Expulsión de vivienda", "Usurpación de propiedad",
                        "Discriminación", "Delincuencia organizada y urbana", "Deportación forzada"]
-SSR_METODOS_ELEGIDOS = ["Anillo vaginal", "Diafragma", "DIU", "Espermicida", "Esponja", "Implante subdérmico",
-                        "Inyección hormonal / DEPO", "Ligadura de trompas / Vasectomía",
+# Ordenados por frecuencia de uso en consulta (los más usados primero; los casi sin uso, al final)
+SSR_METODOS_ELEGIDOS = ["Píldora anticonceptiva", "Inyección hormonal / DEPO", "Preservativo masculino",
+                        "Ligadura de trompas / Vasectomía", "Implante subdérmico", "DIU", "Píldora del dia después",
                         "Métodos naturales (calendário, muco, coitus interruptus, temperatura)", "Preservativo feminino",
-                        "Preservativo masculino", "Píldora anticonceptiva", "Píldora del dia después", "Ninguno"]
+                        "Diafragma", "Espermicida", "Esponja", "Anillo vaginal", "Ninguno"]
 SSR_METODOS_ACTUALES = SSR_METODOS_ELEGIDOS[:-1] + ["Otro (no convencional)"]
+SSR_EMBARAZO_ANTERIOR = ["> 2 AÑOS", "< 2 AÑOS", "No hubo embarazo"]
 SSR_VACUNAS = ["Td (toxoide tetánico)", "VPH (VIRUS PAPILOMA HUMANO)", "HEPATITIS B:", "SRP (SARAMPIÓN-RUBEOLA):"]
 SSR_SERVICIO_SALUD = "MdM-Salud sexual y reproductiva"
 SSR_SERVICIOS_SALUD = ["MdM - Atención primaria", "MdM-Salud sexual y reproductiva", "MdM-Salud mental y apoyo psicosocial",

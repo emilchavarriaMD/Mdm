@@ -355,14 +355,17 @@ class UITests(unittest.TestCase):
             self.assertEqual(fr.winfo_manager(), "pack")
         self.assertFalse(dlg.ssr_viol_o.winfo_manager())
         dlg.w["ssr_its_cual"].set_value("Sífilis")
-        dlg.w["ssr_metodos_actuales"].set_value(["DIU"])
+        dlg.w["ssr_act_1"].set_value("DIU"); dlg.w["ssr_embarazo_actual"].set_value("No")
         for k, v in {"estado_civil": "Soltero/a", "escolaridad": "Primaria", "ocupacion": "Estudiante",
                      "discapacidad": "No", "derivado": "No", "tipo_consulta": "Primera"}.items():
             dlg.w[k].set_value(v)
         dlg._ok()
         r = dlg.result
         self.assertIsNotNone(r)
-        self.assertEqual((r["ssr"]["its_cual"], r["ssr"]["metodos_actuales"], r["ssr"]["ya_planifica"]), ("Sífilis", ["DIU"], "Sí"))
+        self.assertEqual((r["ssr"]["its_cual"], r["ssr"]["metodos_actuales"], r["ssr"]["ya_planifica"], r["ssr"]["embarazo_actual"]),
+                         ("Sífilis", ["DIU"], "Sí", "No"))
+        self.assertEqual(ai.SSR_METODOS_ELEGIDOS[:2], ["Píldora anticonceptiva", "Inyección hormonal / DEPO"])
+        self.assertEqual(ai.SSR_METODOS_ELEGIDOS[-2], "Anillo vaginal")
         self.assertEqual(r["ssr"]["dx"][0]["descripcion"], "Vaginosis bacteriana")
         self.assertEqual(r["ssr"]["n_dx"], len(r["ssr"]["dx"]))
         p = ai.payload(r)

@@ -109,7 +109,7 @@ Los diagnósticos salen en el mismo formato que los de APS (uno por cada diagnó
 un equivalente cuando el nombre coincide exactamente o es un sinónimo conocido. Todo queda vacío por defecto (salvo los defaults
 indicados y Servicio brindado = Salud / «MdM-Salud sexual y reproductiva»). La sección sigue el orden del subformulario: HEA, examen físico y plan propios (copian los de APS y se pueden editar), y los campos
 que dependen de otro aparecen al elegirlo (violencia → tipo; ITS «Sí» → ¿Cuál?; ITU «Sí» → ¿complicada? y n.º de episodios; consejería
-«Si» → ¿Ya planifica?, métodos y acceso). No se llenan: antecedentes obstétricos, menarquía y demás campos de ficha larga, signos
+«Si» → ¿Ya planifica?, métodos y acceso). Los métodos anticonceptivos se eligen en listas ordenadas por frecuencia de uso (píldora, inyectable, condón… anillo vaginal al final). También hay antecedentes obstétricos (embarazo actual/anterior, FUM, control prenatal, gestaciones…). No se llenan: menarquía y demás campos de ficha larga, signos
 vitales/peso de SSR, medicamentos, lista de verificación de embarazo y los otros campos condicionales de SSR.
 
 ## Cambios

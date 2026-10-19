@@ -64,6 +64,8 @@ LEER = """() => {
         vgen: [...document.querySelectorAll('#ssr #vgen input:checked')].map(x => x.value), itscual: (q('#itscual') || {}).value,
         ituc: (q('#ituc input') || {}).value, ituN: (q('#ituN') || {}).value, yap: rr('yap'),
         mact: [...document.querySelectorAll('#ssr #mact input:checked')].map(x => x.value),
+        emb: rr('emb'), cfum: rr('cfum'), fum: (q('#fum') || {}).value, cpn: rr('cpn'), cpnl: (q('#cpnl') || {}).value,
+        eant: rr('eant'), ob0: (q('#ob0') || {}).value, ob6: (q('#ob6') || {}).value, lact: rr('lact'),
         mel: [...document.querySelectorAll('#ssr #mel input:checked')].map(x => x.value), acc: rr('acc') }; })(),
     aps_abierto: !!document.getElementById('aps'),
   };
@@ -130,7 +132,8 @@ class T08_LlenadoSimulado(unittest.TestCase):
                              {"abrev": "Cand", "descripcion": "Candidiasis vulvovaginal", "cie11": "1F23.10"}], "n_dx": 2,
                       "violencia": "Violencia Basada en Género", "viol_genero": "Violencia sexual", "its": "Sí", "its_cual": "Sífilis",
                       "itu": "Sí", "itu_complicada": "No", "itu_episodios": "2", "ya_planifica": "Sí",
-                      "metodos_actuales": ["DIU"], "metodos_elegidos": ["Preservativo masculino"], "acceso": "Sí",
+                      "embarazo_actual": "Sí", "conoce_fum": "Sí", "fum": "2026-08-01", "cpn": "Sí", "cpn_lugar": "Hospital",
+                      "embarazo_anterior": "< 2 AÑOS", "gestaciones": "2", "hijos_muertos": "0", "lactancia": "Sí", "metodos_actuales": ["DIU"], "metodos_elegidos": ["Preservativo masculino"], "acceso": "Sí",
                       "hea": "HEA de SSR", "examen_fisico": "Examen SSR", "plan": "Plan SSR", "vph": "No", "papanicolau": "Sí", "examen_mama": "No",
                       "vacunacion": ["Td (toxoide tetánico)", "HEPATITIS B:"], "observaciones": "Obs gral", "obs_dx": "Obs dx",
                       "consejeria": "Si", "va_derivado": "Sí", "transfronteriza": "No", "servicio_brindado": "Salud",
@@ -160,6 +163,8 @@ class T08_LlenadoSimulado(unittest.TestCase):
         self.assertEqual((s["violencia"], s["its"], s["itu"], s["vph"], s["papa"], s["mama"]),
                          ("Violencia Basada en Género", "Sí", "Sí", "No", "Sí", "No"))
         self.assertEqual((s["vgen"], s["itscual"], s["ituc"], s["ituN"]), (["Violencia sexual"], "Sífilis", "No", "2"))
+        self.assertEqual((s["emb"], s["cfum"], s["fum"], s["cpn"], s["cpnl"]), ("Sí", "Sí", "2026-08-01", "Sí", "Hospital"))
+        self.assertEqual((s["eant"], s["ob0"], s["ob6"], s["lact"]), ("< 2 AÑOS", "2", "0", "Sí"))
         self.assertEqual((s["yap"], s["mact"], s["mel"], s["acc"]), ("Sí", ["DIU"], ["Preservativo masculino"], "Sí"))
         self.assertEqual(s["vacuna"], ["Td (toxoide tetánico)", "HEPATITIS B:"])
         self.assertEqual((s["obs"], s["obsdx"], s["conse"]), ("Obs gral", "Obs dx", "Si"))

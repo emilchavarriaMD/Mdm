@@ -329,18 +329,54 @@ class ActivityInfoDialog(_Modal):
         titulo("Antecedentes")
         ga = ttk.Frame(f)
         ga.pack(fill="x")
-        gr = widgets.FormGrid(ga, 3)
-        combo("ssr_its", "Antecedentes de ITS", ai.SSR_SI_NO_NS, ga, gr)
+        col_its = ttk.Frame(ga)
+        col_its.pack(side="left", anchor="n", padx=(0, 14))
+        col_itu = ttk.Frame(ga)
+        col_itu.pack(side="left", anchor="n")
+        top_its = ttk.Frame(col_its)
+        top_its.pack(fill="x")
+        combo("ssr_its", "Antecedentes de ITS", ai.SSR_SI_NO_NS, top_its, widgets.FormGrid(top_its, 1))
         self.w["ssr_its"].bind("<<ComboboxSelected>>", lambda e: self._ssr_condicionales())
-        combo("ssr_itu", "Antecedentes de ITU", ai.SSR_SI_NO_NS, ga, gr)
+        self.ssr_its_x = ttk.Frame(col_its)          # lo de ITS va debajo de ITS
+        entry("ssr_its_cual", "¿Cuál?", self.ssr_its_x, widgets.FormGrid(self.ssr_its_x, 1))
+        top_itu = ttk.Frame(col_itu)
+        top_itu.pack(fill="x")
+        combo("ssr_itu", "Antecedentes de ITU", ai.SSR_SI_NO_NS, top_itu, widgets.FormGrid(top_itu, 1))
         self.w["ssr_itu"].bind("<<ComboboxSelected>>", lambda e: self._ssr_condicionales())
-        self.ssr_its_x = ttk.Frame(f)
-        entry("ssr_its_cual", "Antecedentes de ITS: ¿Cuál?", self.ssr_its_x, widgets.FormGrid(self.ssr_its_x, 3))
-        self.ssr_itu_x = ttk.Frame(f)
-        gu = widgets.FormGrid(self.ssr_itu_x, 3)
+        self.ssr_itu_x = ttk.Frame(col_itu)          # lo de ITU va debajo de ITU
+        gu = widgets.FormGrid(self.ssr_itu_x, 1)
         combo("ssr_itu_complicada", "¿ITU complicada?", ai.SI_NO, self.ssr_itu_x, gu)
         entry("ssr_itu_episodios", "Número de episodios de ITU al año", self.ssr_itu_x, gu)
         self._ssr_ga = ga
+        titulo("Antecedentes obstétricos")
+        gob = ttk.Frame(f)
+        gob.pack(fill="x")
+        gobg = widgets.FormGrid(gob, 3)
+        combo("ssr_embarazo_actual", "Embarazo actual", ai.SI_NO, gob, gobg)
+        combo("ssr_embarazo_anterior", "Embarazo anterior", ai.SSR_EMBARAZO_ANTERIOR, gob, gobg)
+        for k in ("ssr_embarazo_actual", "ssr_embarazo_anterior"):
+            self.w[k].bind("<<ComboboxSelected>>", lambda e: self._ssr_condicionales())
+        self._ssr_gob = gob
+        self.ssr_emb_x = ttk.Frame(f)           # solo con embarazo actual «Sí»
+        ge = ttk.Frame(self.ssr_emb_x)
+        ge.pack(fill="x")
+        gege = widgets.FormGrid(ge, 3)
+        combo("ssr_conoce_fum", "¿Conoce la fecha de la última menstruación?", ai.SI_NO, ge, gege)
+        self.w["ssr_conoce_fum"].bind("<<ComboboxSelected>>", lambda e: self._ssr_condicionales())
+        combo("ssr_cpn", "¿Ha tenido control prenatal anterior?", ai.SI_NO, ge, gege)
+        self.w["ssr_cpn"].bind("<<ComboboxSelected>>", lambda e: self._ssr_condicionales())
+        self.ssr_fum_x = ttk.Frame(self.ssr_emb_x)
+        gf_ = widgets.FormGrid(self.ssr_fum_x, 3)
+        entry("ssr_fum", "FUM (AAAA-MM-DD)", self.ssr_fum_x, gf_)
+        entry("ssr_eg_manual", "Edad gestacional (manual, semanas)", self.ssr_fum_x, gf_)
+        self.ssr_cpn_x = ttk.Frame(self.ssr_emb_x)
+        entry("ssr_cpn_lugar", "Lugar de control prenatal", self.ssr_cpn_x, widgets.FormGrid(self.ssr_cpn_x, 3))
+        self.ssr_ant_obst = ttk.Frame(f)        # con embarazo anterior distinto de «No hubo embarazo»
+        gq = widgets.FormGrid(self.ssr_ant_obst, 4)
+        for k, lab in (("gestaciones", "Gestaciones"), ("partos", "Partos"), ("cesareas", "Cesáreas"), ("abortos", "Abortos"),
+                       ("obitos", "Óbitos"), ("hijos_vivos", "Hijos vivos"), ("hijos_muertos", "Hijos muertos")):
+            entry("ssr_" + k, lab, self.ssr_ant_obst, gq)
+        combo("ssr_lactancia", "Lactancia materna", ai.SI_NO, self.ssr_ant_obst, gq)
         ttk.Label(f, text="Vacunación (marque las que apliquen)").pack(anchor="w", pady=(8, 0))
         self.w["ssr_vacunacion"] = ChecksField(f, ai.SSR_VACUNAS, columns=2)
         self.w["ssr_vacunacion"].pack(anchor="w")
@@ -395,12 +431,18 @@ class ActivityInfoDialog(_Modal):
         self.w["ssr_ya_planifica"].bind("<<ComboboxSelected>>", lambda e: self._ssr_condicionales())
         combo("ssr_acceso", "Acceso", ai.SI_NO, gm2, grm2)
         self.ssr_actuales = ttk.Frame(self.ssr_met)    # solo si ya planifica
-        ttk.Label(self.ssr_actuales, text="Método/s anticonceptivo/s actual/es").pack(anchor="w", pady=(6, 0))
-        self.w["ssr_metodos_actuales"] = ChecksField(self.ssr_actuales, ai.SSR_METODOS_ACTUALES, columns=2)
-        self.w["ssr_metodos_actuales"].pack(anchor="w")
-        ttk.Label(self.ssr_met, text="Método/s anticonceptivo/s elegido/s").pack(anchor="w", pady=(6, 0))
-        self.w["ssr_metodos_elegidos"] = ChecksField(self.ssr_met, ai.SSR_METODOS_ELEGIDOS, columns=2)
-        self.w["ssr_metodos_elegidos"].pack(anchor="w")
+        ga2 = ttk.Frame(self.ssr_actuales)
+        ga2.pack(fill="x")
+        gra = widgets.FormGrid(ga2, 3)
+        combo("ssr_act_1", "Método actual 1", ai.SSR_METODOS_ACTUALES, ga2, gra)
+        combo("ssr_act_2", "Método actual 2 (opcional)", ai.SSR_METODOS_ACTUALES, ga2, gra)
+        ge2 = ttk.Frame(self.ssr_met)
+        ge2.pack(fill="x")
+        gre2 = widgets.FormGrid(ge2, 3)
+        combo("ssr_eleg_1", "Método elegido 1", ai.SSR_METODOS_ELEGIDOS, ge2, gre2)
+        combo("ssr_eleg_2", "Método elegido 2 (opcional)", ai.SSR_METODOS_ELEGIDOS, ge2, gre2)
+        ttk.Label(self.ssr_met, text="Las listas van de los métodos más usados a los menos usados.",
+                  style="Muted.TLabel").pack(anchor="w")
 
         titulo("Plan (SSR)")
         nota("Por ahora solo «Plan». Vacío = no se llena.")
@@ -428,19 +470,27 @@ class ActivityInfoDialog(_Modal):
 
     def _ssr_condicionales(self):
         """Muestra u oculta lo que en ActivityInfo solo aparece según lo elegido (violencia, ITS, ITU, consejería)."""
-        for fr in (self.ssr_viol_g, self.ssr_viol_o, self.ssr_its_x, self.ssr_itu_x, self.ssr_met):
+        for fr in (self.ssr_viol_g, self.ssr_viol_o, self.ssr_its_x, self.ssr_itu_x, self.ssr_met, self.ssr_emb_x,
+                   self.ssr_fum_x, self.ssr_cpn_x, self.ssr_ant_obst):
             fr.pack_forget()
         v = self.w["ssr_violencia"].get_value()
         if v == "Violencia Basada en Género":
             self.ssr_viol_g.pack(fill="x", after=self._ssr_gf5)
         elif v == "Otra Situación de Violencia":
             self.ssr_viol_o.pack(fill="x", after=self._ssr_gf5)
-        ancla = self._ssr_ga
         if self.w["ssr_its"].get_value() == "Sí":
-            self.ssr_its_x.pack(fill="x", after=ancla)
-            ancla = self.ssr_its_x
+            self.ssr_its_x.pack(fill="x")
         if self.w["ssr_itu"].get_value() == "Sí":
-            self.ssr_itu_x.pack(fill="x", after=ancla)
+            self.ssr_itu_x.pack(fill="x")
+        if self.w["ssr_embarazo_actual"].get_value() == "Sí":
+            self.ssr_emb_x.pack(fill="x", after=self._ssr_gob)
+            if self.w["ssr_conoce_fum"].get_value():
+                self.ssr_fum_x.pack(fill="x")
+            if self.w["ssr_cpn"].get_value() == "Sí":
+                self.ssr_cpn_x.pack(fill="x")
+        ant = self.w["ssr_embarazo_anterior"].get_value()
+        if ant and ant != "No hubo embarazo":
+            self.ssr_ant_obst.pack(fill="x", after=self.ssr_emb_x if self.ssr_emb_x.winfo_manager() else self._ssr_gob)
         cons = self.w["ssr_consejeria"].get_value() == "Si"
         if cons:
             self.ssr_met.pack(fill="x", after=self._ssr_gm)
@@ -580,6 +630,7 @@ class ActivityInfoDialog(_Modal):
         if quiere_ssr:
             tipo = self.w["ssr_tipo"].get_value() or (data.get("tipo_consulta") if data.get("tipo_consulta") in ai.TIPOS_SSR else "")
             W = lambda k: self.w[k].get_value()  # noqa: E731
+            uniq = lambda *ks: [v for i, v in enumerate([W(k) for k in ks]) if v and v not in [W(k) for k in ks][:i]]  # noqa: E731
             data["ssr"] = {"mismo_punto": W("ssr_mismo_punto"), "mismo_proy": W("ssr_mismo_proy"),
                            "tipo": tipo, "ficha": W("ssr_ficha"),
                            "recibio_aps": W("ssr_recibio_aps") if "Atención Primaria de Salud" in data["consultas"] else "",
@@ -598,8 +649,18 @@ class ActivityInfoDialog(_Modal):
                            "obs_dx": W("ssr_obs_dx").strip(), "consejeria": W("ssr_consejeria"),
                            "ya_planifica": W("ssr_ya_planifica") if W("ssr_consejeria") == "Si" else "",
                            "acceso": W("ssr_acceso") if W("ssr_consejeria") == "Si" else "",
-                           "metodos_actuales": W("ssr_metodos_actuales") if W("ssr_ya_planifica") == "Sí" and W("ssr_consejeria") == "Si" else [],
-                           "metodos_elegidos": W("ssr_metodos_elegidos") if W("ssr_consejeria") == "Si" else [],
+                           "embarazo_actual": W("ssr_embarazo_actual"), "embarazo_anterior": W("ssr_embarazo_anterior"),
+                           **({"conoce_fum": W("ssr_conoce_fum"), "cpn": W("ssr_cpn"),
+                               "fum": W("ssr_fum").strip() if W("ssr_conoce_fum") == "Sí" else "",
+                               "eg_manual": W("ssr_eg_manual").strip() if W("ssr_conoce_fum") == "No" else "",
+                               "cpn_lugar": W("ssr_cpn_lugar").strip() if W("ssr_cpn") == "Sí" else ""}
+                              if W("ssr_embarazo_actual") == "Sí" else {}),
+                           **({k: W("ssr_" + k).strip() for k in ("gestaciones", "partos", "cesareas", "abortos", "obitos",
+                                                                    "hijos_vivos", "hijos_muertos")}
+                              if W("ssr_embarazo_anterior") not in ("", "No hubo embarazo") else {}),
+                           "lactancia": W("ssr_lactancia") if W("ssr_embarazo_anterior") not in ("", "No hubo embarazo") else "",
+                           "metodos_actuales": uniq("ssr_act_1", "ssr_act_2") if W("ssr_ya_planifica") == "Sí" and W("ssr_consejeria") == "Si" else [],
+                           "metodos_elegidos": uniq("ssr_eleg_1", "ssr_eleg_2") if W("ssr_consejeria") == "Si" else [],
                            "plan": self.ssr_plan.get("1.0", "end").strip(),
                            "va_derivado": W("ssr_va_derivado"), "victima_sexual": W("ssr_victima_sexual")}
             if data["ssr"]["va_derivado"] == "Sí":

@@ -221,6 +221,32 @@ function openSsr() {
     if (v === "Sí") { const a = field("¿ITU complicada?", lookup("ituc", "¿ITU complicada?", ["Sí", "No"])); a.id = "ituc"; const b = text("ituN", "Número de episodios de ITU al año"); itu.after(a); a.after(b); }
   });
   ssr.appendChild(itu);
+  const emb = radios("emb", "Embarazo actual*", ["Sí", "No"], (v) => {
+    document.querySelectorAll(".ex").forEach((q) => q.remove());
+    if (v !== "Sí") return;
+    const cf = radios("cfum", "¿Conoce la fecha de la última menstruación?*", ["Sí", "No"], (w) => {
+      document.querySelectorAll(".fx").forEach((q) => q.remove());
+      const t = w === "Sí" ? text("fum", "Fecha de la última menstruación - FUM") : text("egm", "Edad Gestacional (manual)");
+      t.classList.add("fx", "ex"); cf.after(t);
+    });
+    const cp = radios("cpn", "¿Ha tenido control prenatal anterior?*", ["Sí", "No"], (w) => {
+      const l = document.getElementById("cpnl"); if (l) l.remove();
+      if (w === "Sí") { const t = text("cpnl", "Lugar de Control Prenatal"); t.classList.add("ex"); cp.after(t); }
+    });
+    cf.classList.add("ex"); cp.classList.add("ex");
+    emb.after(cf); cf.after(cp);
+  });
+  ssr.appendChild(emb);
+  const ant = radios("eant", "Embarazo Anterior", ["> 2 AÑOS", "< 2 AÑOS", "No hubo embarazo"], (v) => {
+    document.querySelectorAll(".ox").forEach((q) => q.remove());
+    if (v === "No hubo embarazo") return;
+    let last = ant;
+    ["Gestaciones", "Partos", "Cesáreas", "Abortos", "Óbitos", "Hijos vivos", "Hijos muertos"].forEach((n, i) => {
+      const t = text("ob" + i, n); t.classList.add("ox"); last.after(t); last = t;
+    });
+  });
+  ssr.appendChild(ant);
+  ssr.appendChild(radios("lact", "Lactancia Materna", ["Sí", "No"]));
   ssr.appendChild(checks("vacuna", "Vacunación", ["Td (toxoide tetánico)", "VPH (VIRUS PAPILOMA HUMANO)", "HEPATITIS B:", "SRP (SARAMPIÓN-RUBEOLA):"]));
   ssr.appendChild(radios("vph", "VPH", ["Sí", "No"]));
   ssr.appendChild(radios("papa", "Papanicolau", ["Sí", "No"]));
