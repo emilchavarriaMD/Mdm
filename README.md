@@ -113,6 +113,7 @@ que dependen de otro aparecen al elegirlo (violencia → tipo; ITS «Sí» → �
 vitales/peso de SSR, medicamentos, lista de verificación de embarazo y los otros campos condicionales de SSR.
 
 ## Cambios
+- **1.6** — Examen físico por secciones (General, Cabeza, ORL, Cuello, Tórax, Corazón, Pulmones, Abdomen, Extremidades, Genitourinario) que cambia según los diagnósticos elegidos (APS y SSR). Genitourinario: siempre en SSR; en APS solo si un diagnóstico lo requiere. El abdomen siempre dice que no se explora. Se regenera al cambiar diagnósticos salvo que se edite a mano.
 - **1.5** — HEA nueva: banco ampliado y rehecho para las listas de APS (326) y de SSR (todas con HEA propia, p. ej. vaginosis bacteriana, cervicitis,
   dismenorrea, mastitis, obstétricos). 14 versiones por diagnóstico, sin repetirse; la HEA sale de los diagnósticos de APS **y** de SSR y es la
   misma en las dos secciones. Se regenera con `python3 tools/hea_gen.py` (fichas en `tools/hea_specs_*.py`).

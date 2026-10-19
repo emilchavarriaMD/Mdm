@@ -200,3 +200,27 @@ class T08_BancoNuevo(unittest.TestCase):
             self.assertNotIn("None", t)
             self.assertEqual(len(re.findall(r"Beneficiaria", t)), 1, t)
 
+
+
+class T09_ExamenFisico(unittest.TestCase):
+    def test_orden_y_normal(self):
+        from services import examen_fisico as e
+        t = e.compose([])
+        tit = [l.split(":")[0] for l in t.split("\n")]
+        self.assertEqual(tit, ["General", "Cabeza", "ORL", "Cuello", "Tórax", "Corazón", "Pulmones", "Abdomen", "Extremidades"])
+        self.assertIn("falta de espacio clínico", t)
+        self.assertEqual(e.compose([], ssr=True).split("\n")[-1][:14], "Genitourinario")
+
+    def test_vaginitis(self):
+        from services import examen_fisico as e
+        t = e.compose(["Vaginitis aguda"], ssr=False)
+        self.assertIn("Genitourinario", t)
+        for w in ("purulento", "amarillento", "fétido", "abundante"):
+            self.assertIn(w, t)
+
+    def test_varios_dx(self):
+        from services import examen_fisico as e
+        t = e.compose(["Amigdalitis aguda, sin especificación", "Cervicalgia"])
+        self.assertIn("amígdalas hipertróficas", t)
+        self.assertIn("contractura", t)
+        self.assertNotIn("Genitourinario", t)

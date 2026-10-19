@@ -345,7 +345,9 @@ class UITests(unittest.TestCase):
         self.assertEqual(dlg.ssr_der_extra.winfo_manager(), "pack")
         # campos que dependen de lo elegido
         self.assertEqual(dlg.ssr_hea.get("1.0", "end").strip(), dlg.hea.get("1.0", "end").strip())   # HEA propia, copia de APS
-        self.assertEqual(dlg.ssr_examen.get("1.0", "end").strip(), "Cefalo-caudal")
+        ex = dlg.ssr_examen.get("1.0", "end")
+        self.assertIn("Genitourinario", ex)
+        self.assertIn("grisáceo", ex)                              # vaginosis → hallazgo propio en genitourinario
         self.assertEqual(dlg.ssr_plan.get("1.0", "end").strip(), "Plan")
         self.assertFalse(dlg.ssr_its_x.winfo_manager())
         self.assertEqual(dlg.ssr_larga.winfo_manager(), "pack")            # ficha larga: menarquía, citología…

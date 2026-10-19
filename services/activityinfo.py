@@ -99,15 +99,9 @@ SSR_SERVICIOS_SALUD = ["MdM - Atención primaria", "MdM-Salud sexual y reproduct
 PERMITIR_ESTA_HECHO_EN_APS = True
 
 # Texto inicial de «Examen Físico» (después habrá una biblioteca de exámenes). La talla no se toma ni se llena.
-EXAMEN_FISICO_APS = (
-    "Paciente consciente, orientada/o, hidratada/o, afebril y en aceptable estado general. Cabeza normocéfala, sin masas ni "
-    "lesiones. Ojos con pupilas isocóricas normorreactivas, conjuntivas rosadas y escleras anictéricas; oídos con conductos "
-    "permeables y membranas timpánicas íntegras; nariz con fosas permeables sin secreción; orofaringe sin hiperemia ni exudado. "
-    "Cuello simétrico, móvil, sin adenopatías ni masas, tiroides no palpable. Tórax simétrico con buena expansibilidad, sin "
-    "tiraje. Corazón con ruidos rítmicos, sin soplos. Pulmones con murmullo vesicular conservado, sin ruidos agregados. "
-    "Abdomen no explorable de forma adecuada por falta de espacio clínico apropiado. Extremidades simétricas, sin edema ni "
-    "deformidades, con movilidad y fuerza conservadas.")
-EXAMEN_FISICO_SSR = EXAMEN_FISICO_APS + " Genitourinario sin alteraciones evidentes, puño percusión lumbar negativa."
+from services import examen_fisico as _exa
+EXAMEN_FISICO_APS = _exa.compose([], ssr=False)
+EXAMEN_FISICO_SSR = _exa.compose([], ssr=True)
 EXAMEN_FISICO_BASE = EXAMEN_FISICO_APS
 
 DERIVADO = ["Sí", "No"]

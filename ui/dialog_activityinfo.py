@@ -6,6 +6,7 @@ from services import activityinfo as ai
 from services import cie11_catalog as cat
 from services import cie11_ssr as ssr_cat
 from services import hea_banco
+from services import examen_fisico
 from ui import dialogs, widgets
 from ui.dialogs import _Modal
 
@@ -181,11 +182,12 @@ class ActivityInfoDialog(_Modal):
         self.hea_aviso.pack(anchor="w")
         ttk.Label(f_exa, text="Examen físico — se escribe en «Examen Físico» de APS", style="H2.TLabel").pack(
             anchor="w", pady=(12, 2))
-        ttk.Label(f_exa, text="Examen céfalo-caudal normal por defecto (sin genitourinario). Puede escribir o "
-                  "corregir el texto; vacío = no se llena.", style="Muted.TLabel", wraplength=780,
+        ttk.Label(f_exa, text="Examen céfalo-caudal normal; cada sección cambia según los diagnósticos elegidos "
+                  "(genitourinario solo si algún diagnóstico lo requiere). Puede corregir el texto; vacío = no se llena.", style="Muted.TLabel", wraplength=780,
                   justify="left").pack(anchor="w")
-        self.examen = tk.Text(f_exa, height=7, wrap="word", font=("Segoe UI", 10), relief="solid", bd=1)
+        self.examen = tk.Text(f_exa, height=11, wrap="word", font=("Segoe UI", 10), relief="solid", bd=1)
         self.examen.insert("1.0", defaults.get("examen_fisico", ""))
+        self._exa_auto = defaults.get("examen_fisico", "")
         self.examen.pack(fill="x")
         ttk.Label(f_plan, text="Plan — se escribe en «Plan» de APS", style="H2.TLabel").pack(anchor="w", pady=(12, 2))
         ttk.Label(f_plan, text="Por ahora solo «Plan»; luego habrá un repertorio. Puede escribir o corregir el texto; "
@@ -222,6 +224,11 @@ class ActivityInfoDialog(_Modal):
         self._construir_ssr(defaults)
         self._hea_auto = defaults.get("hea", "")      # último texto generado: si la persona lo cambia, se respeta
         self._dx_vistos = self._clave_hea()
+        if self._exa_auto.strip() != examen_fisico.compose([], ssr=False).strip():
+            self._exa_auto = "\0"        # texto puesto a mano desde fuera: no se pisa
+        if self._ssr_exa_auto.strip() != examen_fisico.compose([], ssr=True).strip():
+            self._ssr_exa_auto = "\0"
+        self._regen_examen()
         # si se corrige el género o la edad en esta ventana, la HEA se actualiza (salvo que ya la haya editado)
         self.w["genero"].bind("<<ComboboxSelected>>", lambda e: (self._ajustar_vitales(), self._regen_hea(True),
                                                                  self._ssr_condicionales()))
@@ -424,7 +431,8 @@ class ActivityInfoDialog(_Modal):
 
         titulo("Exámen físico (SSR)")
         nota("Examen céfalo-caudal normal, con genitourinario. Puede corregirlo; vacío = no se llena.")
-        self.ssr_examen = caja("Examen", 5, defaults.get("ssr_examen_fisico", defaults.get("examen_fisico", "")))
+        self.ssr_examen = caja("Examen", 11, defaults.get("ssr_examen_fisico", defaults.get("examen_fisico", "")))
+        self._ssr_exa_auto = defaults.get("ssr_examen_fisico", defaults.get("examen_fisico", ""))
 
         titulo("Diagnósticos — lista de ActivityInfo SSR (descripción y código)")
         self._ssr_labels = [ssr_cat.label(d) for d in ssr_cat.descriptions()]
@@ -601,10 +609,24 @@ class ActivityInfoDialog(_Modal):
         p = self._persona()
         return (tuple(self._dx_hea()), p.get("sexo"), p.get("edad"), p.get("unidad"))
 
+    def _regen_examen(self):
+        """Examen físico por secciones según los diagnósticos; si se editó a mano, no se pisa."""
+        def poner(caja, texto, auto_attr):
+            if caja.get("1.0", "end").strip() != getattr(self, auto_attr, "").strip():
+                return
+            caja.delete("1.0", "end")
+            caja.insert("1.0", texto)
+            setattr(self, auto_attr, texto)
+        aps = [d for d in self._dx_actuales() if d]
+        poner(self.examen, examen_fisico.compose(aps, ssr=False), "_exa_auto")
+        if hasattr(self, "ssr_examen"):
+            poner(self.ssr_examen, examen_fisico.compose([d for d in self._dx_hea() if d], ssr=True), "_ssr_exa_auto")
+
     def _regen_hea(self, solo_si_cambio):
         """Vuelve a armar la HEA con los diagnósticos elegidos. Si la persona editó el texto a mano, no lo pisa
         (salvo con «Otra versión»)."""
         self._marcar_fuentes()
+        self._regen_examen()
         dxs = self._dx_hea()
         if solo_si_cambio:
             clave = self._clave_hea()
