@@ -1,6 +1,7 @@
 /* Llena el formulario de ActivityInfo. NUNCA pulsa Guardar registro ni Guardar como borrador. */
 (function () {
-  if (window.__mdm) return;
+  const VERSION = 6;
+  if (window.__mdm && window.__mdm.version === VERSION) return;   // una versión vieja en la pestaña se reemplaza
   const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
   const norm = (s) => (s || "").replace(/\s+/g, " ").replace(/\*/g, "").replace(/OBLIGATORIO/g, "").trim().toLowerCase();
   const plain = (s) => norm(s).normalize("NFD").replace(/[\u0300-\u036f]/g, "");   // sin tildes ni mayúsculas
@@ -46,14 +47,25 @@
     const l = findLabel(label, within); if (!l) throw new Error("No encontré el campo: " + label);
     const inp = inputFor(l); if (!inp) throw new Error("Lista sin cuadro: " + label);
     inp.scrollIntoView({ block: "center" }); inp.focus(); click(inp);
-    setNative(inp, String(value));
     const want = plain(value);
-    const item = await waitFor(() => {
-      const items = [...document.querySelectorAll(".listpicker__item")].filter(visible);
-      return items.find((i) => plain(i.innerText) === want) || items.find((i) => plain(i.innerText).includes(want));
-    });
+    const shown = () => [...document.querySelectorAll(".listpicker__item")].filter(visible);
+    // Las listas grandes (como los puntos de atención) tardan en cargar la primera vez: se reescribe el texto
+    // cada pocos segundos y se espera la opción EXACTA; solo si no existe se acepta la más parecida.
+    let item = null;
+    const t0 = Date.now();
+    let nudge = 0;
+    while (Date.now() - t0 < 15000 && !item) {
+      if (Date.now() - t0 >= nudge) { setNative(inp, ""); await sleep(150); setNative(inp, String(value)); nudge += 3500; }
+      await sleep(250);
+      const items = shown();
+      item = items.find((i) => plain(i.innerText) === want) || null;
+      if (!item && Date.now() - t0 > 9000) {
+        const near = items.filter((i) => plain(i.innerText).includes(want)).sort((x, y) => x.innerText.length - y.innerText.length);
+        item = near[0] || null;
+      }
+    }
     if (!item) throw new Error(`No hay opción «${value}» en «${label}»`);
-    click(item); await sleep(250);
+    click(item); await sleep(400);
     return item.innerText.trim();
   }
   async function setRadio(label, option) {
@@ -169,5 +181,5 @@
     const aps = (d.consultas || []).includes("Atención Primaria de Salud") ? await fillAps(d) : [];
     return { ficha: falla, aps: aps };
   }
-  window.__mdm = { findLabel, setText, setLookup, setRadio, setChecks, setAuto, fillFicha, fillAps, run, sleep, version: 5 };
+  window.__mdm = { findLabel, setText, setLookup, setRadio, setChecks, setAuto, fillFicha, fillAps, run, sleep, version: VERSION };
 })();
