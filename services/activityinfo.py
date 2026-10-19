@@ -38,6 +38,12 @@ DERIVADO = ["Sí", "No"]
 TIPOS_CONSULTA = ["Primera", "Reconsulta", "Seguimiento", "Tamizaje de signos vitales",
                   "Nuevo motivo de consulta", "Procedimiento terapéutico no quirúrgico"]
 CONSULTA_APS = "Atención Primaria de Salud"
+CONSULTAS = [CONSULTA_APS, "Salud Sexual y Reproductiva", "Salud Mental y Apoyo Psícosocial",
+             "Gestión de casos de VdG", "Nutrición", "Wash"]
+# Campos obligatorios del formulario que el ATA no trae: se avisa si quedan vacíos.
+OBLIGATORIOS = [("estado_civil", "Estado civil"), ("escolaridad", "Grado de escolaridad"),
+                ("ocupacion", "Sector de ocupación"), ("discapacidad", "¿Tiene alguna discapacidad?"),
+                ("derivado", "¿Ha sido derivado/a?")]
 
 # Valores fijos que se configuran una vez (pantalla Configuración).
 SETTINGS = [
@@ -119,7 +125,7 @@ def build_defaults(db, rec: dict) -> dict:
         "nombres": nombres, "apellidos": apellidos,
         "tiene_fecha_nac": "No", "edad": edad,
         "estado_civil": "", "escolaridad": "", "ocupacion": "", "discapacidad": "", "perfil": PERFIL_FIJO,
-        "derivado": "", "consulta": CONSULTA_APS, "profesional": st["ai_profesional"],
+        "derivado": "", "consultas": [CONSULTA_APS], "profesional": st["ai_profesional"],
         "tipo_consulta": "", "dx": dxs,
     }
 

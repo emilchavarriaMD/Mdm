@@ -64,6 +64,18 @@
     const el = cand[cand.length - 1]; el.scrollIntoView({ block: "center" });
     click(el.closest("label") || el); await sleep(200);
   }
+  // Casillas de varias opciones: marca solo las que faltan (nunca desmarca).
+  async function setChecks(label, options) {
+    const l = findLabel(label); if (!l) throw new Error("No encontré el grupo: " + label);
+    const box = l.closest(".forminput__field") || l.parentElement;
+    for (const opt of options) {
+      const want = norm(opt);
+      const lab = [...box.querySelectorAll("label")].find((x) => x.querySelector("input[type=checkbox]") && norm(x.textContent) === want);
+      if (!lab) throw new Error(`No hay opción «${opt}» en «${label}»`);
+      if (lab.querySelector("input").checked) continue;
+      lab.scrollIntoView({ block: "center" }); click(lab); await sleep(300);
+    }
+  }
   // Lista, texto o grupo de opciones: detecta qué es el campo.
   async function setAuto(label, value) {
     const l = findLabel(label); if (!l) throw new Error("No encontré el campo: " + label);
@@ -119,7 +131,7 @@
     if (d.discapacidad) await S("Discapacidad", () => setRadio("¿Tiene algún tipo de discapacidad?", d.discapacidad));
     if (d.perfil) await S("Perfil de población", () => setAuto("Perfil de población", d.perfil));
     if (d.derivado) await S("¿Ha sido derivado/a?", () => setRadio("¿Ha sido derivado/a?", d.derivado));
-    if (d.consulta) await S("Consulta a realizar", () => setRadio("Consulta a realizar", d.consulta));
+    if ((d.consultas || []).length) await S("Consulta a realizar", () => setChecks("Consulta a realizar", d.consultas));
     return log;
   }
 
@@ -145,8 +157,8 @@
   }
   async function run(d) {
     const falla = await fillFicha(d);
-    const aps = d.consulta === "Atención Primaria de Salud" ? await fillAps(d) : [];
+    const aps = (d.consultas || []).includes("Atención Primaria de Salud") ? await fillAps(d) : [];
     return { ficha: falla, aps: aps };
   }
-  window.__mdm = { findLabel, setText, setLookup, setRadio, setAuto, fillFicha, fillAps, run, sleep, version: 3 };
+  window.__mdm = { findLabel, setText, setLookup, setRadio, setChecks, setAuto, fillFicha, fillAps, run, sleep, version: 4 };
 })();

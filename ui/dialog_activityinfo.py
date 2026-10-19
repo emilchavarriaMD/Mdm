@@ -3,8 +3,28 @@ import tkinter as tk
 from tkinter import ttk
 
 from services import activityinfo as ai
-from ui import theme, widgets
+from ui import dialogs, theme, widgets
 from ui.dialogs import _Modal
+
+
+class ChecksField(ttk.Frame):
+    """Varias opciones marcables a la vez (por ejemplo, las consultas a realizar)."""
+
+    def __init__(self, parent, options, columns=2):
+        super().__init__(parent)
+        self.vars = {}
+        for i, opt in enumerate(options):
+            v = tk.BooleanVar(value=False)
+            self.vars[opt] = v
+            ttk.Checkbutton(self, text=opt, variable=v).grid(row=i // columns, column=i % columns,
+                                                             sticky="w", padx=(0, 18), pady=1)
+
+    def set_value(self, values):
+        for opt, v in self.vars.items():
+            v.set(opt in (values or []))
+
+    def get_value(self):
+        return [opt for opt, v in self.vars.items() if v.get()]
 
 
 class ActivityInfoDialog(_Modal):
@@ -50,7 +70,7 @@ class ActivityInfoDialog(_Modal):
         add("lugar", "Lugar de atención", E())
         add("nacionalidad", "País de nacionalidad", E())
         add("idioma", "Idioma", E())
-        add("consulta", "Consulta a realizar", C([ai.CONSULTA_APS]))
+        add("consultas", "Consulta a realizar (puede marcar más de una)", ChecksField(gf, ai.CONSULTAS), span=3)
         add("profesional", "Profesional que atiende (APS)", E())
         add("tipo_consulta", "Tipo de consulta (APS)", C(ai.TIPOS_CONSULTA))
 
@@ -73,7 +93,19 @@ class ActivityInfoDialog(_Modal):
             side="right", padx=8)
 
     def _ok(self):
-        data = {k: w.get_value().strip() for k, w in self.w.items()}
+        data = {k: (w.get_value() if isinstance(w, ChecksField) else w.get_value().strip())
+                for k, w in self.w.items()}
+        if not data["consultas"]:
+            dialogs.info(self, "Marque al menos una consulta a realizar.")
+            return
+        falta = [t for k, t in ai.OBLIGATORIOS if not data.get(k)]
+        if "Atención Primaria de Salud" in data["consultas"] and not data.get("tipo_consulta"):
+            falta.append("Tipo de consulta (APS)")
+        if falta and not dialogs.confirm(
+                self, "Faltan datos obligatorios", "Estos campos obligatorios están vacíos y quedarán sin llenar "
+                "en ActivityInfo:\n\n" + "\n".join(f"• {t}" for t in falta) + "\n\n¿Abrir Chrome de todos modos?",
+                yes="Abrir de todos modos", no="Volver y elegir"):
+            return
         data["tiene_fecha_nac"] = "No"  # siempre se usa la edad
         data["dx"] = self.defaults.get("dx") or []
         self.result = data

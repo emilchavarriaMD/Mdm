@@ -233,6 +233,23 @@ class UITests(unittest.TestCase):
         self.assertEqual(p["n_dx"], 1)
         self.assertNotIn("dx", p)
 
+    def test_04b_ventana_con_varias_consultas(self):
+        from services import activityinfo as ai
+        from ui.dialog_activityinfo import ActivityInfoDialog
+        d = ai.build_defaults(self.db, {"nombre": "Ana Pérez López", "sexo": "M", "fecha": "2026-10-15",
+                                        "edad_anios": "30"})
+        self.assertEqual(d["consultas"], [ai.CONSULTA_APS])
+        dlg = ActivityInfoDialog(self.root, d)
+        dlg.w["consultas"].set_value([ai.CONSULTA_APS, "Nutrición"])
+        for k, v in {"estado_civil": "Soltero/a", "escolaridad": "Primaria", "ocupacion": "Estudiante",
+                     "discapacidad": "No", "derivado": "No", "tipo_consulta": "Primera"}.items():
+            dlg.w[k].set_value(v)
+        dlg._ok()
+        self.assertEqual(dlg.result["consultas"], [ai.CONSULTA_APS, "Nutrición"])
+        self.assertEqual(dlg.result["tiene_fecha_nac"], "No")
+        self.assertEqual(dlg.result["edad"], "30")
+        self.assertEqual(ai.payload(dlg.result)["consultas"], [ai.CONSULTA_APS, "Nutrición"])
+
     def test_05_respaldo(self):
         import backup
         db = self.db
