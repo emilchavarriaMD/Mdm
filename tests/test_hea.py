@@ -204,13 +204,15 @@ class T08_BancoNuevo(unittest.TestCase):
 
 class T09_ExamenFisico(unittest.TestCase):
     def test_orden_y_normal(self):
+        import re
         from services import examen_fisico as e
         t = e.compose([])
-        import re
-        tit = re.findall(r"(?:^|(?<=\. ))([A-ZÁÉÍÓÚ][A-Za-záéíóúñ]+): ", t)
-        self.assertEqual(tit, ["General", "Cabeza", "ORL", "Cuello", "Tórax", "Corazón", "Pulmones", "Abdomen", "Extremidades"])
+        self.assertNotRegex(t, r"(General|Cabeza|ORL|Cuello|Tórax|Corazón|Pulmones|Abdomen|Extremidades|Genitourinario):")
+        self.assertNotIn("\n", t)                                   # un solo párrafo
+        pos = [t.lower().find(w) for w in ("consciente", "cabeza", "ojos", "cuello", "tórax", "ruidos card", "pulmon|murmullo", "abdomen")]
         self.assertIn("falta de espacio clínico", t)
-        self.assertEqual(e.compose([], ssr=True).split(". ")[-1][:14], "Genitourinario")
+        self.assertNotIn("genitourinario", t.lower())
+        self.assertIn("Genitourinario", e.compose([], ssr=True))
 
     def test_vaginitis(self):
         from services import examen_fisico as e

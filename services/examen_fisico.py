@@ -250,6 +250,33 @@ def _unir(items):
     return "; ".join(items)
 
 
+_PROPIO = {  # si el texto ya empieza nombrando la región, no se le antepone
+    "Cabeza": r"cabeza|normocef", "Cuello": r"cuello|ganglios cerv", "Tórax": r"tórax|torax",
+    "Corazón": r"corazón|ruidos card", "Pulmones": r"pulmon|campos pulm|murmullo vesicular|ventilación",
+    "Abdomen": r"abdomen", "Extremidades": r"extremidades",
+    "ORL": r"ojos|oídos|nariz|fosas|conjuntiva|membrana|conducto|mucosa|faringe|orofaringe|agudeza|párpado|inyección|opacidad|caries|hipoacusia|cuerpo extraño",
+    "General": r"paciente|recién|en aceptable|en buen|en regular|afebril|ansios|inquiet|sudoros|somnolient|alerta",
+}
+_ART = {"Cabeza": "la cabeza", "Cuello": "el cuello", "Tórax": "el tórax", "Corazón": "el corazón", "Pulmones": "los pulmones",
+        "Abdomen": "el abdomen", "Extremidades": "las extremidades", "Genitourinario": "el examen genitourinario", "ORL": "ORL"}
+_ADJ = ("sin ", "simétric", "móvil", "normo", "de ", "con ", "no explorable", "libre", "sano", "blando")
+
+
+def _frase(titulo, txt):
+    """Una oración del párrafo, sin etiqueta: nombra la región cuando el texto no lo hace."""
+    low = txt.lower()
+    if titulo == "General" or re.match(_PROPIO.get(titulo, "(?!x)x"), low):
+        pass
+    elif low.startswith(("se ", "no se ")):
+        txt = "En " + _ART.get(titulo, titulo.lower()) + " " + low
+    elif low.startswith(_ADJ):
+        txt = titulo + " " + low
+    else:
+        txt = titulo + " con " + low
+    txt = txt[:1].upper() + txt[1:]
+    return txt if txt.endswith(".") else txt + "."
+
+
 def compose(descripciones, ssr=False, rng=None):
     """Texto del examen físico, una línea por sección, en el orden céfalo-caudal."""
     rng = rng or _Primera()                # sin rng: siempre la primera redacción (estable para las pruebas)
@@ -268,11 +295,6 @@ def compose(descripciones, ssr=False, rng=None):
             pass
         if not trozos:
             continue
-        txt = ", ".join(trozos) if titulo == "ORL" else "; ".join(trozos) if titulo not in ("Extremidades", "Genitourinario") else "; ".join(trozos)
-        txt = txt.strip()
-        for pref in (titulo.lower() + " ", "extremidades " if titulo == "Extremidades" else titulo.lower() + " "):
-            if txt.lower().startswith(pref):
-                txt = txt[len(pref):]
-                break
-        lineas.append(f"{titulo}: {txt[:1].upper() + txt[1:]}.")
+        txt = (", ".join(trozos) if titulo == "ORL" else "; ".join(trozos)).strip()
+        lineas.append(_frase(titulo, txt))
     return " ".join(lineas)
