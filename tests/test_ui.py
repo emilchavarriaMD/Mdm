@@ -310,6 +310,10 @@ class UITests(unittest.TestCase):
         self.assertIn("EDITADO", dlg.hea.get("1.0", "end"))      # lo escrito a mano no se pisa
         dlg._regen_hea(False)                                     # «Otra versión» sí lo cambia
         self.assertIn("Beneficiario Masc de 7 años", dlg.hea.get("1.0", "end"))
+        self.assertEqual(dlg.examen.get("1.0", "end").strip(), "")          # sin valor inicial en este caso
+        dlg.destroy()
+        dlg = ActivityInfoDialog(self.root, dict(d, examen_fisico="Cefalo-caudal"))
+        self.assertEqual(dlg.examen.get("1.0", "end").strip(), "Cefalo-caudal")
         dlg.destroy()
 
     def test_05_respaldo(self):

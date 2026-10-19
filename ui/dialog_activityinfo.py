@@ -101,7 +101,6 @@ class ActivityInfoDialog(_Modal):
         add("fr", "Frecuencia respiratoria (resp/min) — en niños, elíjala", V(ai.LISTA_FR))
         add("temperatura", "Temperatura (ºC)", V(ai.LISTA_TEMP))
         add("peso", "Peso (kg) — escríbalo; vacío = no se llena", E())
-        add("examen_fisico", "Examen físico (por ahora solo «Cefalo-caudal»)", widgets.EntryField(gf, width=26))
         self._vit_auto = {k: self.w[k].get_value() for k in ("diastolica", "fr")}
 
         dxs = defaults.get("dx") or []
@@ -153,6 +152,14 @@ class ActivityInfoDialog(_Modal):
         self.hea.pack(fill="x")
         self.hea_aviso = ttk.Label(body, text="", style="Muted.TLabel", wraplength=780, justify="left")
         self.hea_aviso.pack(anchor="w")
+        ttk.Label(body, text="Examen físico — se escribe en «Examen Físico» de APS", style="H2.TLabel").pack(
+            anchor="w", pady=(12, 2))
+        ttk.Label(body, text="Por ahora solo «Cefalo-caudal»; luego habrá una biblioteca de exámenes. Puede escribir o "
+                  "corregir el texto; vacío = no se llena.", style="Muted.TLabel", wraplength=780,
+                  justify="left").pack(anchor="w")
+        self.examen = tk.Text(body, height=5, wrap="word", font=("Segoe UI", 10), relief="solid", bd=1)
+        self.examen.insert("1.0", defaults.get("examen_fisico", ""))
+        self.examen.pack(fill="x")
         self._hea_auto = defaults.get("hea", "")      # último texto generado: si la persona lo cambia, se respeta
         self._dx_vistos = self._clave_hea()
         # si se corrige el género o la edad en esta ventana, la HEA se actualiza (salvo que ya la haya editado)
@@ -267,6 +274,7 @@ class ActivityInfoDialog(_Modal):
         data["dx"] = dx
         data["recordar_dx"] = bool(self.recordar.get())
         data["hea"] = self.hea.get("1.0", "end").strip()
+        data["examen_fisico"] = self.examen.get("1.0", "end").strip()
         data["tiene_fecha_nac"] = "No"  # siempre se usa la edad
         self.result = data
         self.destroy()
