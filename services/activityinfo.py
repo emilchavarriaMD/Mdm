@@ -120,6 +120,7 @@ SERVICIOS_SALUD = ["MdM - Atención primaria", "MdM - Salud sexual y reproductiv
                    "Atención hospitalaria (de emergencia o no)", "Atención primaria-establecimiento de salud local",
                    "Médico especialista privado", "Otras organizaciones con servicios de salud"]
 PLAN_BASE = "Plan"
+PLAN_SSR_INICIO = "Se entregan 10 Condones."   # todo plan de SSR empieza así; sigue el plan del banco
 
 # Salud Sexual y Reproductiva (subformulario SSR de la ficha integral)
 TIPOS_SSR = ["Primera", "Reconsulta", "Seguimiento"]

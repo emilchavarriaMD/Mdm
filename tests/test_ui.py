@@ -572,6 +572,8 @@ class UITests(unittest.TestCase):
         self.assertRegex(dlg.ssr_plan.get("1.0", "end"), "alarma")     # plan general según los diagnósticos
         # planes distintos: APS solo con hipertensión (dieta baja en sal), SSR solo con vaginosis (higiene genital)
         pl_aps, pl_ssr = dlg.plan.get("1.0", "end"), dlg.ssr_plan.get("1.0", "end")
+        self.assertTrue(pl_ssr.strip().startswith("Se entregan 10 Condones."))   # todo plan de SSR empieza así
+        self.assertNotIn("Condones", pl_aps)
         self.assertIn("sal", pl_aps); self.assertNotIn("genital", pl_aps)
         self.assertIn("genital", pl_ssr); self.assertNotIn("sal ", pl_ssr)
         self.assertFalse(dlg.ssr_its_x.winfo_manager())

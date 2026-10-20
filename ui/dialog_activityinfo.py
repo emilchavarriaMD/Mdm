@@ -859,7 +859,8 @@ class ActivityInfoDialog(_Modal):
         rng = random.Random()
         poner(self.plan, plan_banco.compose([d for d in self._dx_aps_hea() if d], rng=rng), "_plan_auto")
         if hasattr(self, "ssr_plan"):
-            poner(self.ssr_plan, plan_banco.compose([d for d in (self._dx_ssr() or self._dx_hea()) if d], rng=rng), "_ssr_plan_auto")
+            cuerpo = plan_banco.compose([d for d in (self._dx_ssr() or self._dx_hea()) if d], rng=rng)
+            poner(self.ssr_plan, (ai.PLAN_SSR_INICIO + " " + cuerpo).strip(), "_ssr_plan_auto")
 
     def _regen_examen(self, forzar=False):
         """Examen físico por secciones según los diagnósticos; si se editó a mano, no se pisa (salvo «Otra versión»)."""
