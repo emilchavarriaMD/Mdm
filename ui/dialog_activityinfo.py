@@ -224,6 +224,7 @@ class ActivityInfoDialog(_Modal):
         self._construir_ssr(defaults)
         self._hea_auto = defaults.get("hea", "")      # último texto generado: si la persona lo cambia, se respeta
         self._dx_vistos = self._clave_hea()
+        self._vit_hta = self._hay_hta()          # con HTA los signos vitales proponen 140/130 y 90/80
         if self._exa_auto.strip() != examen_fisico.compose([], ssr=False).strip():
             self._exa_auto = "\0"        # texto puesto a mano desde fuera: no se pisa
         if self._ssr_exa_auto.strip() != examen_fisico.compose([], ssr=True).strip():
@@ -537,7 +538,7 @@ class ActivityInfoDialog(_Modal):
         self._ssr_larga_mujer = ttk.Frame(self.ssr_larga)
         gm_ = widgets.FormGrid(self._ssr_larga_mujer, 3)
         entry("ssr_menarquia", "Menarquía (edad en años, 9 a 20)", self._ssr_larga_mujer, gm_)
-        entry("ssr_ritmo", "Ritmo menstrual", self._ssr_larga_mujer, gm_)
+        combo("ssr_ritmo", "Ritmo menstrual", ai.SSR_RITMOS, self._ssr_larga_mujer, gm_)
         combo("ssr_trast_mens", "Trastorno menstrual", ai.SI_NO, self._ssr_larga_mujer, gm_)
         combo("ssr_menopausia", "Menopausia", ai.SI_NO, self._ssr_larga_mujer, gm_)
         wcit = widgets.CalendarEntry(self._ssr_larga_mujer)
@@ -601,7 +602,7 @@ class ActivityInfoDialog(_Modal):
         gq = widgets.FormGrid(self.ssr_ant_obst, 4)
         for k, lab in (("gestaciones", "Gestaciones"), ("partos", "Partos"), ("cesareas", "Cesáreas"), ("abortos", "Abortos"),
                        ("obitos", "Óbitos"), ("hijos_vivos", "Hijos vivos"), ("hijos_muertos", "Hijos muertos")):
-            entry("ssr_" + k, lab, self.ssr_ant_obst, gq)
+            combo("ssr_" + k, lab, ai.SSR_NUMEROS, self.ssr_ant_obst, gq)
         combo("ssr_lactancia", "Lactancia materna", ai.SI_NO, self.ssr_ant_obst, gq)
         ttk.Label(f, text="Vacunación (marque las que apliquen)").pack(anchor="w", pady=(8, 0))
         self.w["ssr_vacunacion"] = ChecksField(f, ai.SSR_VACUNAS, columns=2)
@@ -821,15 +822,20 @@ class ActivityInfoDialog(_Modal):
         else:
             self.der_extra.pack_forget()
 
+    def _hay_hta(self):
+        return any(ai.es_hta(d) for d in self._dx_actuales() if d)
+
     def _ajustar_vitales(self):
-        """Si cambian el género o la edad a otra franja (p. ej. de lactante a escolar), se proponen de nuevo los signos
-        vitales de esa franja, solo en los campos que la persona no había cambiado."""
+        """Si cambian el género o la edad a otra franja (p. ej. de lactante a escolar), o se agrega/quita un diagnóstico de
+        HTA, se proponen de nuevo los signos vitales, solo en los campos que la persona no había cambiado."""
         p = self._persona()
         grupo = ai.grupo_vitales(p.get("sexo"), p.get("edad"), p.get("unidad", "años"))
-        if grupo == self._vit_grupo:
+        hta = self._hay_hta()
+        if grupo == self._vit_grupo and hta == getattr(self, "_vit_hta", hta):
             return
         self._vit_grupo = grupo
-        nuevo = ai.vitales_defecto(p.get("sexo"), p.get("edad"), p.get("unidad", "años"))
+        self._vit_hta = hta
+        nuevo = ai.vitales_defecto(p.get("sexo"), p.get("edad"), p.get("unidad", "años"), hta=hta)
         for k in ("sistolica", "diastolica", "fc", "fr"):
             if self.w[k].get_value() == self._vit_auto.get(k):
                 self.w[k].set_value(nuevo[k])
@@ -880,6 +886,7 @@ class ActivityInfoDialog(_Modal):
         """Vuelve a armar la HEA de APS (diagnósticos de APS) y la de SSR (diagnósticos de SSR). Si la persona editó
         un texto a mano, ese no se pisa (salvo con «Otra versión»)."""
         self._marcar_fuentes()
+        self._ajustar_vitales()
         self._regen_examen()
         self._regen_plan()
         if solo_si_cambio:

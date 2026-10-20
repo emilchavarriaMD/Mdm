@@ -6,6 +6,7 @@ los campos. El programa NUNCA guarda: no pulsa «Guardar registro», «Guardar c
 Tampoco escribe contraseñas: si ActivityInfo pide iniciar sesión, la persona lo hace en la ventana.
 """
 import random
+import re
 import sys
 import time
 import webbrowser
@@ -44,7 +45,8 @@ LISTA_SISTOLICA = [str(x) for x in range(60, 251, 10)]
 LISTA_DIASTOLICA = [str(x) for x in range(30, 151, 10)]
 LISTA_FC = [str(x) for x in range(40, 201)]
 LISTA_FR = [str(x) for x in range(10, 51)]
-LISTA_TEMP = [f"{x / 10:.1f}" for x in range(350, 411)]      # 35.0 a 41.0, un decimal
+# Temperatura: primero los grados enteros (35 a 41) y después los décimos (35.1 a 40.9); lo habitual es SIN decimales.
+LISTA_TEMP = [str(x) for x in range(35, 42)] + [f"{x / 10:.1f}" for x in range(350, 411) if x % 10]
 
 
 # Valores normales en pediatría por edad (meses de edad desde, hasta sin incluir): sistólica, diastólica, FC, FR
@@ -80,18 +82,30 @@ def grupo_vitales(sexo, edad, unidad="años"):
     return ("adulto", sexo)
 
 
-def vitales_defecto(sexo, edad, unidad="años", rng=None):
+def es_hta(texto):
+    """¿El diagnóstico es hipertensión arterial (HTA)? No cuenta la del embarazo (gestacional, preeclampsia…)."""
+    p = " ".join(cat.plain(texto).split())
+    if not p or re.search(r"gestacional|embarazo|preeclampsia|eclampsia|pulmonar|ocular|portal", p):
+        return False
+    return bool(re.search(r"\bhta\b|hipertension", p))
+
+
+def vitales_defecto(sexo, edad, unidad="años", rng=None, hta=False):
     """Valores iniciales de los signos vitales (la persona los cambia en la lista). En menores de 18 años se eligen al
-    azar dentro del rango normal para su edad; en adultos, valores habituales. Si no se sabe la edad, la frecuencia
-    respiratoria queda vacía."""
+    azar dentro del rango normal para su edad; en adultos, valores habituales; con HTA (adultos): sistólica 140 o 130 y
+    diastólica 90 u 80. La temperatura es 36 o 37, SIN decimales. Si no se sabe la edad, la frecuencia respiratoria
+    queda vacía."""
     rng = rng or random
-    temp = f"{rng.randint(360, 372) / 10:.1f}"
+    temp = str(rng.choice([36, 37]))
     g = grupo_vitales(sexo, edad, unidad)
     if g[0] == "ped":
         _lo, _hi, sis, dia, fc, fr = VITALES_PEDIATRIA[g[1]]
         return {"sistolica": str(rng.randint(*sis)), "diastolica": str(rng.randint(*dia)),
                 "fc": str(rng.randint(*fc)), "fr": str(rng.randint(*fr)), "temperatura": temp}
-    return {"sistolica": "120", "diastolica": "70" if sexo == "M" else "80",
+    sis, dia = ("120", "70" if sexo == "M" else "80")
+    if hta:
+        sis, dia = str(rng.choice([140, 130])), str(rng.choice([90, 80]))
+    return {"sistolica": sis, "diastolica": dia,
             "fc": str(rng.randint(65, 90)), "fr": str(rng.randint(12, 20)) if g[0] == "adulto" else "",
             "temperatura": temp}
 
@@ -150,6 +164,8 @@ SSR_METODOS_ELEGIDOS = ["Píldora anticonceptiva", "Inyección hormonal / DEPO",
                         "Diafragma", "Espermicida", "Esponja", "Anillo vaginal", "Ninguno"]
 SSR_METODOS_ACTUALES = SSR_METODOS_ELEGIDOS[:-1] + ["Otro (no convencional)"]
 SSR_EMBARAZO_ANTERIOR = ["> 2 AÑOS", "< 2 AÑOS", "No hubo embarazo"]
+SSR_RITMOS = ["REGULAR", "IRREGULAR"]                 # en mayúsculas, como se escribe en ActivityInfo
+SSR_NUMEROS = [str(n) for n in range(0, 17)]          # gestaciones, partos, cesáreas, abortos, óbitos, hijos vivos/muertos
 SSR_VACUNAS = ["Td (toxoide tetánico)", "VPH (VIRUS PAPILOMA HUMANO)", "HEPATITIS B:", "SRP (SARAMPIÓN-RUBEOLA):"]
 SSR_SERVICIO_SALUD = "MdM-Salud sexual y reproductiva"
 SSR_SERVICIOS_SALUD = ["MdM - Atención primaria", "MdM-Salud sexual y reproductiva", "MdM-Salud mental y apoyo psicosocial",
@@ -231,9 +247,29 @@ def delete_dx_map(db, abrev):
     db.execute("DELETE FROM dx_map WHERE abrev=?", (abrev,))
 
 
+def defectos_ficha(rng=None):
+    """Valores que se proponen en la ficha cuando el ATA no los trae (la persona los cambia en la ventana).
+    Escolaridad y sector de ocupación se eligen al azar entre dos opciones."""
+    rng = rng or random
+    return {"lgtbiq": "No", "pueblo": "Ladino / Mestizo", "estado_civil": "Unión Libre",
+            "escolaridad": rng.choice(["Primaria", "Secundaria/Bachillerato"]),
+            "ocupacion": rng.choice(["Trabajo doméstico NO remunerado", "Otro"]),
+            "discapacidad": "No", "derivado": "No"}
+
+
+def defectos_ssr():
+    """Valores que se proponen en Salud Sexual y Reproductiva (antecedentes, obstétricos, anticoncepción, derivación)."""
+    return {"ssr_violencia": "No", "ssr_menarquia": "12", "ssr_ritmo": SSR_RITMOS[0],
+            "ssr_trast_mens": "No", "ssr_menopausia": "No", "ssr_prueba_vph": "No", "ssr_autoex_mamas": "No",
+            "ssr_its": "No", "ssr_itu": "No",
+            "ssr_embarazo_actual": "No", "ssr_embarazo_anterior": SSR_EMBARAZO_ANTERIOR[0], "ssr_lactancia": "No",
+            "ssr_vph": "No", "ssr_papanicolau": "No", "ssr_examen_mama": "No",
+            "ssr_consejeria": "Si", "ssr_eleg_1": "Preservativo masculino", "ssr_acceso": "Sí"}
+
+
 def build_defaults(db, rec: dict) -> dict:
-    """Datos iniciales para la ventana de revisión. Solo se toma lo que está en el ATA; lo que el ATA
-    no trae (estado civil, escolaridad, etc.) queda vacío para que lo elija la persona."""
+    """Datos iniciales para la ventana de revisión. Lo que está en el ATA se toma del ATA; lo que el ATA no trae
+    (estado civil, escolaridad, antecedentes de SSR…) se propone con valores por defecto que la persona corrige."""
     st = get_setting_values(db)
     nombres, apellidos = split_name(rec.get("nombre"))
     sexo = (rec.get("sexo") or "").upper()
@@ -288,22 +324,24 @@ def build_defaults(db, rec: dict) -> dict:
         hea = generate_hea(rec, desc)
     ssr_hea = (hea_banco.compose(persona["sexo"], persona["edad"], ssr_descs, persona["unidad"])[0]
                if ssr_descs else hea)
-    vit = vitales_defecto(persona["sexo"], persona["edad"], persona["unidad"])
+    vit = vitales_defecto(persona["sexo"], persona["edad"], persona["unidad"],
+                          hta=any(es_hta(x["abrev"]) or es_hta(d) for x, d in zip(dxs, descs)))
     return {
         "hea": hea, "ssr_hea": ssr_hea, "hea_persona": persona, **vit,
         "ssr_mismo_punto": "Sí", "ssr_mismo_proy": "Sí", "ssr_ficha": "Larga", "ssr_recibio_aps": "Sí",
-        "ssr_tipo": "", "ssr_dx": ssr_dx, "ssr_va_derivado": "", "ssr_transfronteriza": "",
+        "ssr_tipo": "Primera", "ssr_dx": ssr_dx, "ssr_va_derivado": "No", "ssr_transfronteriza": "",
+        **defectos_ssr(),
         "ssr_servicio_brindado": "Salud", "ssr_servicio_salud": SSR_SERVICIO_SALUD, "peso": "", "examen_fisico": EXAMEN_FISICO_APS, "ssr_examen_fisico": EXAMEN_FISICO_SSR,
-        "plan": PLAN_BASE, "va_derivado": "", "n_servicios": "", "transfronteriza": "",
+        "plan": PLAN_BASE, "va_derivado": "No", "n_servicios": "", "transfronteriza": "",
         "servicio_brindado": "Salud", "servicio_salud": SERVICIOS_SALUD[0],
         "lugar": st["ai_lugar"], "punto_especifico": "", "fecha": (rec.get("fecha") or "")[:10], "genero": genero,
         "donante": st["ai_donante"], "proyecto": st["ai_proyecto"], "perfin": st["ai_perfin"],
-        "lgtbiq": "", "pueblo": "", "nacionalidad": st["ai_nacionalidad"], "idioma": st["ai_idioma"],
+        "nacionalidad": st["ai_nacionalidad"], "idioma": st["ai_idioma"],
         "nombres": nombres, "apellidos": apellidos,
         "tiene_fecha_nac": "No", "edad": edad,
-        "estado_civil": "", "escolaridad": "", "ocupacion": "", "discapacidad": "", "perfil": PERFIL_FIJO,
-        "derivado": "", "consultas": [CONSULTA_APS], "profesional": st["ai_profesional"],
-        "tipo_consulta": "", "dx": dxs,
+        **defectos_ficha(), "perfil": PERFIL_FIJO,
+        "consultas": [CONSULTA_APS], "profesional": st["ai_profesional"],
+        "tipo_consulta": "Primera", "dx": dxs,
     }
 
 

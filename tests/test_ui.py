@@ -172,10 +172,10 @@ class UITests(unittest.TestCase):
         self.assertEqual(seen["defaults"]["idioma"], "Español")
         self.assertEqual((seen["defaults"]["donante"], seen["defaults"]["proyecto"], seen["defaults"]["perfin"]),
                          ("ECHO", "ECHO - COMPASS", "F09010020"))
-        self.assertEqual(seen["defaults"]["pueblo"], "")
+        self.assertEqual(seen["defaults"]["pueblo"], "Ladino / Mestizo")      # valor por defecto
         self.assertTrue(seen["defaults"]["hea"].startswith("Beneficiario Masc"))
         self.assertEqual(seen["sent"]["estado_civil"], "Soltero/a")
-        self.assertEqual(seen["defaults"]["estado_civil"], "")  # lo que el ATA no trae no se inventa
+        self.assertEqual(seen["defaults"]["estado_civil"], "Unión Libre")      # lo que el ATA no trae: valor por defecto
         self.assertEqual(A.get_record(db, rid)["ai_estado"], "Registrado")
         # guardar de nuevo la hoja conserva el estado registrado
         app.show("ata")
@@ -371,6 +371,105 @@ class UITests(unittest.TestCase):
         dlg._refrescar_panel()
         self.assertIn("7 años", dlg._p_edad.cget("text"))
         dlg.destroy()
+
+    def test_04j_valores_por_defecto_de_ficha_y_aps(self):
+        from services import activityinfo as ai
+        from ui.dialog_activityinfo import ActivityInfoDialog
+        escol, ocup = set(), set()
+        for _ in range(60):
+            d = ai.build_defaults(self.db, {"nombre": "Ana Pérez López", "sexo": "M", "fecha": "2026-10-15", "edad_anios": "30",
+                                            "dx1": "Cefalea"})
+            escol.add(d["escolaridad"]); ocup.add(d["ocupacion"])
+            self.assertEqual((d["lgtbiq"], d["pueblo"], d["estado_civil"], d["discapacidad"], d["derivado"]),
+                             ("No", "Ladino / Mestizo", "Unión Libre", "No", "No"))
+            self.assertEqual((d["tipo_consulta"], d["va_derivado"], d["ssr_va_derivado"], d["ssr_tipo"]),
+                             ("Primera", "No", "No", "Primera"))
+        self.assertEqual(escol, {"Primaria", "Secundaria/Bachillerato"})                       # al azar entre las dos
+        self.assertEqual(ocup, {"Trabajo doméstico NO remunerado", "Otro"})
+        dlg = ActivityInfoDialog(self.root, d)
+        self.upd()
+        for k, v in {"lgtbiq": "No", "pueblo": "Ladino / Mestizo", "estado_civil": "Unión Libre", "discapacidad": "No",
+                     "derivado": "No", "tipo_consulta": "Primera", "va_derivado": "No"}.items():
+            self.assertEqual(dlg.w[k].get_value(), v, k)
+        self.assertIn(dlg.w["escolaridad"].get_value(), ("Primaria", "Secundaria/Bachillerato"))
+        self.assertIn(dlg.w["ocupacion"].get_value(), ("Trabajo doméstico NO remunerado", "Otro"))
+        dlg.destroy()
+
+    def test_04k_signos_vitales_con_hta_y_temperatura_sin_decimales(self):
+        from services import activityinfo as ai
+        from services import cie11_catalog as cat
+        from ui.dialog_activityinfo import ActivityInfoDialog
+        cat_label = cat.label
+        sis, dia, temp = set(), set(), set()
+        for _ in range(80):
+            d = ai.build_defaults(self.db, {"nombre": "Ana Pérez López", "sexo": "M", "fecha": "2026-10-15", "edad_anios": "55",
+                                            "dx1": "HTA"})
+            sis.add(d["sistolica"]); dia.add(d["diastolica"]); temp.add(d["temperatura"])
+        self.assertEqual((sis, dia, temp), ({"140", "130"}, {"90", "80"}, {"36", "37"}))
+        d = ai.build_defaults(self.db, {"nombre": "Luis Pérez", "sexo": "H", "fecha": "2026-10-15", "edad_anios": "55", "dx1": "Cefalea"})
+        self.assertEqual((d["sistolica"], d["diastolica"]), ("120", "80"))                    # sin HTA: valores habituales
+        for edad, un in (("4", "años"), ("3", "meses"), ("20", "días")):                      # la temperatura sin decimales en todas las edades
+            for _ in range(30):
+                self.assertIn(ai.vitales_defecto("H", edad, un)["temperatura"], ("36", "37"))
+        # al agregar o quitar HTA en la ventana, los signos vitales se proponen de nuevo (si no se tocaron)
+        d = ai.build_defaults(self.db, {"nombre": "Ana Pérez López", "sexo": "M", "fecha": "2026-10-15", "edad_anios": "55", "dx1": "Cefalea"})
+        dlg = ActivityInfoDialog(self.root, d)
+        self.upd()
+        self.assertEqual((dlg.w["sistolica"].get_value(), dlg.w["diastolica"].get_value()), ("120", "70"))
+        dlg.dx_rows[0][1].set_value(cat_label("Hipertensión esencial, sin especificación"))
+        dlg._regen_hea(True)
+        self.assertIn(dlg.w["sistolica"].get_value(), ("140", "130"))
+        self.assertIn(dlg.w["diastolica"].get_value(), ("90", "80"))
+        dlg.w["diastolica"].set_value("85")                                                   # lo escrito a mano no se pisa
+        dlg.dx_rows[0][1].set_value(cat_label("Cefalea"))
+        dlg._regen_hea(True)
+        self.assertEqual((dlg.w["sistolica"].get_value(), dlg.w["diastolica"].get_value()), ("120", "85"))
+        self.assertIn("36", list(dlg.w["temperatura"]["values"]))                            # la lista trae grados enteros
+        dlg.destroy()
+
+    def test_04l_valores_por_defecto_de_ssr(self):
+        from services import activityinfo as ai
+        from ui.dialog_activityinfo import ActivityInfoDialog
+        d = ai.build_defaults(self.db, {"nombre": "Ana Pérez López", "sexo": "M", "fecha": "2026-10-15", "edad_anios": "30",
+                                        "dx1": "Vaginosis mixta"})
+        dlg = ActivityInfoDialog(self.root, d)
+        dlg.w["consultas"].set_value([ai.CONSULTA_APS, "Salud Sexual y Reproductiva"])
+        dlg._mostrar_ssr()
+        self.upd()
+        esperado = {"ssr_tipo": "Primera", "ssr_violencia": "No", "ssr_menarquia": "12", "ssr_ritmo": "REGULAR",
+                    "ssr_trast_mens": "No", "ssr_menopausia": "No", "ssr_prueba_vph": "No", "ssr_autoex_mamas": "No",
+                    "ssr_its": "No", "ssr_itu": "No", "ssr_embarazo_actual": "No", "ssr_embarazo_anterior": "> 2 AÑOS",
+                    "ssr_lactancia": "No", "ssr_vph": "No", "ssr_papanicolau": "No", "ssr_examen_mama": "No",
+                    "ssr_consejeria": "Si", "ssr_eleg_1": "Preservativo masculino", "ssr_acceso": "Sí",
+                    "ssr_va_derivado": "No"}
+        for k, v in esperado.items():
+            self.assertEqual(dlg.w[k].get_value(), v, k)
+        # lo que depende de lo elegido aparece solo
+        self.assertEqual(dlg.ssr_met.winfo_manager(), "pack")                      # consejería «Si»: método elegido y acceso
+        self.assertEqual(dlg.ssr_ant_obst.winfo_manager(), "pack")                 # embarazo anterior «> 2 años»
+        self.assertFalse(dlg.ssr_emb_x.winfo_manager())                           # embarazo actual «No»
+        self.assertFalse(dlg.ssr_its_x.winfo_manager())
+        # ritmo menstrual: solo REGULAR o IRREGULAR; números obstétricos: lista de 0 a 16
+        self.assertEqual(list(dlg.w["ssr_ritmo"]["values"]), ["", "REGULAR", "IRREGULAR"])
+        for k in ("gestaciones", "partos", "cesareas", "abortos", "obitos", "hijos_vivos", "hijos_muertos"):
+            self.assertEqual(list(dlg.w["ssr_" + k]["values"]), [""] + [str(n) for n in range(17)], k)
+            self.assertEqual(dlg.w["ssr_" + k].get_value(), "", k)               # sin valor por defecto: no se llena
+        for k, v in {"estado_civil": "Soltero/a"}.items():
+            dlg.w[k].set_value(v)
+        dlg.w["ssr_gestaciones"].set_value("2"); dlg.w["ssr_partos"].set_value("2")
+        dlg._ok()
+        r = dlg.result
+        self.assertIsNotNone(r)
+        s = r["ssr"]
+        self.assertEqual((s["tipo"], s["violencia"], s["menarquia"], s["ritmo"], s["trast_mens"], s["menopausia"]),
+                         ("Primera", "No", "12", "REGULAR", "No", "No"))
+        self.assertEqual((s["prueba_vph"], s["autoex_mamas"], s["its"], s["itu"], s["embarazo_actual"], s["embarazo_anterior"]),
+                         ("No", "No", "No", "No", "No", "> 2 AÑOS"))
+        self.assertEqual((s["lactancia"], s["vph"], s["papanicolau"], s["examen_mama"], s["consejeria"], s["acceso"], s["va_derivado"]),
+                         ("No", "No", "No", "No", "Si", "Sí", "No"))
+        self.assertEqual((s["metodos_elegidos"], s["gestaciones"], s["partos"]), (["Preservativo masculino"], "2", "2"))
+        self.assertEqual((r["lgtbiq"], r["pueblo"], r["derivado"], r["tipo_consulta"], r["va_derivado"]),
+                         ("No", "Ladino / Mestizo", "No", "Primera", "No"))
 
     def test_04g_vitales_pediatricos(self):
         from services import activityinfo as ai

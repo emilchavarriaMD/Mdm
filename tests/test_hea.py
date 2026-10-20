@@ -143,14 +143,15 @@ class T09_SignosVitales(unittest.TestCase):
         self.assertEqual((ai.LISTA_DIASTOLICA[0], ai.LISTA_DIASTOLICA[-1]), ("30", "150"))
         self.assertEqual((len(ai.LISTA_FC), ai.LISTA_FC[0], ai.LISTA_FC[-1]), (161, "40", "200"))
         self.assertEqual((ai.LISTA_FR[0], ai.LISTA_FR[-1]), ("10", "50"))
-        self.assertEqual((ai.LISTA_TEMP[0], ai.LISTA_TEMP[-1], ai.LISTA_TEMP[1]), ("35.0", "41.0", "35.1"))
+        self.assertEqual((ai.LISTA_TEMP[0], ai.LISTA_TEMP[6], ai.LISTA_TEMP[7], ai.LISTA_TEMP[-1]), ("35", "41", "35.1", "40.9"))
         for _ in range(300):
             m = ai.vitales_defecto("M", "30")
             h = ai.vitales_defecto("H", "30")
             self.assertEqual((m["sistolica"], m["diastolica"], h["diastolica"]), ("120", "70", "80"))
             self.assertTrue(65 <= int(m["fc"]) <= 90 and m["fc"] in ai.LISTA_FC)
             self.assertTrue(12 <= int(m["fr"]) <= 20)
-            self.assertTrue(36.0 <= float(m["temperatura"]) <= 37.2 and m["temperatura"] in ai.LISTA_TEMP)
+            self.assertIn(m["temperatura"], ("36", "37"))                    # temperatura SIN decimales
+            self.assertIn(m["temperatura"], ai.LISTA_TEMP)
         self.assertEqual(ai.vitales_defecto("H", "", "años")["fr"], "")       # sin edad: FR vacía
         self.assertTrue(ai.vitales_defecto("H", "30")["fr"])
 
