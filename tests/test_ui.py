@@ -259,6 +259,10 @@ class UITests(unittest.TestCase):
         self.assertEqual(d["genero"], "Mujer CIS")
         self.assertEqual(d["edad"], "0")
         self.assertEqual(d["lugar"], "San Pedro Sula")
+        self.assertEqual(d["punto_especifico"], "")
+        d2 = ai.build_defaults(self.db, {"nombre": "Ana", "sexo": "M", "edad_anios": "30", "fecha": "2026-10-15",
+                                         "loc": " Brisas 1 ", "dx1": "HTA"})
+        self.assertEqual(d2["punto_especifico"], "Brisas 1")
         self.assertEqual(d["dx"][0]["descripcion"], "")  # sin equivalencia: no se inventa
         p = ai.payload(d)
         self.assertEqual(p["n_dx"], 1)

@@ -212,7 +212,7 @@ class T08_LlenadoSimulado(unittest.TestCase):
         p = dict(PAYLOAD, lugar="San Pedro Sula", dx=PAYLOAD["dx"][:1], n_dx=1)
         rep, v = self._run(p)
         self.assertIsNone(v["especifique"])
-        self.assertTrue(any("Especifique" in x for x in rep["ficha"]), rep)   # se avisa, no se inventa
+        self.assertFalse(any("Especifique" in x for x in rep["ficha"]), rep)   # sin «Otro» el campo no existe: se omite sin error
         self.assertFalse(v["saved"])
 
     def test_tamizaje_no_tiene_hea(self):

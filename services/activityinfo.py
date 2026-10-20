@@ -334,7 +334,7 @@ def build_defaults(db, rec: dict) -> dict:
         "ssr_servicio_brindado": "Salud", "ssr_servicio_salud": SSR_SERVICIO_SALUD, "peso": "", "examen_fisico": EXAMEN_FISICO_APS, "ssr_examen_fisico": EXAMEN_FISICO_SSR,
         "plan": PLAN_BASE, "va_derivado": "No", "n_servicios": "", "transfronteriza": "",
         "servicio_brindado": "Salud", "servicio_salud": SERVICIOS_SALUD[0],
-        "lugar": st["ai_lugar"], "punto_especifico": "", "fecha": (rec.get("fecha") or "")[:10], "genero": genero,
+        "lugar": st["ai_lugar"], "punto_especifico": (rec.get("loc") or "").strip(), "fecha": (rec.get("fecha") or "")[:10], "genero": genero,
         "donante": st["ai_donante"], "proyecto": st["ai_proyecto"], "perfin": st["ai_perfin"],
         "nacionalidad": st["ai_nacionalidad"], "idioma": st["ai_idioma"],
         "nombres": nombres, "apellidos": apellidos,

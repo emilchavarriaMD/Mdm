@@ -1,6 +1,6 @@
 /* Llena el formulario de ActivityInfo. NUNCA pulsa Guardar registro ni Guardar como borrador. */
 (function () {
-  const VERSION = 24;
+  const VERSION = 25;
   if (window.__mdm && window.__mdm.version === VERSION) return;   // una versión vieja en la pestaña se reemplaza
   const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
   const norm = (s) => (s || "").replace(/\s+/g, " ").replace(/\*/g, "").replace(/OBLIGATORIO/g, "").trim().toLowerCase();
@@ -132,7 +132,7 @@
     if (d.punto_especifico) {
       await S("Especifique punto de atención", async () => {
         const ok = await waitFor(() => findLabel("Especifique punto de atención"), 4000);
-        if (!ok) throw new Error("no apareció el campo (solo sale si el lugar de atención es «… - Otro»)");
+        if (!ok) return;  // la localidad del ATA va aquí solo si el lugar es «… - Otro»; si no sale el campo, se omite
         await setText("Especifique punto de atención", d.punto_especifico);
       });
     }
