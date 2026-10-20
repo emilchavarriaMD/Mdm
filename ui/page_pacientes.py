@@ -26,8 +26,6 @@ class PacientesPage(Page):
         self._result = None
         self._checked = set()
         ttk.Label(self, text="Pacientes", style="H1.TLabel").pack(anchor="w")
-        ttk.Label(self, text="Un renglón por paciente atendido. Pulse «➕ Añadir registro» (junto a cada paciente) para registrarlo en ActivityInfo.", style="Muted.TLabel").pack(
-            anchor="w", pady=(0, 6))
         bar = ttk.Frame(self)
         bar.pack(fill="x")
         ttk.Label(bar, text="Buscar:").pack(side="left")
@@ -58,8 +56,6 @@ class PacientesPage(Page):
         self.btn_del = ttk.Button(bar2, text="Borrar", command=self.delete_checked)
         self.btn_del.pack(side="left")
         ttk.Button(bar2, text="Papelera", command=self.papelera).pack(side="left", padx=(8, 0))
-        ttk.Label(bar2, text="(o la casilla ☐ de cada paciente)",
-                  style="Muted.TLabel").pack(side="left", padx=10)
 
         frame, self.tree = widgets.make_tree(self, [
             ("sel", "", 46, "center"), ("fecha", "Fecha", 108), ("nombre", "Paciente", 270), ("accion", "Acción", 160, "center"),
@@ -83,13 +79,12 @@ class PacientesPage(Page):
                    command=self.add_record).pack(side="left")
         ttk.Button(bot, text="Ver registro guardado", command=self.ver_registro).pack(side="left", padx=(8, 0))
         ttk.Button(bot, text="Siguiente pendiente ▶", command=self.siguiente_pendiente).pack(side="left", padx=8)
-        ttk.Button(bot, text="Marcar como registrado", command=lambda: self.mark(True)).pack(
-            side="left", padx=8)
-        ttk.Button(bot, text="Marcar como pendiente", command=lambda: self.mark(False)).pack(side="left")
         bot2 = ttk.Frame(self)
-        ttk.Button(bot2, text="Cargar otro ATA", command=lambda: self.app.show("ata")).pack(side="left")
-        ttk.Button(bot2, text="Resumen a Excel", command=self.resumen_excel).pack(side="left", padx=8)
-        ttk.Button(bot2, text="Bitácora del llenado", command=lambda: dialogs_extra.bitacora(self)).pack(side="left")
+        ttk.Button(bot2, text="Marcar como registrado", command=lambda: self.mark(True)).pack(side="left")
+        ttk.Button(bot2, text="Marcar como pendiente", command=lambda: self.mark(False)).pack(side="left", padx=8)
+        ttk.Button(bot2, text="Bitácora del llenado", command=lambda: dialogs_extra.bitacora(self)).pack(side="right")
+        ttk.Button(bot2, text="Resumen a Excel", command=self.resumen_excel).pack(side="right", padx=8)
+        ttk.Button(bot2, text="Cargar otro ATA", command=lambda: self.app.show("ata")).pack(side="right")
         # lo de abajo se reserva primero: con ventanas bajas la lista se encoge y los botones nunca se cortan
         for w in (frame, self.alerta, self.progreso, bot):
             w.pack_forget()
