@@ -447,6 +447,11 @@ class UITests(unittest.TestCase):
         self.assertEqual(ai.payload({"discapacidad": "No", "discapacidad_tipo": ["Mental"], "dx": []})["discapacidad_tipo"], [])
         dlg.destroy()
 
+    def test_04p_victima_sexual_por_defecto_no(self):
+        from services import activityinfo as ai
+        d = ai.build_defaults(self.db, {"nombre": "Ana", "sexo": "M", "fecha": "2026-10-15", "edad_anios": "30", "dx1": "Vaginosis"})
+        self.assertEqual(d["ssr_victima_sexual"], "No")
+
     def test_04o_derivacion_desde_y_vineta_de_ssr(self):
         from services import activityinfo as ai
         from ui.dialog_activityinfo import ActivityInfoDialog

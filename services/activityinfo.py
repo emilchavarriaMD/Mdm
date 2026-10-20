@@ -269,7 +269,7 @@ def defectos_ssr():
             "ssr_its": "No", "ssr_itu": "No",
             "ssr_embarazo_actual": "No", "ssr_embarazo_anterior": SSR_EMBARAZO_ANTERIOR[0], "ssr_lactancia": "No",
             "ssr_vph": "No", "ssr_papanicolau": "No", "ssr_examen_mama": "No",
-            "ssr_consejeria": "Si", "ssr_eleg_1": "Preservativo masculino", "ssr_acceso": "Sí"}
+            "ssr_victima_sexual": "No", "ssr_consejeria": "Si", "ssr_eleg_1": "Preservativo masculino", "ssr_acceso": "Sí"}
 
 
 def build_defaults(db, rec: dict) -> dict:
