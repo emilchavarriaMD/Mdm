@@ -94,6 +94,7 @@ class ActivityInfoDialog(_Modal):
         add("estado_civil", "Estado civil", C(ai.ESTADOS_CIVILES))
         add("escolaridad", "Grado de escolaridad", C(ai.ESCOLARIDADES))
         add("ocupacion", "Sector de ocupación", C(ai.OCUPACIONES))
+        add("telefono", "Número de teléfono (con prefijo internacional)", E())
         add("discapacidad", "¿Tiene alguna discapacidad?", C(ai.DISCAPACIDAD))
         self.w["discapacidad"].bind("<<ComboboxSelected>>", lambda _e: self._mostrar_disc())
         self._disc_tipo = ChecksField(gf, ai.TIPOS_DISCAPACIDAD, columns=4)

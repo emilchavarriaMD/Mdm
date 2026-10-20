@@ -166,6 +166,7 @@
     if (d.estado_civil) await S("Estado civil", () => setRadio("Estado civil", d.estado_civil));
     if (d.escolaridad) await S("Grado de escolaridad", () => setRadio("Grado de escolaridad", d.escolaridad));
     if (d.ocupacion) await S("Sector de ocupación", () => setAuto("Sector de ocupación", d.ocupacion));
+    if (d.telefono) await S("Número de teléfono", () => setText("Número de teléfono", d.telefono));
     if (d.discapacidad) await S("Discapacidad", () => setRadio("¿Tiene algún tipo de discapacidad?", d.discapacidad));
     if (d.discapacidad === "Sí" && (d.discapacidad_tipo || []).length) {   // al responder «Sí» aparece «¿Qué tipo de discapacidad?»
       await S("Tipo de discapacidad", async () => {

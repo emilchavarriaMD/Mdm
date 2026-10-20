@@ -301,6 +301,21 @@ def defectos_obstetricos(rec: dict) -> dict:
     return out
 
 
+def telefono_internacional(texto) -> str:
+    """Teléfono del ATA con prefijo internacional (Honduras +504 si trae solo 8 dígitos). Vacío si no hay número."""
+    raw = (texto or "").strip()
+    d = re.sub(r"\D", "", raw)
+    if not d:
+        return ""
+    if raw.startswith("+") or raw.startswith("00"):
+        return "+" + (d[2:] if raw.startswith("00") else d)
+    if len(d) == 8:
+        return "+504" + d
+    if d.startswith("504") and len(d) == 11:
+        return "+" + d
+    return raw
+
+
 def build_defaults(db, rec: dict) -> dict:
     """Datos iniciales para la ventana de revisión. Lo que está en el ATA se toma del ATA; lo que el ATA no trae
     (estado civil, escolaridad, antecedentes de SSR…) se propone con valores por defecto que la persona corrige."""
@@ -371,7 +386,7 @@ def build_defaults(db, rec: dict) -> dict:
         "lugar": lugar_atencion(rec, st["ai_lugar"]), "punto_especifico": (rec.get("loc") or "").strip(), "fecha": (rec.get("fecha") or "")[:10], "genero": genero,
         "donante": st["ai_donante"], "proyecto": st["ai_proyecto"], "perfin": st["ai_perfin"],
         "nacionalidad": st["ai_nacionalidad"], "idioma": st["ai_idioma"],
-        "nombres": nombres, "apellidos": apellidos,
+        "nombres": nombres, "apellidos": apellidos, "telefono": telefono_internacional(rec.get("telefono")),
         "tiene_fecha_nac": "No", "edad": edad,
         **defectos_ficha(), "perfil": PERFIL_FIJO,
         "consultas": [CONSULTA_APS], "profesional": st["ai_profesional"],
