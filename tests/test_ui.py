@@ -86,6 +86,42 @@ class UITests(unittest.TestCase):
         de.set_value("2026-10-05")
         self.assertEqual(de.get_value(), "05/10/2026")
 
+    def test_02b_botones_de_la_tabla(self):
+        from ui import dialogs
+        app = self.app
+        app.show("ata")
+        pg = app.pages["ata"]
+        self.upd()
+        orig_conf, orig_info = dialogs.confirm, dialogs.info
+        dialogs.confirm = lambda *a, **k: True
+        dialogs.info = lambda *a, **k: None
+        try:
+            pg.new(force=True)
+            self.assertEqual(len(pg.cells), 20)
+            pg.cells[0]["nombre"].set("Ana")
+            pg.cells[1]["nombre"].set("Luis")
+            pg.cells[3]["nombre"].set("Marta")
+            pg.add_line()
+            self.assertEqual(len(pg.cells), 21)
+            pg._foco = 1                                   # cursor en la línea 2
+            pg.duplicate_line()
+            self.assertEqual([r["nombre"].get() for r in pg.cells[:3]], ["Ana", "Luis", "Luis"])
+            self.assertEqual(pg.cells[2]["numero"].get(), "3")
+            pg._foco = 2
+            pg.delete_line()
+            self.assertEqual([r["nombre"].get() for r in pg.cells[:3]], ["Ana", "Luis", ""])
+            pg.remove_empty()
+            self.assertEqual([r["nombre"].get() for r in pg.cells], ["Ana", "Luis", "Marta"])
+            self.assertEqual([r["numero"].get() for r in pg.cells], ["1", "2", "3"])
+            pg._foco = None
+            pg.delete_line()                               # sin línea elegida: no borra nada
+            self.assertEqual(len(pg.cells), 3)
+            pg.clear_lines()
+            self.assertEqual(len(pg.cells), 20)
+            self.assertTrue(all(not r["nombre"].get() for r in pg.cells))
+        finally:
+            dialogs.confirm, dialogs.info = orig_conf, orig_info
+
     def test_02_hoja_ata_y_pacientes(self):
         from PIL import Image
         from services import ata as A

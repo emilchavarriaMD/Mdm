@@ -20,34 +20,29 @@ class AtaPage(Page):
         self.sheet_id = None
         self.image_name = None
         self._clean = None
+        self._foco = None        # línea donde está el cursor
         self.cells = []          # filas: {clave: StringVar}
         self.h = {}              # encabezado: {clave: StringVar}
         self._sheets = {}
 
         ttk.Label(self, text="Pacientes atendidos", style="H1.TLabel").pack(anchor="w")
-        ttk.Label(self, text="Suba el Excel del ATA (formato ATA-2023), revise la tabla y confírmela. También puede escribir o pegar los datos. "
-                  "Nada se llena solo. "
-                  "Las comillas (\") en departamento, municipio y localidad se repiten desde la fila anterior.", style="Muted.TLabel",
-                  wraplength=1000, justify="left").pack(anchor="w", pady=(0, 6))
-
         bar = ttk.Frame(self)
-        bar.pack(fill="x")
-        ttk.Label(bar, text="Hoja:").pack(side="left")
-        self.combo = widgets.ComboField(bar, [], readonly=True)
-        self.combo.configure(width=26)
+        bar.pack(fill="x", pady=(10, 0))
+        ttk.Button(bar, text="Subir Excel", style="Accent.TButton", command=self.load_excel).pack(side="left")
+        ttk.Button(bar, text="Exportar Excel", command=self.export).pack(side="left", padx=(8, 0))
+        ttk.Button(bar, text="Guardar en la base", style="Accent.TButton", command=self.save).pack(side="right")
+        bar2 = ttk.Frame(self)
+        bar2.pack(fill="x", pady=(10, 0))
+        ttk.Label(bar2, text="Hoja:").pack(side="left")
+        self.combo = widgets.ComboField(bar2, [], readonly=True)
+        self.combo.configure(width=30)
         self.combo.pack(side="left", padx=(6, 8))
         self.combo.bind("<<ComboboxSelected>>", lambda e: self._on_pick())
-        ttk.Button(bar, text="+ Nueva hoja", command=self.new).pack(side="left")
-        self.btn_delete = ttk.Button(bar, text="Eliminar hoja", style="Danger.TButton", command=self.delete)
+        ttk.Button(bar2, text="+ Nueva hoja", command=self.new).pack(side="left")
+        self.btn_delete = ttk.Button(bar2, text="Eliminar hoja", style="Danger.TButton", command=self.delete)
         self.btn_delete.pack(side="left", padx=8)
-        self.status = ttk.Label(bar, text="", style="Saved.TLabel")
+        self.status = ttk.Label(bar2, text="", style="Saved.TLabel")
         self.status.pack(side="left", padx=10)
-        # segunda fila: así ningún botón queda cortado en pantallas de 1366 px
-        bar2 = ttk.Frame(self)
-        bar2.pack(fill="x", pady=(6, 0))
-        ttk.Button(bar2, text="Subir Excel (ATA-2023)", style="Accent.TButton", command=self.load_excel).pack(side="left")
-        ttk.Button(bar2, text="Guardar en la base", style="Accent.TButton", command=self.save).pack(side="left", padx=8)
-        ttk.Button(bar2, text="Exportar Excel", command=self.export).pack(side="left", padx=8)
         self.hint = ttk.Label(self, text="", style="Hint.TLabel")
         self.hint.pack(anchor="w", pady=(4, 0))
 
@@ -64,7 +59,7 @@ class AtaPage(Page):
         for i, (k, label) in enumerate(ata_svc.HEADER_FIELDS):
             self.h[k] = tk.StringVar()
             ttk.Label(hb, text=label, style="CardMuted.TLabel").grid(row=1, column=i, sticky="w", padx=3)
-            ttk.Entry(hb, textvariable=self.h[k], width=18 if k != "fecha" else 14).grid(
+            ttk.Entry(hb, textvariable=self.h[k], width=12 if k != "fecha" else 12).grid(
                 row=2, column=i, sticky="we", padx=3)
             hb.columnconfigure(i, weight=1)
 
@@ -74,9 +69,13 @@ class AtaPage(Page):
         gb = ttk.Frame(pc, style="Flat.TFrame")
         gb.pack(fill="x", pady=(0, 6))
         ttk.Label(gb, text="Pacientes de la hoja", style="H2.TLabel", background=theme.CARD).pack(side="left")
-        ttk.Button(gb, text="+ Añadir fila", command=lambda: self._add_row()).pack(side="left", padx=10)
-        ttk.Label(gb, text="Puede pegar (Ctrl+V) filas copiadas de Excel en cualquier celda.",
-                  style="CardMuted.TLabel").pack(side="left")
+        ttk.Button(gb, text="+ Agregar línea", style="Small.TButton", command=self.add_line).pack(side="left", padx=(14, 0))
+        ttk.Button(gb, text="Duplicar línea", style="Small.TButton", command=self.duplicate_line).pack(side="left", padx=6)
+        ttk.Button(gb, text="Borrar línea", style="Small.TButton", command=self.delete_line).pack(side="left")
+        ttk.Button(gb, text="Quitar vacías", style="Small.TButton", command=self.remove_empty).pack(side="left", padx=6)
+        ttk.Button(gb, text="Limpiar líneas", style="Small.TButton", command=self.clear_lines).pack(side="left")
+        ttk.Label(pc, text="Puede pegar (Ctrl+V) filas copiadas de Excel en cualquier celda.", style="CardMuted.TLabel"
+                  ).pack(anchor="w", pady=(0, 4))
         gh = ttk.Frame(pc, style="Flat.TFrame")
         gh.pack(fill="x")
         self.gcanvas = tk.Canvas(gh, highlightthickness=0, background=theme.CARD, height=200)
@@ -153,9 +152,77 @@ class AtaPage(Page):
             e = ttk.Entry(self.grid_frame, textvariable=vars_[k], width=w)
             e.grid(row=r, column=c, padx=1, pady=1)
             e.bind("<<Paste>>", lambda ev, row=len(self.cells), col=c: self._paste(row, col))
+            e.bind("<FocusIn>", lambda ev, row=len(self.cells): setattr(self, "_foco", row), add="+")
         if values is None:
             vars_["numero"].set(str(r))
         self.cells.append(vars_)
+
+    # -- botones de la tabla ---------------------------------------------------------
+    def _valores(self):
+        return [{k: v.get() for k, v in r.items()} for r in self.cells]
+
+    @staticmethod
+    def _vacia(vals):
+        return not any((vals.get(k) or "").strip() for k in ata_svc.KEYS if k != "numero")
+
+    def _rehacer(self, filas, minimo=0):
+        """Dibuja de nuevo la tabla con estas filas (renumeradas) y rellena con líneas en blanco hasta `minimo`."""
+        self._clear_rows()
+        for i, vals in enumerate(filas, 1):
+            vals = dict(vals)
+            vals["numero"] = str(i)
+            self._add_row(vals)
+        while len(self.cells) < minimo:
+            self._add_row()
+        self._foco = None
+
+    def _linea_actual(self):
+        f = self._foco
+        return f if f is not None and 0 <= f < len(self.cells) else None
+
+    def add_line(self):
+        """Agrega una línea al final y deja el cursor en su primera celda."""
+        self._add_row()
+        self.update_idletasks()
+        celdas = self.grid_frame.grid_slaves(row=len(self.cells), column=1)
+        if celdas:
+            celdas[0].focus_set()
+
+    def delete_line(self):
+        i = self._linea_actual()
+        if i is None:
+            dialogs.info(self, "Haga clic en una celda de la línea que quiere borrar y vuelva a pulsar «Borrar línea».")
+            return
+        filas = self._valores()
+        if not self._vacia(filas[i]) and not dialogs.confirm(
+                self, "Borrar línea", f"¿Borrar la línea {i + 1} ({filas[i].get('nombre') or 'sin nombre'})?",
+                yes="Borrar", no="Cancelar", danger=True):
+            return
+        del filas[i]
+        self._rehacer(filas)
+        self._foco = None
+
+    def duplicate_line(self):
+        i = self._linea_actual()
+        if i is None:
+            dialogs.info(self, "Haga clic en una celda de la línea que quiere duplicar y vuelva a pulsar «Duplicar línea».")
+            return
+        filas = self._valores()
+        filas.insert(i + 1, dict(filas[i]))
+        self._rehacer(filas)
+
+    def remove_empty(self):
+        """Quita las líneas sin datos y renumera."""
+        filas = [f for f in self._valores() if not self._vacia(f)]
+        self._rehacer(filas, minimo=1)
+
+    def clear_lines(self):
+        """Vacía toda la tabla (deja 20 líneas en blanco); pregunta antes si hay datos."""
+        if any(not self._vacia(f) for f in self._valores()) and not dialogs.confirm(
+                self, "Limpiar líneas", "¿Vaciar todas las líneas de la tabla? El encabezado no se toca y lo ya "
+                "guardado en la base tampoco.", yes="Limpiar", no="Cancelar", danger=True):
+            return
+        self._rehacer([], minimo=START_ROWS)
 
     def _clear_rows(self):
         for w in self.grid_frame.grid_slaves():
