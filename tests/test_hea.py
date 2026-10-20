@@ -287,8 +287,28 @@ class T09_ExamenFisico(unittest.TestCase):
     def test_cobertura_y_correcciones(self):
         from services import cie11_catalog as cat, cie11_ssr as ssr
         from services import examen_fisico as e
-        sin = [d for m in (cat, ssr) for d in m.descriptions() if not e._hallazgos([d])]
+        # (los crónicos estables no llevan hallazgos si no hay crisis: se prueban en test_cronicos_*)
+        sin = [d for m in (cat, ssr) for d in m.descriptions() if not e._hallazgos([d], ata=[d + " crisis"])]
         self.assertLessEqual(len(sin), 2, sin)                     # solo «otros síntomas… no clasificados»
+
+    def test_cronicos_sin_crisis_examen_normal(self):
+        from services import examen_fisico as e
+        normal = e.compose([], ssr=False)
+        for dx in ("Hipertensión esencial, sin especificación", "Diabetes mellitus, tipo no especificado",
+                   "Asma no especificada sin complicaciones", "Hipotiroidismo", "Epilepsia o convulsiones, sin especificación"):
+            self.assertEqual(e.compose([dx], ssr=False, ata=["HTA"]), normal, dx)
+        self.assertEqual(e.compose(["Hipertensión esencial, sin especificación", "Faringitis aguda"], ata=["HTA", "Faringitis"]),
+                         e.compose(["Faringitis aguda"], ata=["Faringitis"]))        # el agudo sí conserva su hallazgo
+        self.assertNotEqual(e.compose(["Faringitis aguda"]), normal)
+
+    def test_cronicos_en_crisis_si_tienen_hallazgos(self):
+        from services import examen_fisico as e
+        normal = e.compose([], ssr=False)
+        self.assertNotEqual(e.compose(["Hipertensión esencial, sin especificación"], ata=["Crisis HTA"]), normal)
+        self.assertNotEqual(e.compose(["Asma no especificada con exacerbación"], ata=["Asma"]), normal)   # lo dice la descripción
+        self.assertNotEqual(e.compose(["Hipoglucemia sin diabetes asociada"], ata=["DM2"]), normal)
+        # la crisis de una enfermedad no vuelve positiva a otra crónica
+        self.assertEqual(e.compose(["Diabetes mellitus, tipo no especificado"], ata=["Crisis HTA", "DM2"]), normal)
         self.assertIn("piel", e._hallazgos(["Afecciones alérgicas o de hipersensibilidad, sin especificación"]))
         self.assertIn("oidos", e._hallazgos(["Otitis media, sin especificación"]))
         self.assertIn("piel", e._hallazgos(["Uña encarnada"]))

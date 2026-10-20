@@ -115,17 +115,17 @@ def save_sheet(db, header: dict, rows: list, sheet_id=None, imagen=None, brigade
                  brigade_id, imagen, ts, sheet_id))
             # se conserva el estado de ActivityInfo de lo ya registrado (se compara nombre + fecha nac.)
             prev = {(x["nombre"].lower(), x["fecha_nacimiento"] or "", x["numero"] or ""):
-                    (x["ai_estado"], x["ai_fecha"])
+                    (x["ai_estado"], x["ai_fecha"], x.get("ai_datos"))
                     for x in db.query("SELECT * FROM ata_rows WHERE sheet_id=? AND borrado_en IS NULL", (sheet_id,))}
             db.execute("DELETE FROM ata_rows WHERE sheet_id=? AND borrado_en IS NULL", (sheet_id,))
             db.audit("ata", sheet_id, "modificación", f"Hoja ATA {header['fecha']}")
         for n, r in enumerate(rows):
             est = prev.get((r["nombre"].lower(), r["fecha_nacimiento"] or "", r["numero"] or ""),
-                           ("Pendiente", None))
+                           ("Pendiente", None, None))
             db.execute(
-                f"INSERT INTO ata_rows (sheet_id, orden, {', '.join(KEYS)}, ai_estado, ai_fecha) "
-                f"VALUES (?, ?, {', '.join('?' * len(KEYS))}, ?, ?)",
-                (sheet_id, n, *[r[k] for k in KEYS], est[0], est[1]))
+                f"INSERT INTO ata_rows (sheet_id, orden, {', '.join(KEYS)}, ai_estado, ai_fecha, ai_datos) "
+                f"VALUES (?, ?, {', '.join('?' * len(KEYS))}, ?, ?, ?)",
+                (sheet_id, n, *[r[k] for k in KEYS], est[0], est[1], est[2]))
     return sheet_id
 
 
@@ -153,6 +153,23 @@ def get_record(db, rid):
                     "s.departamento AS dep_hoja, s.municipio AS mun_hoja "
                     "FROM ata_rows r JOIN ata_sheets s ON s.id = r.sheet_id WHERE r.id=?", (rid,))
     return rows[0] if rows else None
+
+
+def save_datos(db, rid, datos: dict):
+    """Guarda lo que se revisó en la ventana «Añadir registro» para poder volver a verlo después."""
+    import json
+    with db.transaction():
+        db.execute("UPDATE ata_rows SET ai_datos=? WHERE id=?", (json.dumps(datos, ensure_ascii=False), rid))
+
+
+def load_datos(db, rid):
+    """Lo guardado con save_datos (dict) o None si todavía no hay registro."""
+    import json
+    rows = db.query("SELECT ai_datos FROM ata_rows WHERE id=?", (rid,))
+    try:
+        return json.loads(rows[0]["ai_datos"]) if rows and rows[0]["ai_datos"] else None
+    except ValueError:
+        return None
 
 
 def set_llenado(db, rid):

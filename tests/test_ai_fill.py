@@ -215,6 +215,25 @@ class T08_LlenadoSimulado(unittest.TestCase):
         self.assertFalse(any("Especifique" in x for x in rep["ficha"]), rep)   # sin «Otro» el campo no existe: se omite sin error
         self.assertFalse(v["saved"])
 
+    def test_derivacion_desde_y_tipo_de_discapacidad(self):
+        p = dict(PAYLOAD, derivado="Sí", derivado_procedencia="Institución Estatal", derivado_obs="Refiere centro de salud",
+                 derivado_codigo="REF-77", discapacidad="Sí", discapacidad_tipo=["Mental", "Sensorial"],
+                 dx=PAYLOAD["dx"][:1], n_dx=1)
+        page = self.browser.new_page()
+        page.goto((ROOT / "tests" / "mock_activityinfo.html").as_uri())
+        page.add_script_tag(content=(ROOT / "services" / "ai_fill.js").read_text(encoding="utf-8"))
+        rep = page.evaluate("d => window.__mdm.run(d)", p)
+        v = page.evaluate("""() => ({
+          proc: (document.querySelector('#procedencia input') || {}).value, obs: (document.getElementById('obs_der') || {}).value,
+          cod: (document.getElementById('cod_ref') || {}).value, saved: window.__saved,
+          tipos: [...document.querySelectorAll('#disc_tipo input:checked')].map(x => x.value)})""")
+        page.close()
+        self.assertEqual(rep["ficha"], [], rep)
+        self.assertEqual(v["proc"], "Institución Estatal")
+        self.assertEqual((v["obs"], v["cod"]), ("Refiere centro de salud", "REF-77"))
+        self.assertEqual(v["tipos"], ["Mental", "Sensorial"])
+        self.assertFalse(v["saved"])
+
     def test_tamizaje_no_tiene_hea(self):
         p = dict(PAYLOAD, tipo_consulta="Tamizaje de signos vitales", dx=PAYLOAD["dx"][:1], n_dx=1)
         rep, v = self._run(p)

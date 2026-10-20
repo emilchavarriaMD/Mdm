@@ -447,6 +447,66 @@ class UITests(unittest.TestCase):
         self.assertEqual(ai.payload({"discapacidad": "No", "discapacidad_tipo": ["Mental"], "dx": []})["discapacidad_tipo"], [])
         dlg.destroy()
 
+    def test_04o_derivacion_desde_y_vineta_de_ssr(self):
+        from services import activityinfo as ai
+        from ui.dialog_activityinfo import ActivityInfoDialog
+        dlg = ActivityInfoDialog(self.root, ai.build_defaults(self.db, {
+            "nombre": "Ana", "sexo": "M", "fecha": "2026-10-15", "edad_anios": "30", "dx1": "Vaginosis"}), db=self.db)
+        self.assertEqual(dlg.w["derivado"].get_value(), "No")
+        dlg.update_idletasks()
+        self.assertFalse(dlg.w["derivado_procedencia"].winfo_ismapped())
+        dlg.w["derivado"].set_value("Sí"); dlg._mostrar_derivado_desde(); dlg.update_idletasks()
+        self.assertTrue(dlg.w["derivado_procedencia"].winfo_manager())
+        self.assertEqual(dlg.w["derivado_procedencia"]["values"][1:], tuple(ai.PROCEDENCIAS))
+        dlg.w["derivado"].set_value("No"); dlg._mostrar_derivado_desde()
+        self.assertEqual(dlg.w["derivado_procedencia"].get_value(), "")
+        # la sección de SSR tiene su viñeta plegable como las demás
+        sec = dlg.secciones["ssr"]
+        self.assertTrue(sec.abierta)
+        sec.plegar(); self.assertFalse(sec.cuerpo.winfo_manager())
+        sec.abrir(); self.assertTrue(sec.cuerpo.winfo_manager())
+        self.assertEqual(ai.payload({"derivado": "No", "derivado_obs": "x", "dx": []})["derivado_obs"], "")
+        dlg.destroy()
+
+    def test_04n_registro_guardado_se_puede_volver_a_ver(self):
+        from services import ata as ata_svc
+        from services import activityinfo as ai
+        from ui.dialog_activityinfo import ActivityInfoDialog
+        rec = {"nombre": "Nelly Erunda Romero", "sexo": "M", "fecha": "2026-10-15", "edad_anios": "30", "loc": "Brisas 1",
+               "dx1": "PF (ACOs)", "dx2": "Vaginosis", "dx3": "HTA"}
+        d = ai.build_defaults(self.db, rec)
+        dlg = ActivityInfoDialog(self.root, d, db=self.db)
+        dlg.w["consultas"].set_value([ai.CONSULTA_APS, "Salud Sexual y Reproductiva"]); dlg._mostrar_ssr()
+        dlg.w["derivado"].set_value("Sí"); dlg._mostrar_derivado_desde()
+        dlg.w["derivado_procedencia"].set_value("Institución Estatal"); dlg.w["derivado_obs"].set_value("obs X")
+        dlg.w["discapacidad"].set_value("Sí"); dlg._mostrar_disc(); dlg.w["discapacidad_tipo"].set_value(["Mental"])
+        dlg.hea.delete("1.0", "end"); dlg.hea.insert("1.0", "HEA escrita a mano")
+        dlg.ssr_plan.delete("1.0", "end"); dlg.ssr_plan.insert("1.0", "Plan SSR a mano")
+        dlg.w["ssr_menarquia"].set_value("13")
+        antes = dlg.snapshot()
+        dlg.destroy()
+        import json
+        self.assertEqual(json.loads(json.dumps(antes)), antes)                   # se puede guardar como JSON
+        d2 = ai.build_defaults(self.db, rec)
+        d2.update(antes); d2["_restaurado"] = True
+        dlg2 = ActivityInfoDialog(self.root, d2, db=self.db)
+        despues = dlg2.snapshot()
+        dlg2.destroy()
+        for k in antes:
+            self.assertEqual(despues[k], antes[k], k)
+        self.assertEqual(despues["hea"], "HEA escrita a mano")
+        self.assertEqual(despues["ssr_plan"], "Plan SSR a mano")
+        self.assertEqual(despues["derivado_procedencia"], "Institución Estatal")
+        # en la base: se guarda, sobrevive y se lee igual
+        db = self.db
+        sheet = ata_svc.save_sheet(db, {"fecha": "2026-10-15", "establecimiento": "X", "profesional": "", "codigo": "",
+                                        "tipo_establecimiento": "", "departamento": "", "municipio": ""},
+                                   [dict({k: "" for k in ata_svc.KEYS}, nombre="Ana Test", sexo="M", numero="1")])
+        rid = db.query("SELECT id FROM ata_rows WHERE sheet_id=?", (sheet,))[0]["id"]
+        self.assertIsNone(ata_svc.load_datos(db, rid))
+        ata_svc.save_datos(db, rid, antes)
+        self.assertEqual(ata_svc.load_datos(db, rid), antes)
+
     def test_04l_valores_por_defecto_de_ssr(self):
         from services import activityinfo as ai
         from ui.dialog_activityinfo import ActivityInfoDialog

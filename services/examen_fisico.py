@@ -306,13 +306,61 @@ def _resueltos(descripciones):
     return out
 
 
-def _hallazgos(descripciones):
+# Enfermedades crónicas: quien viene a surtir su medicamento tiene examen físico normal, salvo que el ATA diga que está en crisis
+_EXCL_HTA = r"gestacional|embarazo|preeclamp|eclamp|pulmonar|ocular|portal|intracraneal"
+FAMILIAS_CRONICAS = [
+    ("hta", r"(?<![a-z])hta(?![a-z])|hipertension(?!.*(" + _EXCL_HTA + "))"),
+    ("dm", r"diabet|(?<![a-z])dm\s?[12]?(?![a-z0-9])|mellitus"),
+    ("asma", r"asma"),
+    ("epoc", r"(?<![a-z])epoc(?![a-z])|bronquitis cronica|enfisema|enfermedad pulmonar obstructiva"),
+    ("tiroides", r"hipotiroid|hipertiroid|tiroid"),
+    ("epilepsia", r"epilep"),
+    ("dislipidemia", r"dislipid|hipercolest|hipertrigli|colesterol"),
+    ("erc", r"insuficiencia renal cronica|enfermedad renal cronica|(?<![a-z])erc(?![a-z])"),
+    ("ic", r"insuficiencia cardiaca"),
+    ("artropatia", r"artritis reumatoide|artrosis|osteoartritis|(?<![a-z])gota(?![a-z])"),
+    ("obesidad", r"obesidad"),
+    ("parkinson", r"parkinson"),
+]
+_CRISIS = re.compile(r"crisis|descompens|exacerb|agudiz|urgencia|emergencia|cetoacid|hipoglu|hiperglu|hipoglic|hiperglic|"
+                     r"estatus|status|sintomatic[oa] agud")
+
+
+_COMPLICADA = re.compile(r"ulcera|pie diabetico|neuropat|retinopat|nefropat|gangrena|(?<![a-z])coma(?![a-z])")
+
+
+def _norm(t):
+    return re.sub(r"\s+", " ", cat.plain(t or "")).strip()
+
+
+def familia_cronica(texto):
+    n = _norm(texto)
+    return next((f for f, rx in FAMILIAS_CRONICAS if re.search(rx, n)), "")
+
+
+def en_crisis(familia, ata):
+    """¿El ATA dice explícitamente que esa enfermedad crónica está en crisis (o descompensada, exacerbada…)?
+    Cuenta si el mismo texto nombra la enfermedad, o si es el único diagnóstico y solo dice «crisis»."""
+    textos = [_norm(t) for t in (ata or ()) if _norm(t)]
+    for n in textos:
+        if _CRISIS.search(n):
+            f = familia_cronica(n)
+            if f == familia or (not f and len(textos) == 1):
+                return True
+    return False
+
+
+def _hallazgos(descripciones, ata=()):
     """{parte: [textos]} sumando los de cada diagnóstico (sin repetir)."""
     out = {}
-    for d in _resueltos(descripciones):
+    originales = list(descripciones)
+    for orig, d in zip(originales, _resueltos(originales)):
         nombre = re.sub(r"\s+", " ", cat.plain(d or "")).strip()
         if not nombre:
             continue
+        fam = familia_cronica(d) or familia_cronica(orig)
+        if fam and not en_crisis(fam, ata) and not _CRISIS.search(nombre) and not _COMPLICADA.search(nombre):
+            continue                                   # crónico estable (viene por su medicamento): examen normal
         excl = next((h for p, h in EXCLUSIVAS if re.search(p, nombre)), None)
         if excl is not None:
             for k, v in excl.items():
@@ -366,10 +414,11 @@ def _frase(titulo, txt):
     return titulo + ": " + txt
 
 
-def compose(descripciones, ssr=False, rng=None):
-    """Texto del examen físico, una línea por sección, en el orden céfalo-caudal."""
+def compose(descripciones, ssr=False, rng=None, ata=()):
+    """Texto del examen físico, una línea por sección, en el orden céfalo-caudal. `ata`: lo que dice el ATA de cada
+    diagnóstico (para saber si una enfermedad crónica está en crisis)."""
     rng = rng or _Primera()                # sin rng: siempre la primera redacción (estable para las pruebas)
-    h = _hallazgos(descripciones)
+    h = _hallazgos(descripciones, ata)
     lineas = []
     for titulo, partes in SECCIONES:
         if titulo == "Genitourinario":      # no se explora: solo se anota por qué (y la puño percusión si el dx la pide)

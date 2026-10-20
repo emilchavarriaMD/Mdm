@@ -1,6 +1,6 @@
 /* Llena el formulario de ActivityInfo. NUNCA pulsa Guardar registro ni Guardar como borrador. */
 (function () {
-  const VERSION = 26;
+  const VERSION = 27;
   if (window.__mdm && window.__mdm.version === VERSION) return;   // una versión vieja en la pestaña se reemplaza
   const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
   const norm = (s) => (s || "").replace(/\s+/g, " ").replace(/\*/g, "").replace(/OBLIGATORIO/g, "").trim().toLowerCase();
@@ -176,6 +176,29 @@
     }
     if (d.perfil) await S("Perfil de población", () => setAuto("Perfil de población", d.perfil));
     if (d.derivado) await S("¿Ha sido derivado/a?", () => setRadio("¿Ha sido derivado/a?", d.derivado));
+    // Derivación (desde): con «Sí» aparecen Procedencia, Observaciones y Código de referencia (en ese orden)
+    if (d.derivado === "Sí" && (d.derivado_procedencia || d.derivado_obs || d.derivado_codigo)) {
+      await sleep(600);
+      const tras = (desde, texto) => {          // la primera etiqueta «texto» que viene después de «desde»
+        const ls = [...document.querySelectorAll("label")];
+        const i = ls.findIndex((l) => norm(l.textContent).startsWith(norm(desde)));
+        return i < 0 ? null : ls.slice(i + 1).find((l) => norm(l.textContent).startsWith(norm(texto))) || null;
+      };
+      const poner = async (nombre, desde, texto, valor) => {
+        const l = tras(desde, texto); if (!l) throw new Error("No encontré el campo: " + nombre);
+        const inp = inputFor(l); if (!inp) throw new Error("Campo sin cuadro de texto: " + nombre);
+        inp.scrollIntoView({ block: "center" }); inp.focus(); setNative(inp, String(valor));
+        inp.dispatchEvent(new Event("change", { bubbles: true })); inp.blur();
+        CHK.push({ label: nombre, el: inp, esperado: String(valor) });
+      };
+      if (d.derivado_procedencia) await S("Procedencia de la derivación", async () => {
+        const ok = await waitFor(() => findLabel("Procedencia de la derivación"), 4000);
+        if (!ok) throw new Error("no apareció (solo sale si «¿Ha sido derivado/a?» es Sí)");
+        await setAuto("Procedencia de la derivación", d.derivado_procedencia);
+      });
+      if (d.derivado_obs) await S("Derivación: Observaciones", () => poner("Derivación: Observaciones", "Procedencia de la derivación", "Observaciones", d.derivado_obs));
+      if (d.derivado_codigo) await S("Código de referencia", () => poner("Código de referencia", "Procedencia de la derivación", "Código de referencia", d.derivado_codigo));
+    }
     if ((d.consultas || []).length) await S("Consulta a realizar", () => setChecks("Consulta a realizar", d.consultas));
     return log;
   }

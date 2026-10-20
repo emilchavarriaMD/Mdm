@@ -110,9 +110,25 @@ form.appendChild(fnac);
 form.appendChild(radios("civil", "Estado civil*", ["Soltero/a", "Casado/a", "Unión libre"]));
 form.appendChild(radios("escolaridad", "Grado de escolaridad*", ["Ninguno", "Primaria", "Secundaria"]));
 form.appendChild(field("Sector de ocupación*", lookup("ocupacion", "Sector de ocupación", ["Estudiante", "Ama de casa", "Agricultura"])));
-form.appendChild(radios("discapacidad", "¿Tiene algún tipo de discapacidad?*", ["Sí", "No"]));
+const disc = radios("discapacidad", "¿Tiene algún tipo de discapacidad?*", ["Sí", "No"], (o) => {
+  const ya = document.getElementById("disc_tipo");
+  if (o === "Sí" && !ya) setTimeout(() => disc.after(checks("disc_tipo", "¿Qué tipo de discapacidad?*", ["Física o motora", "Intelectual", "Mental", "Sensorial"])), 300);
+  if (o !== "Sí" && ya) ya.remove();
+});
+form.appendChild(disc);
 form.appendChild(field("Perfil de población*", lookup("perfil", "Perfil de población", ["Persona en riesgo de desplazamiento", "Persona retornada"])));
-form.appendChild(radios("derivado", "¿Ha sido derivado/a?*", ["Sí", "No"]));
+const derivDesde = radios("derivado", "¿Ha sido derivado/a?*", ["Sí", "No"], (o) => {
+  const ya = document.getElementById("proc_box");
+  if (o === "Sí" && !ya) setTimeout(() => {
+    const box = document.createElement("div"); box.id = "proc_box";
+    box.appendChild(field("Procedencia de la derivación", lookup("procedencia", "", ["Institución Estatal", "MdM Nutrición"])));
+    box.appendChild(text("obs_der", "Observaciones"));
+    box.appendChild(text("cod_ref", "Código de referencia"));
+    derivDesde.after(box);
+  }, 300);
+  if (o !== "Sí" && ya) ya.remove();
+});
+form.appendChild(derivDesde);
 const consultas = checks("consultas", "Consulta a realizar*", ["Atención Primaria de Salud", "Salud Sexual y Reproductiva", "Nutrición", "Salud mental"], (o, on) => {
   if (o === "Atención Primaria de Salud" && on && !document.getElementById("btnAps")) {
     const b = button("Nuevo registro en Atención primaria de salud", openAps);

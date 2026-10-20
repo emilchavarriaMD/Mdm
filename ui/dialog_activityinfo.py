@@ -39,6 +39,8 @@ class ActivityInfoDialog(_Modal):
         super().__init__(parent, title)
         self.db = db
         self.defaults = defaults
+        self.snap = None
+        self._restaurado = bool(defaults.get("_restaurado"))
         self.w = {}
         self.transient("")                 # sin «transient», Windows muestra los botones de maximizar/minimizar
         self.resizable(True, True)
@@ -100,6 +102,17 @@ class ActivityInfoDialog(_Modal):
         self._mostrar_disc()
         add("perfil", "Perfil de población", C(ai.PERFILES))
         add("derivado", "¿Ha sido derivado/a?", C(ai.DERIVADO))
+        self.w["derivado"].bind("<<ComboboxSelected>>", lambda _e: self._mostrar_derivado_desde())
+        g.newline()                       # Derivación (desde): su propia fila, solo si la respuesta es «Sí»
+        add("derivado_procedencia", "Procedencia de la derivación", C(ai.PROCEDENCIAS))
+        add("derivado_obs", "Derivación: observaciones", E())
+        add("derivado_codigo", "Derivación: código de referencia", E())
+        g.newline()
+        self._der_desde = {}
+        for k in ("derivado_procedencia", "derivado_obs", "derivado_codigo"):
+            w = self.w[k]
+            self._der_desde[k] = [w] + list(gf.grid_slaves(row=w.grid_info()["row"] - 1, column=w.grid_info()["column"]))
+        self._mostrar_derivado_desde()
         add("nacionalidad", "País de nacionalidad", E())
         add("idioma", "Idioma", E())
         add("consultas", "Consulta a realizar (puede marcar más de una)",
@@ -114,6 +127,8 @@ class ActivityInfoDialog(_Modal):
         f_plan = self._sec(body, "plan", "Plan")
         f_der = self._sec(body, "der", "Derivación y servicio brindado")
         self.f_ssr = ttk.Frame(body)           # al final de todo; solo se ve si se marca Salud Sexual y Reproductiva
+        self.ssr_sec = widgets.Seccion(self.f_ssr, "Salud sexual y reproductiva")     # con viñeta plegable, como las demás
+        self.secciones["ssr"] = self.ssr_sec
         ttk.Label(f_vit, text="Frecuencia respiratoria: en niños, elíjala; vacío = no se llena.", style="Muted.TLabel").pack(anchor="w")
         gf2 = ttk.Frame(f_vit)
         gf2.pack(fill="x")
@@ -231,6 +246,9 @@ class ActivityInfoDialog(_Modal):
         self._hea_auto = defaults.get("hea", "")      # último texto generado: si la persona lo cambia, se respeta
         self._dx_vistos = self._clave_hea()
         self._vit_hta = self._hay_hta()          # con HTA los signos vitales proponen 140/130 y 90/80
+        if defaults.get("_restaurado"):          # registro guardado: ningún texto se vuelve a generar solo
+            for attr in ("_exa_auto", "_ssr_exa_auto", "_plan_auto", "_ssr_plan_auto", "_hea_auto", "_ssr_hea_auto"):
+                setattr(self, attr, "\0")
         if self._exa_auto.strip() != examen_fisico.compose([], ssr=False).strip():
             self._exa_auto = "\0"        # texto puesto a mano desde fuera: no se pisa
         if self._ssr_exa_auto.strip() != examen_fisico.compose([], ssr=True).strip():
@@ -315,8 +333,8 @@ class ActivityInfoDialog(_Modal):
     def _ir(self, clave):
         """Despliega la sección y la lleva a la vista."""
         sec = self.secciones.get(clave)
-        w = sec if sec is not None else (self.f_ssr if clave == "ssr" and self.f_ssr.winfo_manager() else None)
-        if w is None:
+        w = sec if sec is not None else None
+        if w is None or (clave == "ssr" and not self.f_ssr.winfo_manager()):
             return
         if sec is not None:
             sec.abrir()
@@ -473,7 +491,7 @@ class ActivityInfoDialog(_Modal):
     def _construir_ssr(self, defaults):
         """Sección de Salud Sexual y Reproductiva (al final de la ventana; se ve al marcar esa consulta). Sigue el orden
         del subformulario de ActivityInfo y muestra los campos que dependen de lo elegido, igual que la página."""
-        f = self.f_ssr
+        f = self.ssr_sec.cuerpo
         self._ssr_vistos = {}
 
         def titulo(txt, pad=(12, 2)):
@@ -710,8 +728,8 @@ class ActivityInfoDialog(_Modal):
 
         titulo("Plan (SSR)")
         nota("Medidas generales según los diagnósticos (sin medicamentos). Vacío = no se llena.")
-        self.ssr_plan = caja("Plan", 7, defaults.get("plan", ""))
-        self._ssr_plan_auto = defaults.get("plan", "")
+        self.ssr_plan = caja("Plan", 7, defaults.get("ssr_plan", defaults.get("plan", "")))
+        self._ssr_plan_auto = defaults.get("ssr_plan", defaults.get("plan", ""))
 
         titulo("Derivación (SSR)")
         gd = ttk.Frame(f)
@@ -795,6 +813,15 @@ class ActivityInfoDialog(_Modal):
         self.ssr_lve_res.configure(text=("Resultado: " + r) if r else "Resultado: (responda las preguntas)",
                                    foreground="#b54708" if r.startswith("No se puede") else "")
 
+    def _mostrar_derivado_desde(self):
+        """«Derivación (desde)»: Procedencia, observaciones y código solo existen en la página si «¿Ha sido derivado/a?» es Sí."""
+        si = self.w["derivado"].get_value() == "Sí"
+        for k, cosas in self._der_desde.items():
+            if not si:
+                self.w[k].set_value("")
+            for c in cosas:
+                c.grid() if si else c.grid_remove()
+
     def _mostrar_disc(self):
         """El tipo de discapacidad solo se pide (y se llena en ActivityInfo) cuando la respuesta es «Sí»."""
         cosas = [self._disc_tipo] + list(self._disc_lbl)
@@ -864,6 +891,8 @@ class ActivityInfoDialog(_Modal):
 
     def _regen_plan(self, forzar=False):
         """Plan general (sin medicamentos) según los diagnósticos; si se editó a mano, no se pisa (salvo «Otra versión»)."""
+        if self._restaurado and not forzar:          # registro guardado: los textos se dejan como estaban
+            return
         def poner(caja, texto, auto_attr):
             if not texto:
                 return
@@ -881,6 +910,8 @@ class ActivityInfoDialog(_Modal):
 
     def _regen_examen(self, forzar=False):
         """Examen físico por secciones según los diagnósticos; si se editó a mano, no se pisa (salvo «Otra versión»)."""
+        if self._restaurado and not forzar:          # registro guardado: los textos se dejan como estaban
+            return
         def poner(caja, texto, auto_attr):
             if not forzar and caja.get("1.0", "end").strip() != getattr(self, auto_attr, "").strip():
                 return
@@ -889,20 +920,23 @@ class ActivityInfoDialog(_Modal):
             setattr(self, auto_attr, texto)
         aps = [d for d in self._dx_actuales() if d]
         todos = [d for d in self._dx_hea() if d]
+        ata = [a for a, _cb in self.dx_rows]          # lo que dice el ATA: ahí se ve si una crónica está en crisis
         rng = random.Random()
         if self._ssr_activo() and hasattr(self, "ssr_examen"):
             # con SSR marcado, el examen físico es UNO SOLO (todos los diagnósticos, con genitourinario) y va igual en ambas fichas
-            texto = examen_fisico.compose(todos, ssr=True, rng=rng)
+            texto = examen_fisico.compose(todos, ssr=True, rng=rng, ata=ata)
             poner(self.examen, texto, "_exa_auto")
             poner(self.ssr_examen, texto, "_ssr_exa_auto")
         else:
-            poner(self.examen, examen_fisico.compose(aps, ssr=False, rng=rng), "_exa_auto")
+            poner(self.examen, examen_fisico.compose(aps, ssr=False, rng=rng, ata=ata), "_exa_auto")
             if hasattr(self, "ssr_examen"):
-                poner(self.ssr_examen, examen_fisico.compose(todos, ssr=True, rng=rng), "_ssr_exa_auto")
+                poner(self.ssr_examen, examen_fisico.compose(todos, ssr=True, rng=rng, ata=ata), "_ssr_exa_auto")
 
     def _regen_hea(self, solo_si_cambio):
         """Vuelve a armar la HEA de APS (diagnósticos de APS) y la de SSR (diagnósticos de SSR). Si la persona editó
         un texto a mano, ese no se pisa (salvo con «Otra versión»)."""
+        if not hasattr(self, "_dx_vistos"):        # todavía se está armando la ventana
+            return
         self._marcar_fuentes()
         self._ajustar_vitales()
         self._regen_examen()
@@ -916,6 +950,8 @@ class ActivityInfoDialog(_Modal):
         self._regen_hea_ssr(not solo_si_cambio)
 
     def _regen_hea_aps(self, forzar):
+        if self._restaurado and not forzar:          # registro guardado: los textos se dejan como estaban
+            return
         if not forzar and self.hea.get("1.0", "end").strip() != self._hea_auto.strip():
             return
         p = self._persona()
@@ -926,6 +962,8 @@ class ActivityInfoDialog(_Modal):
         self.hea_aviso.configure(text="\n".join("⚠ " + a for a in avisos))
 
     def _regen_hea_ssr(self, forzar):
+        if self._restaurado and not forzar:          # registro guardado: los textos se dejan como estaban
+            return
         if not self._ssr_activo() or not hasattr(self, "ssr_hea"):
             return
         dxs = self._dx_ssr_hea()
@@ -946,6 +984,21 @@ class ActivityInfoDialog(_Modal):
         self.focus_set()
         self.wait_window(self)
         return self.result
+
+    def snapshot(self):
+        """Todo lo que hay en la ventana, en el mismo formato de `defaults`, para volver a abrirla igual."""
+        s = {k: w.get_value() for k, w in self.w.items()}
+        txt = lambda c: c.get("1.0", "end").strip()  # noqa: E731
+        s.update(hea=txt(self.hea), examen_fisico=txt(self.examen), plan=txt(self.plan))
+        if hasattr(self, "ssr_hea"):
+            s.update(ssr_hea=txt(self.ssr_hea), ssr_examen_fisico=txt(self.ssr_examen), ssr_plan=txt(self.ssr_plan))
+        s["dx"] = [{"abrev": a, "descripcion": cb.get_value(), "cie11": ""} for a, cb in self.dx_rows]
+        if hasattr(self, "ssr_rows"):
+            sug = self.defaults.get("ssr_dx") or []
+            s["ssr_dx"] = [{"abrev": (sug[i].get("abrev", "") if i < len(sug) else ""),
+                            "descripcion": ssr_cat.from_label(cb.get_value())[0], "cie11": ""}
+                           for i, cb in enumerate(self.ssr_rows)]
+        return s
 
     def _ok(self):
         data = {k: (w.get_value() if isinstance(w, ChecksField) else w.get_value().strip())
@@ -1064,4 +1117,8 @@ class ActivityInfoDialog(_Modal):
                                     "servicio_brindado": self.w["ssr_servicio_brindado"].get_value(),
                                     "servicio_salud": self.w["ssr_servicio_salud"].get_value()})
         self.result = data
+        try:
+            self.snap = self.snapshot()
+        except Exception:  # noqa: BLE001  (guardar el registro nunca debe impedir llenar el formulario)
+            self.snap = None
         self.destroy()

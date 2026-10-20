@@ -113,6 +113,9 @@ def vitales_defecto(sexo, edad, unidad="años", rng=None, hta=False):
 
 # Derivación (hacia) / Servicio brindado: «recapitulativo interno MdM para todas las atenciones».
 VA_DERIVADO = ["Sí", "No"]
+PROCEDENCIAS = ["Establecimiento público de salud", "Institución Estatal", "MdM Atención primária", "MdM Gestión de casos",
+                "MdM Salud mental y apoyo psicosocial", "Mdm Salud sexual y reproductiva", "MdM Técnicos de campo",
+                "Organización de la Sociedad Civil", "Organización Internacional", "MdM Nutrición"]   # «Procedencia de la derivación»
 N_SERVICIOS = ["Un servicio", "Dos servicios"]
 SERVICIOS_BRINDADOS = ["Protección", "Salud", "Recuperación económica/medios de vida", "Justicia/Asistencia legal",
                        "Gestión de casos MdM", "Educación NNA"]
@@ -351,6 +354,9 @@ def payload(data: dict) -> dict:
     """Lo que se envía al formulario. Los campos vacíos no se tocan."""
     d = {k: v for k, v in data.items() if k not in ("dx", "recordar_dx") and not k.startswith("ssr_")}
     d["permitir_esta_hecho"] = PERMITIR_ESTA_HECHO_EN_APS
+    if d.get("derivado") != "Sí":                 # sin Sí no existen los campos de «Derivación (desde)»
+        for k in ("derivado_procedencia", "derivado_obs", "derivado_codigo"):
+            d[k] = ""
     if d.get("discapacidad") != "Sí":
         d["discapacidad_tipo"] = []
     dx = [{"abrev": x.get("abrev", ""), "descripcion": x.get("descripcion", ""), "cie11": x.get("cie11", "")}

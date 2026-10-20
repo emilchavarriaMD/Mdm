@@ -81,6 +81,7 @@ class PacientesPage(Page):
         bot.pack(fill="x", pady=(10, 0))
         ttk.Button(bot, text="Añadir registro al seleccionado", style="Accent.TButton",
                    command=self.add_record).pack(side="left")
+        ttk.Button(bot, text="Ver registro guardado", command=self.ver_registro).pack(side="left", padx=(8, 0))
         ttk.Button(bot, text="Siguiente pendiente ▶", command=self.siguiente_pendiente).pack(side="left", padx=8)
         ttk.Button(bot, text="Marcar como registrado", command=lambda: self.mark(True)).pack(
             side="left", padx=8)
@@ -242,9 +243,32 @@ class PacientesPage(Page):
                 self, "Ya registrado", f"{rec['nombre']} ya está marcado como registrado en "
                 "ActivityInfo. ¿Llenar el formulario otra vez?", yes="Llenar de nuevo", no="Cancelar"):
             return
-        data = ActivityInfoDialog(self, activityinfo.build_defaults(self.db, rec), db=self.db).run()
+        self._abrir_dialogo(rid, rec, activityinfo.build_defaults(self.db, rec))
+
+    def ver_registro(self):
+        """Vuelve a abrir, tal como se dejó, lo que se revisó y llenó la última vez para este paciente."""
+        rid = self._selected()
+        if rid is None:
+            return
+        rec = ata_svc.get_record(self.db, rid)
+        guardado = ata_svc.load_datos(self.db, rid)
+        if not guardado:
+            dialogs.info(self, f"Todavía no hay un registro guardado de {rec['nombre']}. Se guarda al pulsar "
+                         "«Abrir Chrome y llenar» en «Añadir registro».")
+            return
+        d = activityinfo.build_defaults(self.db, rec)
+        d.update(guardado)
+        d["_restaurado"] = True
+        self._abrir_dialogo(rid, rec, d, titulo=f"Registro guardado — {rec['nombre']}")
+
+    def _abrir_dialogo(self, rid, rec, defaults, titulo=None):
+        dlg = ActivityInfoDialog(self, defaults, db=self.db, **({"title": titulo} if titulo else {}))
+        data = dlg.run()
         if not data:
             return
+        snap = getattr(dlg, "snap", None)
+        if snap:
+            ata_svc.save_datos(self.db, rid, snap)      # se guarda antes de llenar: así se puede volver a ver
         activityinfo.remember_dx(self.db, data)
         self._busy = True
         self.count.configure(text="Abriendo Chrome… si pide iniciar sesión, hágalo en esa ventana.")

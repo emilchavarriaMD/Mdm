@@ -147,3 +147,11 @@ Lo que el ATA no trae ahora se propone ya puesto (la persona lo corrige en la ve
 - **Signos vitales:** temperatura 36 o 37 (SIN decimales; la lista trae primero los grados enteros). Con diagnóstico de HTA (adultos): sistólica 140 o 130 y diastólica 90 u 80; si se agrega o quita la HTA en la ventana, se proponen de nuevo mientras no se hayan cambiado a mano.
 - **SSR:** tipo de consulta Primera · violencia No · menarquía 12 · ritmo menstrual en lista (REGULAR / IRREGULAR, por defecto REGULAR) · trastorno menstrual, menopausia, prueba de VPH, autoexamen de mamas, ITS e ITU: No · embarazo actual No · embarazo anterior «> 2 AÑOS» · gestaciones, partos, cesáreas, abortos, óbitos, hijos vivos y muertos en lista de 0 a 16 (sin valor por defecto) · lactancia No · VPH, Papanicolau y examen de mama No · consejería Si · método elegido hoy Preservativo masculino · acceso Sí.
 Están en `defectos_ficha()`, `defectos_ssr()` y `vitales_defecto()` de `services/activityinfo.py`.
+
+## 2.9 — derivación (desde), viñeta de SSR, crónicos y registro guardado
+- **Derivación (desde):** con «¿Ha sido derivado/a?» = Sí aparecen Procedencia de la derivación (lista de ActivityInfo), Observaciones y Código de referencia, y se llenan en la página.
+- **Discapacidad:** con «Sí» aparece «¿Qué tipo de discapacidad?» (Física o motora, Intelectual, Mental, Sensorial).
+- **Salud sexual y reproductiva** tiene su viñeta plegable como las otras secciones.
+- **Crónicos sin crisis:** HTA, DM2, asma, EPOC, tiroides, epilepsia, dislipidemia, ERC… llevan examen físico NORMAL (viene a surtir su medicamento), salvo que el ATA diga crisis/descompensada/exacerbación, o que la descripción elegida ya sea una complicación (exacerbación, hipoglucemia, úlcera del pie diabético…).
+- **Ver registro guardado:** al pulsar «Abrir Chrome y llenar» se guarda lo revisado (en la base, nunca en GitHub). El botón «Ver registro guardado» lo reabre tal cual, aunque se haya cerrado el programa.
+- El plan de SSR siempre empieza con «Se entregan 10 Condones.» y la localidad del ATA va en «Especifique punto de atención».
