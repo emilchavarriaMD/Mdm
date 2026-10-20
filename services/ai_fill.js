@@ -1,6 +1,6 @@
 /* Llena el formulario de ActivityInfo. NUNCA pulsa Guardar registro ni Guardar como borrador. */
 (function () {
-  const VERSION = 25;
+  const VERSION = 26;
   if (window.__mdm && window.__mdm.version === VERSION) return;   // una versión vieja en la pestaña se reemplaza
   const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
   const norm = (s) => (s || "").replace(/\s+/g, " ").replace(/\*/g, "").replace(/OBLIGATORIO/g, "").trim().toLowerCase();
@@ -167,6 +167,13 @@
     if (d.escolaridad) await S("Grado de escolaridad", () => setRadio("Grado de escolaridad", d.escolaridad));
     if (d.ocupacion) await S("Sector de ocupación", () => setAuto("Sector de ocupación", d.ocupacion));
     if (d.discapacidad) await S("Discapacidad", () => setRadio("¿Tiene algún tipo de discapacidad?", d.discapacidad));
+    if (d.discapacidad === "Sí" && (d.discapacidad_tipo || []).length) {   // al responder «Sí» aparece «¿Qué tipo de discapacidad?»
+      await S("Tipo de discapacidad", async () => {
+        const ok = await waitFor(() => findLabel("¿Qué tipo de discapacidad?"), 4000);
+        if (!ok) throw new Error("no apareció «¿Qué tipo de discapacidad?»");
+        await setChecks("¿Qué tipo de discapacidad?", d.discapacidad_tipo);
+      });
+    }
     if (d.perfil) await S("Perfil de población", () => setAuto("Perfil de población", d.perfil));
     if (d.derivado) await S("¿Ha sido derivado/a?", () => setRadio("¿Ha sido derivado/a?", d.derivado));
     if ((d.consultas || []).length) await S("Consulta a realizar", () => setChecks("Consulta a realizar", d.consultas));

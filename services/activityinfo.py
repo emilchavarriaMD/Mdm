@@ -40,6 +40,7 @@ LGTBIQ = ["Sí", "No"]
 PUEBLOS = ["Afrodescendiente / Creole / Afromestizo", "Extranjero", "Garífuna", "Ladino / Mestizo", "Maya",
            "Xinca", "No responde", "Lenca", "Miskito", "Tolupán", "Pech", "Tawanhka"]
 DISCAPACIDAD = ["Sí", "No", "Prefiere no contestar"]
+TIPOS_DISCAPACIDAD = ["Física o motora", "Intelectual", "Mental", "Sensorial"]   # «¿Qué tipo de discapacidad?» (sale si es Sí)
 # Signos vitales: listas desplegables de la ventana de registro y valores iniciales.
 LISTA_SISTOLICA = [str(x) for x in range(60, 251, 10)]
 LISTA_DIASTOLICA = [str(x) for x in range(30, 151, 10)]
@@ -350,6 +351,8 @@ def payload(data: dict) -> dict:
     """Lo que se envía al formulario. Los campos vacíos no se tocan."""
     d = {k: v for k, v in data.items() if k not in ("dx", "recordar_dx") and not k.startswith("ssr_")}
     d["permitir_esta_hecho"] = PERMITIR_ESTA_HECHO_EN_APS
+    if d.get("discapacidad") != "Sí":
+        d["discapacidad_tipo"] = []
     dx = [{"abrev": x.get("abrev", ""), "descripcion": x.get("descripcion", ""), "cie11": x.get("cie11", "")}
           for x in (data.get("dx") or [])][:3]
     d["dx"] = dx

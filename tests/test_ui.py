@@ -431,6 +431,22 @@ class UITests(unittest.TestCase):
         self.assertIn("36", list(dlg.w["temperatura"]["values"]))                            # la lista trae grados enteros
         dlg.destroy()
 
+    def test_04m_tipo_de_discapacidad_solo_si_es_si(self):
+        from services import activityinfo as ai
+        from ui.dialog_activityinfo import ActivityInfoDialog
+        dlg = ActivityInfoDialog(self.root, ai.build_defaults(self.db, {
+            "nombre": "Ana Pérez López", "sexo": "M", "fecha": "2026-10-15", "edad_anios": "30", "dx1": "Cefalea"}), db=self.db)
+        self.assertEqual(dlg.w["discapacidad"].get_value(), "No")
+        self.assertFalse(dlg._disc_tipo.winfo_ismapped() and dlg._disc_tipo.winfo_manager())
+        dlg.w["discapacidad"].set_value("Sí"); dlg._mostrar_disc(); dlg.update_idletasks()
+        self.assertTrue(dlg._disc_tipo.winfo_manager())
+        dlg.w["discapacidad_tipo"].set_value(["Mental", "Sensorial"])
+        self.assertEqual(dlg.w["discapacidad_tipo"].get_value(), ["Mental", "Sensorial"])
+        dlg.w["discapacidad"].set_value("No"); dlg._mostrar_disc()
+        self.assertEqual(dlg.w["discapacidad_tipo"].get_value(), [])
+        self.assertEqual(ai.payload({"discapacidad": "No", "discapacidad_tipo": ["Mental"], "dx": []})["discapacidad_tipo"], [])
+        dlg.destroy()
+
     def test_04l_valores_por_defecto_de_ssr(self):
         from services import activityinfo as ai
         from ui.dialog_activityinfo import ActivityInfoDialog

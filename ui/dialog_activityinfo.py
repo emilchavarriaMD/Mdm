@@ -92,6 +92,12 @@ class ActivityInfoDialog(_Modal):
         add("escolaridad", "Grado de escolaridad", C(ai.ESCOLARIDADES))
         add("ocupacion", "Sector de ocupación", C(ai.OCUPACIONES))
         add("discapacidad", "¿Tiene alguna discapacidad?", C(ai.DISCAPACIDAD))
+        self.w["discapacidad"].bind("<<ComboboxSelected>>", lambda _e: self._mostrar_disc())
+        self._disc_tipo = ChecksField(gf, ai.TIPOS_DISCAPACIDAD, columns=4)
+        add("discapacidad_tipo", "¿Qué tipo de discapacidad? (solo si es «Sí»; puede marcar más de una)",
+            self._disc_tipo, span=3)
+        self._disc_lbl = gf.grid_slaves(row=self.w["discapacidad_tipo"].grid_info()["row"] - 1)
+        self._mostrar_disc()
         add("perfil", "Perfil de población", C(ai.PERFILES))
         add("derivado", "¿Ha sido derivado/a?", C(ai.DERIVADO))
         add("nacionalidad", "País de nacionalidad", E())
@@ -789,6 +795,17 @@ class ActivityInfoDialog(_Modal):
         self.ssr_lve_res.configure(text=("Resultado: " + r) if r else "Resultado: (responda las preguntas)",
                                    foreground="#b54708" if r.startswith("No se puede") else "")
 
+    def _mostrar_disc(self):
+        """El tipo de discapacidad solo se pide (y se llena en ActivityInfo) cuando la respuesta es «Sí»."""
+        cosas = [self._disc_tipo] + list(self._disc_lbl)
+        if self.w["discapacidad"].get_value() == "Sí":
+            for c in cosas:
+                c.grid()
+        else:
+            self._disc_tipo.set_value([])
+            for c in cosas:
+                c.grid_remove()
+
     def _mostrar_ssr_der(self):
         self.ssr_der_extra.pack_forget()
         self.ssr_f_victima.pack_forget()
@@ -939,6 +956,8 @@ class ActivityInfoDialog(_Modal):
         falta = [t for k, t in self.CLAVES if not data.get(k)]
         if "Atención Primaria de Salud" in data["consultas"] and not data.get("tipo_consulta"):
             falta.append("Tipo de consulta (APS)")
+        if data.get("discapacidad") == "Sí" and not data.get("discapacidad_tipo"):
+            falta.append("¿Qué tipo de discapacidad?")
         if ai.CONSULTA_APS in data["consultas"] and not any(cat.from_label(cb.get_value())[0] for _a, cb in self.dx_rows):
             falta.append("Diagnóstico (ninguno elegido de la lista)")
         if falta and not dialogs.confirm(
