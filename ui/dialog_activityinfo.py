@@ -648,7 +648,7 @@ class ActivityInfoDialog(_Modal):
         gra = widgets.FormGrid(ga2, 2)
         combo("ssr_act_1", "Método actual", ai.SSR_METODOS_ACTUALES, ga2, gra)
         combo("ssr_act_2", "Otro método actual (opcional)", ai.SSR_METODOS_ACTUALES, ga2, gra)
-        # Lista de verificación de embarazo (en ActivityInfo va entre el método actual y el método elegido)
+        # Lista de verificación de embarazo (en la ventana va debajo del método elegido; en ActivityInfo se llena en su orden)
         self.ssr_lve = ttk.LabelFrame(self.ssr_met, text=" Lista de verificación de embarazo ", padding=8)
         ttk.Label(self.ssr_lve, text="Solo para Mujer CIS u Hombre TRANS. Si TODAS son «No» no se puede descartar embarazo; "
                   "con alguna «Sí» se puede estar razonablemente seguro/a. Vacío = no se llena.", style="Muted.TLabel",
@@ -750,7 +750,7 @@ class ActivityInfoDialog(_Modal):
             self.ssr_actuales.pack(fill="x", after=self._ssr_gm2, pady=(6, 0))
         self.ssr_lve.pack_forget()
         if self._lve_aplica():
-            self.ssr_lve.pack(fill="x", before=self._ssr_marco_e, pady=(8, 0))
+            self.ssr_lve.pack(fill="x", after=self._ssr_marco_e, pady=(8, 0))   # en la ventana va debajo del método elegido
         self._lve_actualizar()
 
     def _lve_aplica(self):
