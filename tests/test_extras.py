@@ -88,3 +88,67 @@ class T20_Extras(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+def _plantilla_ata_2023(path):
+    """Hoja con la misma distribución de la plantilla ATA-2023 (encabezados de 3 filas, celdas combinadas, 20 filas)."""
+    from openpyxl import Workbook
+    wb = Workbook()
+    ws = wb.active
+    ws["A5"], ws["D5"], ws["J5"], ws["M5"], ws["O5"] = "Establecimiento:", "Código:", "Tipo De Establecimiento:", "Departamento:", "Municipio:"
+    ws["A6"], ws["C6"], ws["M6"] = "Profesional De Salud: MG", "Nombre: Dra Prueba", "Fecha (dd/mm/aa):"
+    for rng in ("A5:B5", "D5:E5", "J5:K5", "P5:Q5", "A6:B6", "C6:L6", "A7:A9", "B7:B9", "C7:C9", "D7:D9", "E7:E9",
+                "F7:H8", "I7:I9", "J7:L8", "M7:O7", "M8:M9", "N8:N9", "O8:O9", "P7:Q9"):
+        ws.merge_cells(rng)
+    ws["A7"], ws["B7"], ws["C7"], ws["D7"] = "N°", "NOMBRES Y APELLIDOS", "NÚMERO DE TELEFONO", "SEXO (M/F)"
+    ws["E7"], ws["F7"], ws["I7"], ws["J7"] = "FECHA DE NACIMIENTO (dd/mm/aa)", "EDAD", "PACIENTE", "PROCEDENCIA"
+    ws["M7"], ws["P7"] = "DIAGNÓSTICO / ACTIVIDAD", "Gestas, partos, cesareas, abortos, HV, HM"
+    ws["M8"], ws["N8"], ws["O8"] = "1", "2", "3"
+    ws["F9"], ws["G9"], ws["H9"], ws["J9"], ws["K9"], ws["L9"] = "AÑOS", "MESES", "DÍAS", "DEPARTAMENTO", "MUNICIPIO", "LOCALIDAD"
+    for i in range(20):
+        ws[f"A{10 + i}"] = i + 1
+        ws.merge_cells(f"P{10 + i}:Q{10 + i}")
+        ws[f"P{10 + i}"] = "G=    P=    C=    A=    HV=    HM=   "
+    ws["C5"], ws["F5"], ws["L5"], ws["N5"], ws["P5"], ws["N6"] = "Brisas", "77", "Brigada", "Cortés", "Choloma", "15/10/26"
+    ws["B10"], ws["C10"], ws["D10"], ws["E10"], ws["F10"] = "Ana Pérez", "9988-7766", "F", "12/03/90", 34
+    ws["J10"], ws["K10"], ws["L10"], ws["M10"], ws["N10"], ws["P10"] = "Cortés", "Choloma", "Brisas 1", "HTA", "PF (ACOs)", "G=2 P=1 C=1 A=0 HV=3 HM=0"
+    ws["B11"], ws["D11"], ws["G11"], ws["J11"], ws["K11"], ws["L11"], ws["M11"] = "Luis Mejía", "M", 6, '"', '"', '"', "Diarrea"
+    wb.save(path)
+
+
+class T21_PlantillaATA2023(unittest.TestCase):
+    def test_lee_la_plantilla_con_encabezados_de_varias_filas(self):
+        p = Path(tempfile.mkdtemp(dir=_TMP)) / "ata2023.xlsx"
+        _plantilla_ata_2023(p)
+        h, rows, warns = A.import_excel(p)
+        self.assertEqual((h["establecimiento"], h["codigo"], h["municipio"], h["fecha"]), ("Brisas", "77", "Choloma", "15/10/2026"))
+        self.assertEqual(h["profesional"], "Dra Prueba")
+        self.assertEqual(len(rows), 2)                           # las 18 filas en blanco (con «G=  P=  …» vacío) no cuentan
+        a, b = rows
+        self.assertEqual((a["nombre"], a["telefono"], a["fecha_nacimiento"], a["edad_anios"]), ("Ana Pérez", "9988-7766", "12/03/1990", "34"))
+        self.assertEqual((a["dep"], a["mun"], a["loc"], a["dx1"], a["dx2"]), ("Cortés", "Choloma", "Brisas 1", "HTA", "PF (ACOs)"))
+        self.assertEqual(a["obst"], "G=2 P=1 C=1 A=0 HV=3 HM=0")
+        self.assertEqual((a["sexo"], b["sexo"]), ("M", "H"))        # (M/F): F = mujer -> M, M = masculino -> H
+        self.assertEqual((b["edad_meses"], b["loc"], b["obst"]), ("6", '"', ""))
+        self.assertTrue(any("M/F" in w for w in warns))
+        hh, clean, errores = A.prepare_sheet(h, rows)
+        self.assertEqual(errores, [])
+        self.assertEqual(clean[1]["loc"], "Brisas 1")               # la comilla se expande con la fila anterior
+        db = Database(Path(tempfile.mkdtemp(dir=_TMP)) / "t2.db")
+        sid = A.save_sheet(db, hh, clean)
+        _s, guardadas = A.get_sheet(db, sid)
+        self.assertEqual((guardadas[0]["telefono"], guardadas[0]["obst"]), ("9988-7766", "G=2 P=1 C=1 A=0 HV=3 HM=0"))
+        self.assertEqual(guardadas[1]["loc"], "Brisas 1")
+
+    def test_numeros_obstetricos_pasan_a_los_antecedentes_de_ssr(self):
+        from services import activityinfo as ai
+        d = ai.build_defaults(Database(Path(tempfile.mkdtemp(dir=_TMP)) / "t3.db"), {
+            "nombre": "Ana", "sexo": "M", "fecha": "2026-10-15", "edad_anios": "30", "dx1": "PF",
+            "obst": "G=2 P=1 C=1 A=0 HV=3 HM=0"})
+        self.assertEqual([d[k] for k in ("ssr_gestaciones", "ssr_partos", "ssr_cesareas", "ssr_abortos", "ssr_hijos_vivos", "ssr_hijos_muertos")],
+                         ["2", "1", "1", "0", "3", "0"])
+        d0 = ai.build_defaults(Database(Path(tempfile.mkdtemp(dir=_TMP)) / "t4.db"), {
+            "nombre": "Ana", "sexo": "M", "fecha": "2026-10-15", "edad_anios": "30", "dx1": "PF", "obst": "G=0 P=0 C=0 A=0 HV=0 HM=0"})
+        self.assertEqual(d0["ssr_embarazo_anterior"], "No hubo embarazo")
+        self.assertNotIn("ssr_gestaciones", ai.build_defaults(Database(Path(tempfile.mkdtemp(dir=_TMP)) / "t5.db"), {
+            "nombre": "Ana", "sexo": "M", "fecha": "2026-10-15", "edad_anios": "30", "dx1": "PF"}))

@@ -22,6 +22,7 @@ COLUMNS = [
     ("dx2", "Diagnóstico 2", 22), ("cie2", "CIE 2", 7),
     ("dx3", "Diagnóstico 3", 22), ("cie3", "CIE 3", 7),
     ("ref_enviada", "Referencia enviada", 14), ("ref_recibida", "Referencia recibida", 14),
+    ("telefono", "Teléfono", 13), ("obst", "Gestas, partos, cesáreas, abortos, HV, HM", 34),
 ]
 KEYS = [c[0] for c in COLUMNS]
 HEADER_FIELDS = [
@@ -206,7 +207,8 @@ _SYN = {
     "identidad": ["n de identidad", "n° de identidad", "numero de identidad", "identidad",
                   "numero de identidad del paciente", "n.° de identidad"],
     "sexo": ["sexo h/m", "sexo (h/m)", "sexo", "sexo (m/f)"],
-    "fecha_nacimiento": ["fecha de nacimiento", "fecha nacimiento", "fecha de nacimiento dd/mm/aa"],
+    "fecha_nacimiento": ["fecha de nacimiento", "fecha nacimiento", "fecha de nacimiento dd/mm/aa",
+                         "fecha de nacimiento (dd/mm/aa)"],
     "edad_anios": ["edad anos", "edad años", "anos", "años"], "edad_meses": ["edad meses", "meses"],
     "edad_dias": ["edad dias", "edad días", "dias", "días"],
     "dep": ["departamento"], "mun": ["municipio"], "loc": ["localidad"],
@@ -215,11 +217,52 @@ _SYN = {
     "dx3": ["diagnostico 3", "diagnóstico 3", "dx 3", "dx3"], "cie3": ["cie 3", "cie3"],
     "ref_enviada": ["referencia enviada", "enviada a", "enviada"],
     "ref_recibida": ["referencia recibida", "recibida de", "recibida"],
+    "telefono": ["telefono", "numero de telefono", "n de telefono", "n° de telefono", "celular", "numero de celular"],
+    "obst": ["gestas partos cesareas abortos hv hm", "gestas, partos, cesareas, abortos, hv, hm", "historia ginecoobstetrica",
+             "gestas partos cesareas abortos hijos vivos hijos muertos", "gpcahvhm", "g p c a hv hm"],
 }
+# encabezados de dos y tres filas (plantilla ATA-2023): se juntan el texto de arriba y el de abajo
+_SYN_JUNTOS = {
+    "edad_anios": ["edad anos"], "edad_meses": ["edad meses"], "edad_dias": ["edad dias"],
+    "dep": ["procedencia departamento"], "mun": ["procedencia municipio"], "loc": ["procedencia localidad"],
+    "dx1": ["diagnostico / actividad 1", "diagnostico actividad 1"], "dx2": ["diagnostico / actividad 2", "diagnostico actividad 2"],
+    "dx3": ["diagnostico / actividad 3", "diagnostico actividad 3"],
+}
+_SUBENCABEZADOS = {"1", "2", "3", "anos", "meses", "dias", "departamento", "municipio", "localidad"}
+_ETIQUETAS_ENCABEZADO = [("establecimiento", "establecimiento"), ("codigo", "codigo"),
+                         ("tipo de establecimiento", "tipo_establecimiento"), ("departamento", "departamento"),
+                         ("municipio", "municipio"), ("fecha", "fecha"), ("nombre", "profesional")]
+
+
+def _anio2(texto, nacimiento=False):
+    """«15/10/26» -> «15/10/2026» (para nacimientos, el año de dos cifras es del 1900 si pasaría de hoy)."""
+    import re as _re
+    from datetime import date as _d
+    m = _re.fullmatch(r"\s*(\d{1,2})[/-](\d{1,2})[/-](\d{2})\s*", str(texto or ""))
+    if not m:
+        return texto
+    yy = int(m.group(3))
+    hoy = _d.today().year % 100
+    anio = (2000 + yy) if (not nacimiento or yy <= hoy) else (1900 + yy)
+    return f"{int(m.group(1)):02d}/{int(m.group(2)):02d}/{anio}"
+
+
+def parse_obst(texto):
+    """«G=2 P=1 C=1 A=0 HV=3 HM=0» -> {'G': 2, 'P': 1, 'C': 1, 'A': 0, 'HV': 3, 'HM': 0} (solo lo que trae número)."""
+    import re as _re
+    out = {}
+    for k, v in _re.findall(r"\b(HV|HM|G|P|C|A)\s*[=:]\s*(\d+)", str(texto or "").upper()):
+        out[k] = int(v)
+    return out
+
+
+def fmt_obst(d):
+    return " ".join(f"{k}={d[k]}" for k in ("G", "P", "C", "A", "HV", "HM") if k in d)
 
 
 def import_excel(path):
-    """Lee un Excel con el formato del ATA. Devuelve (encabezado, filas, avisos).
+    """Lee un Excel con el formato del ATA (el de columnas simples o la plantilla ATA-2023 con encabezados de varias
+    filas, teléfono y gestas/partos/cesáreas/abortos). Devuelve (encabezado, filas, avisos).
 
     No guarda nada: la pantalla muestra lo leído para que la persona lo revise y confirme."""
     from datetime import date, datetime
@@ -228,8 +271,17 @@ def import_excel(path):
     wb = load_workbook(path, data_only=True)
     ws = wb[wb.sheetnames[0]]
     grid = [[c for c in row] for row in ws.iter_rows(values_only=True)]
+    # copia con las celdas combinadas repetidas en todo su rango (solo para leer encabezados)
+    relleno = [list(r) for r in grid]
+    for mr in ws.merged_cells.ranges:
+        v = grid[mr.min_row - 1][mr.min_col - 1] if mr.min_row - 1 < len(grid) and mr.min_col - 1 < len(grid[0]) else None
+        for rr in range(mr.min_row - 1, mr.max_row):
+            for cc in range(mr.min_col - 1, mr.max_col):
+                if rr < len(relleno) and cc < len(relleno[rr]):
+                    relleno[rr][cc] = v
     syn = {_norm(x): k for k, xs in _SYN.items() for x in xs}
-    hdr_row, colmap = None, {}
+    juntos = {_norm(x): k for k, xs in _SYN_JUNTOS.items() for x in xs}
+    hdr_row = None
     for i, row in enumerate(grid):
         m = {}
         for j, v in enumerate(row):
@@ -237,18 +289,70 @@ def import_excel(path):
             if k and k not in m.values():
                 m[j] = k
         if "nombre" in m.values() and len(m) >= 3:
-            hdr_row, colmap = i, m
+            hdr_row = i
             break
     if hdr_row is None:
         raise ValueError("No encontré la fila de encabezados (debe existir la columna «Nombre completo»).")
+    # filas de subencabezado (edad: años/meses/días; procedencia: departamento…; diagnóstico 1/2/3)
+    colmap0 = {j: syn[_norm(v)] for j, v in enumerate(grid[hdr_row]) if syn.get(_norm(v))}
+    num_col = next((j for j, k in colmap0.items() if k == "numero"), None)
+    nom_col = next(j for j, k in colmap0.items() if k == "nombre")
+    data_start = hdr_row + 1
+    for i in range(hdr_row + 1, min(hdr_row + 4, len(grid))):
+        row = grid[i]
+        celdas = [(j, v) for j, v in enumerate(row) if v is not None and str(v).strip()]
+        if (celdas and (num_col is None or not str(row[num_col] if num_col < len(row) and row[num_col] is not None else "").strip())
+                and not (nom_col < len(row) and row[nom_col])
+                and all(_norm(v) in _SUBENCABEZADOS for _j, v in celdas)):
+            data_start = i + 1
+        else:
+            break
+    # texto de encabezado de cada columna = lo de arriba + lo de abajo (con celdas combinadas)
+    colmap = {}
+    for j in range(max(len(r) for r in grid)):
+        partes = []
+        for i in range(hdr_row, data_start):
+            v = relleno[i][j] if j < len(relleno[i]) else None
+            t = str(v).strip() if v is not None else ""
+            if t and t not in partes:
+                partes.append(t)
+        k = juntos.get(_norm(" ".join(partes))) or syn.get(_norm(partes[0] if partes else "")) \
+            or (syn.get(_norm(" ".join(partes))) if partes else None)
+        if k and k not in colmap.values():
+            colmap[j] = k
+    sexo_mf = any("m/f" in str(grid[hdr_row][j] or "").lower().replace(" ", "")
+                  for j, k in colmap.items() if k == "sexo")
     header = {k: "" for k, _ in HEADER_FIELDS}
     labels = {_norm(lbl): k for k, lbl in HEADER_FIELDS}
-    for row in grid[:hdr_row]:
+    for row in grid[:hdr_row]:                                  # formato simple: etiqueta en la columna A, valor en la B
         if row and row[0] is not None and _norm(row[0]) in labels and len(row) > 1 and row[1] is not None:
             v = row[1]
             header[labels[_norm(row[0])]] = v.strftime("%d/%m/%Y") if isinstance(v, (date, datetime)) else str(v)
+    etiquetas = dict(_ETIQUETAS_ENCABEZADO)
+    for row in grid[:hdr_row]:                                  # plantilla: «Etiqueta:» y su valor a la derecha o después de «:»
+        for j, v in enumerate(row):
+            if not isinstance(v, str) or ":" not in v:
+                continue
+            ant, _, desp = v.partition(":")
+            nombre = _norm(ant)
+            nombre = "fecha" if nombre.startswith("fecha") else nombre
+            if nombre not in etiquetas:                          # (p. ej. «Profesional De Salud: MG» no es el nombre)
+                continue
+            k = etiquetas[nombre]
+            val = desp.strip()
+            if not val:
+                for w in row[j + 1:]:
+                    if w is None or (isinstance(w, str) and not w.strip()):
+                        continue
+                    if isinstance(w, str) and ":" in w and _norm(w.partition(":")[0]) in list(etiquetas) + ["fecha dd/mm/aa"]:
+                        break
+                    val = w.strftime("%d/%m/%Y") if isinstance(w, (date, datetime)) else str(w).strip()
+                    break
+            if val and not header[k]:
+                header[k] = val
+    header["fecha"] = _anio2(header["fecha"])
     rows, warnings = [], []
-    for row in grid[hdr_row + 1:]:
+    for row in grid[data_start:]:
         r = {k: "" for k in KEYS}
         for j, k in colmap.items():
             v = row[j] if j < len(row) else None
@@ -259,8 +363,15 @@ def import_excel(path):
             elif isinstance(v, float) and v == int(v):
                 v = int(v)
             r[k] = str(v).strip()
+        r["fecha_nacimiento"] = _anio2(r["fecha_nacimiento"], nacimiento=True)
+        if r["obst"]:
+            r["obst"] = fmt_obst(parse_obst(r["obst"]))         # «G=    P=   …» sin números = vacío
+        if sexo_mf and r["sexo"]:                                # (M/F) = masculino/femenino; el programa usa H/M
+            r["sexo"] = {"M": "H", "F": "M"}.get(r["sexo"].strip().upper(), r["sexo"])
         if not row_is_empty(r):
             rows.append(r)
+    if sexo_mf and any(r["sexo"] for r in rows):
+        warnings.append("El encabezado dice SEXO (M/F): se leyó M = masculino (H) y F = femenino (M). Verifique el sexo.")
     if not rows:
         warnings.append("El archivo no tiene filas de pacientes.")
     return header, rows, warnings

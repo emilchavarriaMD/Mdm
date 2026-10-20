@@ -155,3 +155,10 @@ Están en `defectos_ficha()`, `defectos_ssr()` y `vitales_defecto()` de `service
 - **Crónicos sin crisis:** HTA, DM2, asma, EPOC, tiroides, epilepsia, dislipidemia, ERC… llevan examen físico NORMAL (viene a surtir su medicamento), salvo que el ATA diga crisis/descompensada/exacerbación, o que la descripción elegida ya sea una complicación (exacerbación, hipoglucemia, úlcera del pie diabético…).
 - **Ver registro guardado:** al pulsar «Abrir Chrome y llenar» se guarda lo revisado (en la base, nunca en GitHub). El botón «Ver registro guardado» lo reabre tal cual, aunque se haya cerrado el programa.
 - El plan de SSR siempre empieza con «Se entregan 10 Condones.» y la localidad del ATA va en «Especifique punto de atención».
+
+## 3.0 — plantilla ATA-2023 (teléfono y gestas/partos)
+- **Subir Excel** lee dos formatos: el de columnas simples de siempre y la plantilla ATA-2023 (encabezados de 3 filas, teléfono, procedencia, 3 diagnósticos y la columna «G= P= C= A= HV= HM=»). El encabezado de la hoja (establecimiento, código, tipo, departamento, municipio, fecha, profesional) se lee de las celdas de al lado de cada etiqueta.
+- **Sexo:** la plantilla dice SEXO (M/F): se lee M = masculino (H) y F = femenino (M), y el programa avisa que se verifique.
+- **Fechas** con año de dos cifras (15/10/26) se completan solas; las comillas (") repiten la fila anterior.
+- **G/P/C/A/HV/HM** pasan a los antecedentes obstétricos de SSR (gestaciones, partos, cesáreas, abortos, hijos vivos y muertos). Con G=0 el embarazo anterior queda en «No hubo embarazo». La celda vacía («G=  P=  …» sin números) no llena nada.
+- El **teléfono** y los números obstétricos se guardan con cada paciente del ATA.

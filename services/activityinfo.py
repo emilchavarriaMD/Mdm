@@ -287,6 +287,20 @@ def defectos_ssr():
             "ssr_victima_sexual": "No", "ssr_consejeria": "Si", "ssr_eleg_1": "Preservativo masculino", "ssr_acceso": "Sí"}
 
 
+def defectos_obstetricos(rec: dict) -> dict:
+    """Gestas, partos, cesáreas, abortos, hijos vivos y muertos escritos en el ATA (columna G=  P=  C=  A=  HV=  HM=)."""
+    from services import ata as ata_svc
+    d = ata_svc.parse_obst(rec.get("obst"))
+    if not d:
+        return {}
+    clave = {"G": "ssr_gestaciones", "P": "ssr_partos", "C": "ssr_cesareas", "A": "ssr_abortos",
+             "HV": "ssr_hijos_vivos", "HM": "ssr_hijos_muertos"}
+    out = {clave[k]: str(min(v, 16)) for k, v in d.items()}      # las listas de ActivityInfo llegan hasta 16
+    if d.get("G") == 0:
+        out["ssr_embarazo_anterior"] = "No hubo embarazo"
+    return out
+
+
 def build_defaults(db, rec: dict) -> dict:
     """Datos iniciales para la ventana de revisión. Lo que está en el ATA se toma del ATA; lo que el ATA no trae
     (estado civil, escolaridad, antecedentes de SSR…) se propone con valores por defecto que la persona corrige."""
@@ -350,7 +364,7 @@ def build_defaults(db, rec: dict) -> dict:
         "hea": hea, "ssr_hea": ssr_hea, "hea_persona": persona, **vit,
         "ssr_mismo_punto": "Sí", "ssr_mismo_proy": "Sí", "ssr_ficha": "Larga", "ssr_recibio_aps": "Sí",
         "ssr_tipo": "Primera", "ssr_dx": ssr_dx, "ssr_va_derivado": "No", "ssr_transfronteriza": "",
-        **defectos_ssr(),
+        **defectos_ssr(), **defectos_obstetricos(rec),
         "ssr_servicio_brindado": "Salud", "ssr_servicio_salud": SSR_SERVICIO_SALUD, "peso": "", "examen_fisico": EXAMEN_FISICO_APS, "ssr_examen_fisico": EXAMEN_FISICO_SSR,
         "plan": PLAN_BASE, "va_derivado": "No", "n_servicios": "", "transfronteriza": "",
         "servicio_brindado": "Salud", "servicio_salud": SERVICIOS_SALUD[0],
