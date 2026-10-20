@@ -24,7 +24,7 @@ call ".venv\Scripts\activate.bat"
 
 echo [2/4] Instalando dependencias...
 python -m pip install --upgrade pip >nul
-python -m pip install -r requirements.txt
+python -m pip install -r requirements-build.txt
 if errorlevel 1 goto :error
 
 echo [3/4] Ejecutando pruebas automaticas...

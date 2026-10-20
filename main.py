@@ -31,6 +31,14 @@ def _dpi_aware():
 
 
 def main():
+    if sys.version_info < (3, 10):
+        _fatal("Python demasiado antiguo", "Este programa necesita Python 3.10 o superior (instale una versión nueva desde python.org).")
+        return 1
+    try:
+        import tkinter  # noqa: F401
+    except ImportError:
+        _fatal("Falta Tkinter", "Esta instalación de Python no incluye Tkinter. Reinstale Python desde python.org con la opción «tcl/tk and IDLE».")
+        return 1
     _dpi_aware()
     try:
         import config

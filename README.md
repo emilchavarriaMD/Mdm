@@ -7,6 +7,9 @@ médicas con tres fichas vinculadas por un único expediente: **Ficha Integral**
 en Salud (APS)** y **Salud Sexual y Reproductiva (SSR)**. Funciona sin internet; los datos quedan en
 la computadora (`%LOCALAPPDATA%\BrigadasMedicas`).
 
+## Instalar y abrir en otra computadora
+Vea **INSTALACION.md** (Python 3.10+, Google Chrome y doble clic en `iniciar_MDm.bat`).
+
 ## Crear el .exe (Windows)
 1. Instale Python 3.10+ desde python.org (marque *Add python.exe to PATH*).
 2. Doble clic en **`build.bat`**. Instala dependencias, corre las pruebas y genera
