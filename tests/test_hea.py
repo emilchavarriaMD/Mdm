@@ -334,6 +334,18 @@ class T10_PlanBanco(unittest.TestCase):
                 self.assertNotRegex(t, r"Indicaciones generales|Debe consultar|Se sugiere", d)
                 self.assertNotRegex(t, r"\b\d+\s?mg\b", d)                  # nunca dosis de medicamentos
 
+    def test_plan_ssr_distinto_del_de_aps(self):
+        import random
+        from services import plan_banco as pb, cie11_ssr as ssr
+        for d in ssr.descriptions():
+            self.assertIn(d, pb.PLAN_SSR, d)
+            reg = pb.PLAN_SSR[d]
+            self.assertTrue(len(reg["m"]) >= 10 and len(reg["a"]) >= 4, d)
+            self.assertTrue(pb.compose([d], rng=random.Random(1), ssr=True).endswith("."), d)
+        d = "Candidiasis vulvovaginal"
+        self.assertNotEqual(pb.compose([d]), pb.compose([d], ssr=True))
+        self.assertGreater(len({pb.compose([d], rng=random.Random(i), ssr=True) for i in range(30)}), 15)
+
     def test_varias_versiones_y_varios_dx(self):
         import random
         from services import plan_banco as pb

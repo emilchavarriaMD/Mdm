@@ -697,7 +697,7 @@ class UITests(unittest.TestCase):
         self.assertTrue(pl_ssr.strip().startswith("Se entregan 10 Condones."))   # todo plan de SSR empieza así
         self.assertNotIn("Condones", pl_aps)
         self.assertIn("sal", pl_aps); self.assertNotIn("genital", pl_aps)
-        self.assertIn("genital", pl_ssr); self.assertNotIn("sal ", pl_ssr)
+        self.assertRegex(pl_ssr, "genital|vaginal|sexual|pareja|preservativo"); self.assertNotIn("sal ", pl_ssr)
         self.assertFalse(dlg.ssr_its_x.winfo_manager())
         self.assertEqual(dlg.ssr_larga.winfo_manager(), "pack")            # ficha larga: menarquía, citología…
         self.assertEqual(dlg._ssr_larga_mujer.winfo_manager(), "pack")

@@ -216,7 +216,7 @@ class ActivityInfoDialog(_Modal):
         self.plan = tk.Text(f_plan, height=8, wrap="word", font=theme.FONT_TEXT, relief="solid", bd=1)
         self.plan.insert("1.0", defaults.get("plan", ""))
         self._plan_auto = defaults.get("plan", "")
-        ttk.Button(f_plan, text="Otra versión del plan", command=lambda: self._regen_plan(True)).pack(anchor="e")
+        ttk.Button(f_plan, text="Otra versión del plan", command=lambda: self._regen_plan(True, "aps")).pack(anchor="e")
         self.plan.pack(fill="x")
         ttk.Label(f_der, text="Derivación (hacia) y servicio brindado.", style="Muted.TLabel").pack(anchor="w")
         ttk.Label(f_der, text="Si elige Sí en «¿Va a ser derivado?» se muestran los demás campos, como en ActivityInfo "
@@ -729,7 +729,11 @@ class ActivityInfoDialog(_Modal):
                   style="Muted.TLabel").pack(anchor="w")
 
         titulo("Plan (SSR)")
-        nota("Medidas generales según los diagnósticos (sin medicamentos). Vacío = no se llena.")
+        nota("Medidas generales según los diagnósticos de SSR (sin medicamentos; distintas a las del plan de Atención primaria). "
+             "Vacío = no se llena.")
+        bp = ttk.Frame(f)
+        bp.pack(fill="x")
+        ttk.Button(bp, text="Otra versión del plan (SSR)", command=lambda: self._regen_plan(True, "ssr")).pack(side="right")
         self.ssr_plan = caja("Plan", 7, defaults.get("ssr_plan", defaults.get("plan", "")))
         self._ssr_plan_auto = defaults.get("ssr_plan", defaults.get("plan", ""))
 
@@ -891,8 +895,10 @@ class ActivityInfoDialog(_Modal):
         p = self._persona()
         return (tuple(self._dx_aps_hea()), tuple(self._dx_ssr()), p.get("sexo"), p.get("edad"), p.get("unidad"))
 
-    def _regen_plan(self, forzar=False):
-        """Plan general (sin medicamentos) según los diagnósticos; si se editó a mano, no se pisa (salvo «Otra versión»)."""
+    def _regen_plan(self, forzar=False, cual=None):
+        """Plan general (sin medicamentos) según los diagnósticos; si se editó a mano, no se pisa (salvo «Otra versión»).
+        El plan de APS usa los diagnósticos de APS y el de SSR los de SSR (cada uno con sus propias frases).
+        cual: "aps" o "ssr" para cambiar solo uno; None = los dos."""
         if self._restaurado and not forzar:          # registro guardado: los textos se dejan como estaban
             return
         def poner(caja, texto, auto_attr):
@@ -905,9 +911,10 @@ class ActivityInfoDialog(_Modal):
             caja.insert("1.0", texto)
             setattr(self, auto_attr, texto)
         rng = random.Random()
-        poner(self.plan, plan_banco.compose([d for d in self._dx_aps_hea() if d], rng=rng), "_plan_auto")
-        if hasattr(self, "ssr_plan"):
-            cuerpo = plan_banco.compose([d for d in (self._dx_ssr() or self._dx_hea()) if d], rng=rng)
+        if cual in (None, "aps"):
+            poner(self.plan, plan_banco.compose([d for d in self._dx_aps_hea() if d], rng=rng), "_plan_auto")
+        if cual in (None, "ssr") and hasattr(self, "ssr_plan"):
+            cuerpo = plan_banco.compose([d for d in (self._dx_ssr() or self._dx_hea()) if d], rng=rng, ssr=True)
             poner(self.ssr_plan, (ai.PLAN_SSR_INICIO + " " + cuerpo).strip(), "_ssr_plan_auto")
 
     def _regen_examen(self, forzar=False):

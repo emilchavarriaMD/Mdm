@@ -22,6 +22,12 @@ try:                                       # frases extra: se agregan al final d
 except ImportError:
     pass
 
+try:                                       # plan propio de la ficha de SSR (otras frases que el de APS)
+    from services.plan_ssr_data import PLAN_SSR
+except ImportError:
+    PLAN_SSR = {}
+_NORM_SSR = {cat.plain(k): v for k, v in PLAN_SSR.items()}
+
 _NORM = {cat.plain(k): v for k, v in PLAN.items()}
 
 FRASES_M = ["Se recomienda {}.", "Se indica {}.", "Se aconseja {}.", "Se sugiere {}."]
@@ -52,11 +58,14 @@ def _lista(items):
     return ", ".join(items[:-1]) + " y " + items[-1]
 
 
-def _registro(texto):
-    """Reserva de frases para una descripción de ActivityInfo o un diagnóstico/abreviatura del ATA (None si no hay)."""
+def _registro(texto, ssr=False):
+    """Reserva de frases para una descripción de ActivityInfo o un diagnóstico/abreviatura del ATA (None si no hay).
+    Con ssr=True se usa primero el plan propio de SSR (si el diagnóstico lo tiene) y si no, el general."""
     k = cat.plain(texto or "")
     if not k:
         return None
+    if ssr and k in _NORM_SSR:
+        return _NORM_SSR[k]
     if k in _NORM:
         return _NORM[k]
     from services import hea_banco            # «Hipertensión», «HTA»… → diagnóstico del banco
@@ -95,13 +104,13 @@ def _repartir(pools, total, rng, must=2, top=8):
     return out
 
 
-def compose(descripciones, rng=None):
+def compose(descripciones, rng=None, ssr=False):
     """Texto del plan para los diagnósticos dados. Sin rng: siempre las primeras frases (estable para pruebas)."""
     det = rng is None
     rng = rng or _Primero()
     reg, usados = [], set()
     for d in descripciones:
-        r = _registro(d)
+        r = _registro(d, ssr)
         if r is not None and id(r) not in usados:       # dos diagnósticos que son el mismo no repiten su plan
             usados.add(id(r))
             reg.append(r)

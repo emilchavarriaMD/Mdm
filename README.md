@@ -173,3 +173,4 @@ Están en `defectos_ficha()`, `defectos_ssr()` y `vitales_defecto()` de `service
 - Examen físico: cada hallazgo positivo tiene hasta 12 redacciones nuevas (`services/examen_variantes_extra.py`).
 - Plan: al menos 10 medidas generales nuevas por diagnóstico (`services/plan_extra_data.py`, generado con `tools/plan_extra_build.py`).
 Los textos nuevos no han tenido revisión clínica.
+- Plan de SSR: cada diagnóstico de SSR tiene su propio plan (`services/plan_ssr_data.py`, generado con `tools/plan_ssr_build.py`), con frases distintas a las del plan de APS (consejería, pareja, preservativo, control ginecológico o prenatal). Cada plan tiene su botón «Otra versión».
