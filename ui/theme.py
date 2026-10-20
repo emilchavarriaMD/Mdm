@@ -11,16 +11,16 @@ CLARO = dict(
     SIDEBAR="#0B3C45", SIDEBAR_HOVER="#12525D", SUGGEST_BG="#FFFBEA",
     BTN="#E6ECEE", BTN_ACT="#D5DFE2", BTN_DIS="#EEF1F2", BTN_DIS_FG="#9AA5A9", TROUGH="#E4EAEC",
     ODD="#F4F8F9", ACCENT_HOVER="#0A525D", ACCENT_DIS="#9DBFC5", TAB_BG="#DCE5E8", HEAD_ACT="#CFE6EA",
-    ENTRY_DIS_FG="#7C878B", DASH="#9DB7BD", HINT_ICON="#7FA3AB")
-OSCURO = dict(
-    PRIMARY="#1D8596", PRIMARY_DARK="#8FD3DE", PRIMARY_LIGHT="#1E3A41", PRIMARY_LIGHT2="#27474F",
-    BG="#182125", CARD="#212C31", FIELD="#2A363C", FIELD_DIS="#222C30", TEXT="#E5ECEE", MUTED="#9FB0B5",
-    BORDER="#3B4B52", DANGER="#FF8A80", DANGER_BG="#4A2624", DANGER_ACT="#5E2F2C", BAD_BG="#4A2624",
-    WARN="#F0B24A", WARN_BG="#3A2F14", OK="#63D597", OK_BG="#143528",
-    SIDEBAR="#0C2429", SIDEBAR_HOVER="#143840", SUGGEST_BG="#33301C",
-    BTN="#2F3D43", BTN_ACT="#3B4D55", BTN_DIS="#263137", BTN_DIS_FG="#6B7B80", TROUGH="#26323A",
-    ODD="#26323A", ACCENT_HOVER="#166B79", ACCENT_DIS="#35575E", TAB_BG="#2A363C", HEAD_ACT="#2F5760",
-    ENTRY_DIS_FG="#7F9096", DASH="#4A6A72", HINT_ICON="#5E8790")
+    ENTRY_DIS_FG="#7C878B", DASH="#9DB7BD", HINT_ICON="#7FA3AB", SIDEBAR_SUB="#9CC4CB")
+OSCURO = dict(   # gris cálido y acento terracota, como el modo oscuro de Claude Code
+    PRIMARY="#C2603F", PRIMARY_DARK="#E8946F", PRIMARY_LIGHT="#33302D", PRIMARY_LIGHT2="#3D3935",
+    BG="#1F1E1C", CARD="#292825", FIELD="#32302D", FIELD_DIS="#2A2926", TEXT="#ECE9E2", MUTED="#A29E94",
+    BORDER="#45423D", DANGER="#F08A7E", DANGER_BG="#4A2B27", DANGER_ACT="#5E3631", BAD_BG="#4A2B27",
+    WARN="#E8B25A", WARN_BG="#3B3220", OK="#7FD39B", OK_BG="#22392B",
+    SIDEBAR="#161513", SIDEBAR_HOVER="#25231F", SUGGEST_BG="#38321F",
+    BTN="#3A3733", BTN_ACT="#4A4640", BTN_DIS="#2C2A27", BTN_DIS_FG="#77736B", TROUGH="#2B2927",
+    ODD="#2D2B28", ACCENT_HOVER="#A94E30", ACCENT_DIS="#5A3A2E", TAB_BG="#2F2D2A", HEAD_ACT="#4A3A31",
+    ENTRY_DIS_FG="#86827A", DASH="#5C5851", HINT_ICON="#8B8680", SIDEBAR_SUB="#8B8680")
 globals().update(CLARO)                  # valores por defecto (los de setup() los reemplazan según la preferencia)
 
 LETRAS = {"Normal": 11, "Grande": 13, "Muy grande": 15}
@@ -94,6 +94,7 @@ def setup(root: tk.Tk):
     root.option_add("*Text.insertBackground", TEXT)
     root.option_add("*Text.selectBackground", PRIMARY)
     root.option_add("*Text.selectForeground", "white")
+    root.option_add("*TCombobox*Listbox.selectForeground", "white")
 
     s = ttk.Style(root)
     s.theme_use("clam")
@@ -124,7 +125,7 @@ def setup(root: tk.Tk):
     s.configure("StatCap.TLabel", font=FONT_B, foreground=MUTED, background=CARD)
     s.configure("StatSub.TLabel", font=FONT_SMALL, foreground=MUTED, background=CARD)
     s.configure("SidebarTitle.TLabel", background=SIDEBAR, foreground="white", font=(FAMILY, 13, "bold"))
-    s.configure("SidebarSub.TLabel", background=SIDEBAR, foreground="#9CC4CB", font=FONT_SMALL)
+    s.configure("SidebarSub.TLabel", background=SIDEBAR, foreground=SIDEBAR_SUB, font=FONT_SMALL)
     s.configure("Draft.TLabel", background=WARN_BG, foreground=WARN, font=FONT_B, padding=(10, 4))
     s.configure("Final.TLabel", background=OK_BG, foreground=OK, font=FONT_B, padding=(10, 4))
     s.configure("Dirty.TLabel", foreground=DANGER, font=FONT_B)
@@ -195,3 +196,18 @@ def setup(root: tk.Tk):
     s.configure("TPanedwindow", background=BG)
     s.configure("Horizontal.TProgressbar", background=PRIMARY)
     return s
+
+
+def barra_titulo_oscura(root):
+    """En Windows 10/11 pone la barra de título negra cuando el tema es oscuro (si falla, queda como estaba)."""
+    if cargar_prefs()["tema"] != "Oscuro":
+        return
+    try:
+        import ctypes
+        root.update_idletasks()
+        hwnd = ctypes.windll.user32.GetParent(root.winfo_id())
+        val = ctypes.c_int(1)
+        for attr in (20, 19):             # DWMWA_USE_IMMERSIVE_DARK_MODE (Win10 antiguo usa 19)
+            ctypes.windll.dwmapi.DwmSetWindowAttribute(hwnd, attr, ctypes.byref(val), ctypes.sizeof(val))
+    except Exception:  # noqa: BLE001
+        pass

@@ -1,4 +1,4 @@
-"""Hojas ATA: foto de la hoja a la vista y tabla editable para confirmar lo que se registra."""
+"""Pacientes atendidos: tabla editable (se carga desde el Excel ATA-2023) para confirmar lo que se registra."""
 import json
 import tkinter as tk
 from datetime import date
@@ -19,17 +19,14 @@ class AtaPage(Page):
         super().__init__(app)
         self.sheet_id = None
         self.image_name = None
-        self._pil = None
-        self._photo = None
-        self._zoom = 1.0
         self._clean = None
         self.cells = []          # filas: {clave: StringVar}
         self.h = {}              # encabezado: {clave: StringVar}
         self._sheets = {}
 
-        ttk.Label(self, text="Hojas ATA (Atenciones Ambulatorias)", style="H1.TLabel").pack(anchor="w")
-        ttk.Label(self, text="Suba el Excel de la hoja (formato ATA-2023: teléfono, edad, procedencia, 3 diagnósticos y "
-                  "gestas/partos), revise la tabla y confírmela. También puede escribir o pegar los datos. Nada se llena solo. "
+        ttk.Label(self, text="Pacientes atendidos", style="H1.TLabel").pack(anchor="w")
+        ttk.Label(self, text="Suba el Excel del ATA (formato ATA-2023), revise la tabla y confírmela. También puede escribir o pegar los datos. "
+                  "Nada se llena solo. "
                   "Las comillas (\") en departamento, municipio y localidad se repiten desde la fila anterior.", style="Muted.TLabel",
                   wraplength=1000, justify="left").pack(anchor="w", pady=(0, 6))
 
@@ -49,8 +46,7 @@ class AtaPage(Page):
         bar2 = ttk.Frame(self)
         bar2.pack(fill="x", pady=(6, 0))
         ttk.Button(bar2, text="Subir Excel (ATA-2023)", style="Accent.TButton", command=self.load_excel).pack(side="left")
-        ttk.Button(bar2, text="Subir foto (solo para verla)", command=self.load_image).pack(side="left", padx=8)
-        ttk.Button(bar2, text="Guardar en la base", style="Accent.TButton", command=self.save).pack(side="left")
+        ttk.Button(bar2, text="Guardar en la base", style="Accent.TButton", command=self.save).pack(side="left", padx=8)
         ttk.Button(bar2, text="Exportar Excel", command=self.export).pack(side="left", padx=8)
         self.hint = ttk.Label(self, text="", style="Hint.TLabel")
         self.hint.pack(anchor="w", pady=(4, 0))
@@ -59,34 +55,6 @@ class AtaPage(Page):
         self.scroller = widgets.ScrollFrame(self)
         self.scroller.pack(fill="both", expand=True, pady=(8, 0))
         body = self.scroller.body
-
-        # --- foto ---
-        card = ttk.Frame(body, style="Card.TFrame", padding=(14, 10, 14, 12))
-        card.pack(fill="x", padx=(0, 6), pady=(0, 12))
-        zb = ttk.Frame(card, style="Flat.TFrame")
-        zb.pack(fill="x")
-        ttk.Label(zb, text="Foto de la hoja", style="H2.TLabel", background=theme.CARD).pack(side="left")
-        ttk.Button(zb, text="Acercar +", command=lambda: self._set_zoom(self._zoom * 1.25)).pack(side="right")
-        ttk.Button(zb, text="Alejar –", command=lambda: self._set_zoom(self._zoom / 1.25)).pack(side="right", padx=6)
-        ttk.Button(zb, text="Ajustar al ancho", command=self._fit).pack(side="right")
-        self.photo_hint = ttk.Label(zb, text="Ctrl + rueda: acercar o alejar · arrastre para mover",
-                                    style="CardMuted.TLabel")
-        self.photo_hint.pack(side="right", padx=12)
-        self.photo_hint.pack_forget()
-        holder = ttk.Frame(card, style="Flat.TFrame")
-        holder.pack(fill="x", pady=(8, 0))
-        self.canvas = tk.Canvas(holder, background=theme.ODD, highlightthickness=1, highlightbackground=theme.BORDER,
-                                height=340, cursor="arrow")
-        self.vs = ttk.Scrollbar(holder, orient="vertical", command=self.canvas.yview)
-        self.hs = ttk.Scrollbar(holder, orient="horizontal", command=self.canvas.xview)
-        self.canvas.configure(yscrollcommand=self.vs.set, xscrollcommand=self.hs.set)
-        self.canvas.pack(side="left", fill="x", expand=True)
-        self.canvas.bind("<Configure>", lambda e: self._draw_empty())
-        self.canvas.bind("<Button-1>", self._canvas_click)
-        self.canvas.bind("<B1-Motion>", self._canvas_drag)
-        self.canvas.bind("<ButtonPress-1>", lambda e: (self.canvas.scan_mark(e.x, e.y), self._canvas_click(e)))
-        self.canvas.bind("<Control-MouseWheel>", self._canvas_zoom)
-        self._draw_empty()
 
         # --- encabezado ---
         hb = ttk.Frame(body, style="Card.TFrame", padding=(14, 10, 14, 12))
@@ -126,44 +94,6 @@ class AtaPage(Page):
     def _grid_resized(self, _event=None):
         """La tabla crece con sus filas: solo se desliza hacia los lados; hacia abajo se desliza toda la pantalla."""
         self.gcanvas.configure(scrollregion=self.gcanvas.bbox("all"), height=self.grid_frame.winfo_reqheight())
-
-    # -- zona de la foto ---------------------------------------------------------
-    def _draw_empty(self):
-        self.canvas.delete("hint")
-        if self._pil is not None:
-            return
-        w = max(self.canvas.winfo_width(), 400)
-        h = int(self.canvas["height"])
-        self.canvas.create_rectangle(24, 24, w - 24, h - 24, outline=theme.DASH, dash=(6, 5), width=2, tags="hint")
-        self.canvas.create_text(w / 2, h / 2 - 34, text="\U0001F4F7", font=(theme.FAMILY, 34), fill=theme.HINT_ICON, tags="hint")
-        self.canvas.create_text(w / 2, h / 2 + 18, text="Haga clic aquí para subir la foto de la hoja",
-                                font=theme.FONT_B, fill=theme.PRIMARY_DARK, tags="hint")
-        self.canvas.create_text(w / 2, h / 2 + 44, text="JPG o PNG", font=theme.FONT_SMALL, fill=theme.MUTED, tags="hint")
-
-    def _canvas_click(self, event):
-        if self._pil is None:
-            self.load_image()
-
-    def _canvas_drag(self, event):
-        if self._pil is not None:
-            self.canvas.scan_dragto(event.x, event.y, gain=1)
-
-    def _canvas_zoom(self, event):
-        if self._pil is not None:
-            self._set_zoom(self._zoom * (1.15 if event.delta > 0 else 1 / 1.15))
-        return "break"
-
-    def _toggle_photo_bars(self, on):
-        if on:
-            self.vs.pack(side="right", fill="y", before=self.canvas)
-            self.hs.pack(side="bottom", fill="x", before=self.canvas)
-            self.canvas.configure(cursor="fleur")
-            self.photo_hint.pack(side="right", padx=12)
-        else:
-            self.vs.pack_forget()
-            self.hs.pack_forget()
-            self.canvas.configure(cursor="arrow")
-            self.photo_hint.pack_forget()
 
     # ------------------------------------------------------------------
     def on_show(self, **kw):
@@ -261,7 +191,6 @@ class AtaPage(Page):
         self._clear_rows()
         for _ in range(START_ROWS):
             self._add_row()
-        self._show_image(None)
         self.btn_delete.state(["disabled"])
         self.combo.set_value("")
         self._mark_clean()
@@ -292,8 +221,6 @@ class AtaPage(Page):
             self._add_row(vals)
         while len(self.cells) < START_ROWS:
             self._add_row()
-        self.image_name = sheet.get("imagen")
-        self._show_image(ata_svc.image_path(self.image_name))
         self.btn_delete.state(["!disabled"])
         self._mark_clean()
         self.status.configure(text="")
@@ -365,7 +292,6 @@ class AtaPage(Page):
             return
         self.sheet_id = None
         self.image_name = None
-        self._show_image(None)
         self.btn_delete.state(["disabled"])
         self.combo.set_value("")
         for k, v in self.h.items():
@@ -379,58 +305,3 @@ class AtaPage(Page):
         self.status.configure(text="")
         self.hint.configure(text=f"Se leyeron {len(rows)} filas del Excel. Revíselas y pulse "
                             "«Guardar en la base» para confirmarlas." + (" " + " ".join(warns) if warns else ""))
-
-    # -- foto --------------------------------------------------------------------
-    def load_image(self):
-        path = dialogs.ask_open_path(self, "Elegir foto de la hoja ATA",
-                                     [("Imágenes", "*.jpg *.jpeg *.png *.bmp"), ("Todos", "*.*")])
-        if not path:
-            return
-        try:
-            self.image_name = ata_svc.store_image(path)
-            self._show_image(ata_svc.image_path(self.image_name))
-        except Exception as exc:  # noqa: BLE001
-            dialogs.error(self, f"No se pudo abrir la imagen:\n{exc}")
-
-    def _show_image(self, path):
-        self._pil = None
-        self.canvas.delete("img")
-        if not path:
-            self._toggle_photo_bars(False)
-            self.canvas.configure(scrollregion=(0, 0, 0, 0))
-            self._draw_empty()
-            return
-        try:
-            from PIL import Image
-            img = Image.open(path)
-            img.load()
-        except Exception:  # noqa: BLE001
-            self._draw_empty()
-            return
-        if img.width > 3200:
-            img = img.resize((3200, int(img.height * 3200 / img.width)))
-        self._pil = img.convert("RGB")
-        self.canvas.delete("hint")
-        self._toggle_photo_bars(True)
-        self.after(150, self._fit)
-
-    def _fit(self):
-        if self._pil is None:
-            return
-        self.update_idletasks()
-        w = self.canvas.winfo_width()
-        if w < 100:  # aún sin dibujar: reintenta
-            self.after(150, self._fit)
-            return
-        self._set_zoom((w - 4) / self._pil.width)
-
-    def _set_zoom(self, z):
-        if self._pil is None:
-            return
-        self._zoom = max(0.1, min(z, 4.0))
-        from PIL import Image, ImageTk
-        w, h = int(self._pil.width * self._zoom), int(self._pil.height * self._zoom)
-        self._photo = ImageTk.PhotoImage(self._pil.resize((max(w, 1), max(h, 1)), Image.LANCZOS))
-        self.canvas.delete("img")
-        self.canvas.create_image(0, 0, anchor="nw", image=self._photo, tags="img")
-        self.canvas.configure(scrollregion=(0, 0, w, h))

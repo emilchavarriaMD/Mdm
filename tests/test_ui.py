@@ -93,12 +93,6 @@ class UITests(unittest.TestCase):
         app.show("ata")
         pg = app.pages["ata"]
         self.upd()
-        img = Path(_TMP) / "hoja.png"
-        Image.new("RGB", (800, 1000), "white").save(img)
-        pg.image_name = A.store_image(img)
-        pg._show_image(A.image_path(pg.image_name))
-        self.upd()
-        self.assertIsNotNone(pg._pil)
         pg.h["establecimiento"].set("Del Carmen")
         c = pg.cells
         for k, v in {"nombre": "Ana Pérez", "sexo": "m", "edad_anios": "43", "dep": "Cortés",

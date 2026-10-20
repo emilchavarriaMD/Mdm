@@ -1,4 +1,4 @@
-# MDm – Registro Clínico de Brigadas Médicas (Honduras)
+# MDm – Expedientes MdM (Honduras)
 
 **Versión 1.2**
 
@@ -58,16 +58,16 @@ Menú **Configuración → Seguridad**. Se guarda cifrada (PBKDF2). Si se olvida
 
 ## Hojas ATA
 
-En el menú lateral, **Hojas ATA**: cargue la foto de la hoja (queda a la vista, con acercar/alejar),
-escriba o pegue los datos en la tabla (columnas iguales a la hoja) y confirme con **Guardar**.
-El programa no lee la foto por sí solo ni rellena nada: solo guarda lo que usted confirma.
+En el menú lateral, **Cargar ATA** (pantalla «Pacientes atendidos»): suba el Excel ATA-2023 o escriba/pegue los datos
+en la tabla y confirme con **Guardar en la base**. Ya no se sube la foto de la hoja (se transcribe aparte a Excel).
+El programa no rellena nada por sí solo: solo guarda lo que usted confirma.
 Las comillas (") en departamento, municipio y localidad se repiten desde la fila anterior.
 **Exportar Excel** genera el archivo con las columnas del ATA. La Ficha Integral tiene ahora el campo
 *Número de identidad* (opcional); también se usa en la búsqueda y en la detección de duplicados.
 
 
 ## Pestañas del programa
-**Cargar ATA** (subir foto o Excel, confirmar y guardar en la base) · **Pacientes** (un renglón por paciente,
+**Cargar ATA** (subir Excel, confirmar y guardar en la base) · **Pacientes** (un renglón por paciente,
 con el botón «➕ Añadir registro») · **Copias de seguridad** · **Configuración**.
 
 ## Añadir registro en ActivityInfo
@@ -166,3 +166,4 @@ Están en `defectos_ficha()`, `defectos_ssr()` y `vitales_defecto()` de `service
 - **Exportar Excel** sale con la misma distribución de la plantilla, así que se puede volver a subir tal cual.
 - **Sexo:** aunque el encabezado dice (M/F), en la hoja se escribe H/M. Solo si aparece «F» y ninguna «H» se entiende M/F y se convierte (con aviso).
 - **Sexo:** siempre queda como H (hombre) o M (mujer). Se corrige solo lo escrito como masculino/femenino, hombre/mujer, masc./fem., F, etc., tanto al subir el Excel como al guardar la tabla. Una «M» sola es mujer; solo en una hoja que usa «F» (no menos que «M») y ninguna «H» se entiende M = masculino. Al subir un Excel el programa avisa cuántos valores corrigió.
+- **Estética** — La app se llama «Expedientes MdM»; se quitó la foto de la pantalla de ATA (pantalla «Pacientes atendidos»); el tema oscuro pasó a gris cálido con acento terracota (como Claude Code) y barra de título oscura en Windows.

@@ -1,4 +1,4 @@
-"""Registro Clínico de Brigadas Médicas – punto de entrada.
+"""Expedientes MdM – punto de entrada.
 
 Ejecutar en desarrollo:   python main.py
 Genera el .exe con:       build.bat

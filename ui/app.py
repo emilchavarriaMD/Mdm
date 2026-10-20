@@ -26,6 +26,7 @@ class App:
         self.root.geometry("1320x820")
         self.root.minsize(1120, 700)
         theme.setup(self.root)
+        theme.barra_titulo_oscura(self.root)
         widgets.install_global_bindings(self.root)
         self.root.report_callback_exception = self._on_exception
         self.pages = {}
@@ -42,9 +43,9 @@ class App:
         side = ttk.Frame(self.root, style="Sidebar.TFrame", width=int(240 * theme.FONT[1] / 11))
         side.pack(side="left", fill="y")
         side.pack_propagate(False)
-        ttk.Label(side, text="Brigadas Médicas", style="SidebarTitle.TLabel").pack(
+        ttk.Label(side, text="Expedientes MdM", style="SidebarTitle.TLabel").pack(
             anchor="w", padx=18, pady=(20, 0))
-        ttk.Label(side, text="ATA y ActivityInfo", style="SidebarSub.TLabel").pack(
+        ttk.Label(side, text="Pacientes y ActivityInfo", style="SidebarSub.TLabel").pack(
             anchor="w", padx=18, pady=(0, 16))
         for key, text in NAV:
             b = ttk.Button(side, text=text, style="Nav.TButton", command=lambda k=key: self.show(k))

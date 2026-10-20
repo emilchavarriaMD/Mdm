@@ -11,8 +11,8 @@ import os
 import sys
 from pathlib import Path
 
-APP_NAME = "Registro Clínico de Brigadas Médicas"
-APP_SHORT = "Brigadas Médicas"
+APP_NAME = "Expedientes MdM"
+APP_SHORT = "Expedientes MdM"
 APP_VERSION = "1.0.0"
 APP_FOLDER = "BrigadasMedicas"
 DB_NAME = "brigadas.db"
