@@ -11,32 +11,44 @@ import random
 import re
 
 from services import cie11_catalog as cat
+from services import hea_pf
 from services.hea_data import ALIAS, BANK, SINONIMOS
 from services.hea_data_gen import ALIAS_GEN, BANK_GEN
 
 # El banco generado (tools/hea_gen.py) reemplaza las versiones de los diagnósticos que tienen ficha clínica nueva
 # y agrega los de la lista SSR que no existían.
 BANK.update(BANK_GEN)
+# Planificación familiar: la HEA habla del método que dice el ATA (ACOs, DEPO, implante, DIU, condón…): services/hea_pf.py.
+BANK[326]["v"] = hea_pf.VERSIONES["oral"]
+BANK[152]["v"] = hea_pf.VERSIONES["generico"]
+_PF = (152, 326)
 SINONIMOS = dict(SINONIMOS)
 SINONIMOS.update({"vaginosis": 1001, "vaginosis mixta": 1001, "vaginosis bacteriana": 1001,
                   "dismenorrea": 1007, "cervicitis": 1002, "mastitis": 1005, "mastitis puerperal": 1005,
-                  "aborto": 1008, "preeclampsia": 1006, "herpes genital": 1004, "fimosis": 1018})
+                  "aborto": 1008, "preeclampsia": 1006, "herpes genital": 1004, "fimosis": 1018,
+                  "pf": 152, "pf implante": 152, "pf jadelle": 152, "pf condon": 152, "pf preservativo": 152,
+                  "pf mensual": 152, "pf trimestral": 152, "implante subdermico": 152})
+
+def _np(t):
+    """Texto sin tildes ni mayúsculas y con un solo espacio entre palabras («PF (ACOs)» → «pf acos»)."""
+    return " ".join(cat.plain(t).split())
+
 
 _ID = {}
 for _n, _b in BANK.items():
-    _ID.setdefault(cat.plain(_b["n"]), _n)
+    _ID.setdefault(_np(_b["n"]), _n)
 for _n, _desc in ALIAS.items():
-    _ID[cat.plain(_desc)] = _n
+    _ID[_np(_desc)] = _n
 for _desc, _n in ALIAS_GEN:
-    _ID[cat.plain(_desc)] = _n
+    _ID[_np(_desc)] = _n
 
 
-_SIN = {cat.plain(k): v for k, v in SINONIMOS.items()}
+_SIN = {_np(k): v for k, v in SINONIMOS.items()}
 
 
 def bank_id(texto):
     """Número del banco para una descripción de ActivityInfo o un diagnóstico/abreviatura del ATA (None si no hay)."""
-    p = cat.plain(texto)
+    p = _np(texto)
     if not p:
         return None
     if p in _ID:
@@ -52,6 +64,9 @@ def bank_id(texto):
     for k, n in _ID.items():           # «Gastritis» → «Gastritis, sin especificación»
         if k.startswith(p + " ") and len(p) > 4:
             return n
+    if p.startswith("pf "):            # «PF (Jadelle) 3 meses», «PF (ACOs) y condón»…: planificación según el método
+        m = hea_pf.metodo(p)
+        return 326 if m == "oral" else 171 if m == "diu" else 152
     return None
 
 
@@ -70,6 +85,16 @@ def sugerir_lista(abrev):
                 return cat.from_label(d)
     sug = cat.suggest(abrev)
     return sug[0] if sug else ("", "")
+
+
+def fuente_hea_ssr(abrev, descripcion, es_sugerencia):
+    """Texto para la HEA de SSR de una fila. La lista de SSR dice «…atención relativa a la anticoncepción» sin el método;
+    el ATA dice «PF (ACOs)». Si la fila de SSR sigue siendo la sugerencia automática y el banco conoce el diagnóstico del
+    ATA, se usa el texto del ATA (así la HEA habla de pastillas y no de la inyección); si la persona eligió otra
+    opción en la lista, esa."""
+    if es_sugerencia and abrev and bank_id(abrev) is not None:
+        return abrev
+    return descripcion or abrev
 
 
 def fuente_hea(abrev, descripcion):
@@ -259,7 +284,13 @@ def compose(sexo, edad, dx_descripciones, unidad="años", rng=None):
             items.append(dict(n=None, k="S", t=re.sub(r",? sin especificación$", "", d).strip().lower(), v=[], desc=d))
         else:
             b = BANK[n]
-            items.append(dict(n=n, k=b["k"], t=b["t"], v=b["v"], desc=d, s=b["s"]))
+            v, t = b["v"], b["t"]
+            if n in _PF:                   # planificación familiar: versiones y frase del método que dice el ATA
+                m = hea_pf.metodo(d) or ("oral" if n == 326 else "generico")
+                v, t = hea_pf.VERSIONES[m], hea_pf.SINTOMA[m]
+            elif n == 171 and _np(d).startswith("pf "):    # «PF DIU»: colocación o control (el ATA no lo distingue)
+                v = list(v) + hea_pf.VERSIONES["diu"]
+            items.append(dict(n=n, k=b["k"], t=t, v=v, desc=d, s=b["s"]))
             if b["s"] == "F" and (sexo or "").upper() == "H":
                 avisos.append(f"«{d}» es propio de mujeres y el paciente figura como hombre.")
             if b["s"] == "M" and (sexo or "").upper() == "M":

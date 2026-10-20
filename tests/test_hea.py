@@ -323,3 +323,62 @@ class T10_PlanBanco(unittest.TestCase):
         t = pb.compose(dx, rng=random.Random(3)).lower()
         self.assertRegex(t, "alarma")
         self.assertEqual(pb.compose([]), "")
+
+
+class T11_PlanificacionFamiliar(unittest.TestCase):
+    """La HEA de PF habla del método que dice el ATA (antes toda salía con la inyección trimestral)."""
+    METODOS = {"oral": r"inyecci|inyectable|depo|medroxi|trimestral|implante|dispositivo|DIU\b|condón",
+               "depo": r"pastilla|oral|implante|dispositivo|DIU\b|condón|mensual",
+               "implante": r"pastilla|oral|inyecci|inyectable|depo|medroxi|trimestral|dispositivo|DIU\b",
+               "diu": r"pastilla|oral|inyecci|inyectable|depo|medroxi|implante|trimestral",
+               "condon": r"pastilla|oral|inyecci|inyectable|depo|medroxi|implante|dispositivo|DIU\b",
+               "generico": r"pastilla|oral|inyecci|inyectable|depo|medroxi|trimestral|implante|dispositivo|DIU\b|condón"}
+
+    def test_el_metodo_se_detecta_del_texto_del_ata(self):
+        from services import hea_pf
+        casos = {"PF (ACOs)": "oral", "PF (ACOS) 3 meses": "oral", "PF aco": "oral", "PF Depo": "depo",
+                 "PF (Depo) 3 meses": "depo", "PF inyectable": "inyectable", "PF mensual": "mensual",
+                 "PF implante": "implante", "PF (Jadelle)": "implante", "PF DIU": "diu", "PF condón": "condon",
+                 "PF": None, "Contacto con los servicios de salud para atención relativa a la anticoncepción": None}
+        for t, m in casos.items():
+            self.assertEqual(hea_pf.metodo(t), m, t)
+        self.assertEqual(hb.bank_id("PF (ACOS) 3 meses"), 326)        # antes: sin HEA por los paréntesis
+        self.assertEqual(hb.bank_id("PF (Depo) 3 meses"), 152)
+        self.assertEqual(hb.bank_id("PF implante"), 152)
+
+    def test_cada_metodo_habla_solo_de_su_metodo(self):
+        for texto, m in (("PF (ACOs)", "oral"), ("PF (ACOS) 3 meses", "oral"), ("PF (Depo)", "depo"),
+                         ("PF implante", "implante"), ("PF condón", "condon"), ("PF", "generico"),
+                         ("Contacto con los servicios de salud para atención relativa a la anticoncepción", "generico")):
+            for i in range(120):
+                t = hb.compose("M", "30", [texto], "años", random.Random(i))[0]
+                self.assertEqual(problemas(t), [], (texto, t))
+                self.assertNotRegex(t, self.METODOS[m], (texto, t))
+        for i in range(120):                                           # y las pastillas sí salen con ACOs
+            t = hb.compose("M", "30", ["PF (ACOs)"], "años", random.Random(i))[0]
+            self.assertRegex(t.lower(), r"pastilla|anticonceptivos orales", t)
+            t = hb.compose("M", "30", ["PF (Depo)"], "años", random.Random(i))[0]
+            self.assertRegex(t.lower(), r"inyecci|inyectable", t)
+
+    def test_muchas_versiones_por_metodo(self):
+        from services import hea_pf
+        for m, v in hea_pf.VERSIONES.items():
+            self.assertGreaterEqual(len(set(v)), 16, m)
+            for x in v:
+                self.assertRegex(x, r"^(acude|utiliza|solicita|refiere|es portadora)\b", (m, x))
+                self.assertNotRegex(x, r"\by (i|hi)(?![aeiouáéíóú])|___|  ", (m, x))
+        t = {hb.compose("M", "30", ["PF (ACOs)"], "años", random.Random(i))[0] for i in range(80)}
+        self.assertGreater(len(t), 25)
+
+    def test_pf_junto_a_otro_diagnostico_conserva_el_metodo(self):
+        t = hb.compose("M", "44", ["Cefalea", "PF (ACOs)"], "años", random.Random(5))[0]
+        self.assertIn("anticonceptivos orales", t)
+        self.assertNotIn("inyectable", t)
+        t = hb.compose("M", "44", ["HTA", "PF (Depo)"], "años", random.Random(5))[0]
+        self.assertIn("inyectable trimestral", t)
+
+    def test_fuente_ssr_usa_el_texto_del_ata_solo_si_es_la_sugerencia(self):
+        self.assertEqual(hb.fuente_hea_ssr("PF (ACOs)", "Contacto con los servicios de salud para atención relativa a la anticoncepción", True), "PF (ACOs)")
+        self.assertEqual(hb.fuente_hea_ssr("PF (ACOs)", "Contacto con los servicios de salud para anticoncepción poscoital", False),
+                         "Contacto con los servicios de salud para anticoncepción poscoital")
+        self.assertEqual(hb.fuente_hea_ssr("XYZ", "Vaginosis bacteriana", True), "Vaginosis bacteriana")

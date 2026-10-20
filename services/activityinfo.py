@@ -280,7 +280,8 @@ def build_defaults(db, rec: dict) -> dict:
     aps_descs = [d for d, y in zip(descs, ssr_dx) if not y["descripcion"]]
     if not any(aps_descs):
         aps_descs = descs
-    ssr_descs = [y["descripcion"] for y in ssr_dx if y["descripcion"]]
+    # HEA de SSR: el texto del ATA cuando el banco lo conoce («PF (ACOs)» conserva el método; la lista de SSR no lo dice)
+    ssr_descs = [hea_banco.fuente_hea_ssr(y["abrev"], y["descripcion"], True) for y in ssr_dx if y["descripcion"]]
     if any(aps_descs):
         hea = hea_banco.compose(persona["sexo"], persona["edad"], aps_descs, persona["unidad"])[0]
     else:

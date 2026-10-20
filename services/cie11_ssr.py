@@ -174,6 +174,10 @@ def suggest(text, limit=1, estricto=False):
         q = plain(sin[q])
         estricto = False
         exacto_sin = True
+    elif q.startswith("pf "):         # «PF (Depo)», «PF (ACOs) 3 meses», «PF implante»…: todos van a la misma opción de SSR
+        q = plain(SINONIMOS["pf"])
+        estricto = False
+        exacto_sin = True
     else:
         exacto_sin = False
     words = [w for w in q.split() if len(w) > 2]

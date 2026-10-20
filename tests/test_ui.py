@@ -412,6 +412,30 @@ class UITests(unittest.TestCase):
         self.assertNotEqual(dlg.plan.get("1.0", "end").strip(), "Mi plan escrito a mano")
         dlg.destroy()
 
+    def test_04g_hea_de_pf_conserva_el_metodo_del_ata(self):
+        """«PF (ACOs)» en SSR: la lista de SSR dice solo «anticoncepción», pero la HEA tiene que hablar de pastillas."""
+        import re
+        from services import activityinfo as ai
+        from ui.dialog_activityinfo import ActivityInfoDialog
+        for abrev, quiere, no_quiere in (("PF (ACOs)", r"pastilla|anticonceptivos orales", r"inyec|depo|medroxi|trimestral"),
+                                         ("PF (Depo)", r"inyec", r"pastilla|oral")):
+            d = ai.build_defaults(self.db, {"nombre": "Nelly Erunda Romero", "sexo": "M", "fecha": "2026-10-15",
+                                            "edad_anios": "44", "dx1": abrev, "dx2": "HTA"})
+            self.assertRegex(d["ssr_hea"].lower(), quiere, abrev)
+            self.assertNotRegex(d["ssr_hea"].lower(), no_quiere, abrev)
+            dlg = ActivityInfoDialog(self.root, d)
+            dlg.w["consultas"].set_value([ai.CONSULTA_APS, "Salud Sexual y Reproductiva"])
+            dlg._mostrar_ssr()
+            self.assertIn("anticoncepción", dlg.ssr_rows[0].get_value())          # la lista de SSR no dice el método
+            for _ in range(15):                                                   # «Otra versión» tampoco lo pierde
+                dlg._regen_hea_ssr(True)
+                h = dlg.ssr_hea.get("1.0", "end").lower()
+                self.assertRegex(h, quiere, abrev)
+                self.assertNotRegex(h, no_quiere, abrev)
+                self.assertNotIn("hipertensión", h)                               # la HTA es de APS
+            self.assertIn("hipertensión", dlg.hea.get("1.0", "end").lower())
+            dlg.destroy()
+
     def test_04f_seccion_ssr(self):
         from services import activityinfo as ai
         from ui.dialog_activityinfo import ActivityInfoDialog
@@ -436,7 +460,7 @@ class UITests(unittest.TestCase):
         h_aps, h_ssr = dlg.hea.get("1.0", "end"), dlg.ssr_hea.get("1.0", "end")
         self.assertIn("hipertensión", h_aps)
         self.assertNotIn("vaginal", h_aps)
-        self.assertIn("flujo vaginal", h_ssr)
+        self.assertRegex(h_ssr, r"flujo|secreción")        # (la versión se elige al azar)
         self.assertNotIn("hipertensión", h_ssr)
         self.assertEqual(dlg.ssr_examen.get("1.0", "end").strip(), dlg.examen.get("1.0", "end").strip())   # mismo examen físico
         ex = dlg.ssr_examen.get("1.0", "end")

@@ -413,6 +413,25 @@ class ActivityInfoDialog(_Modal):
                 out.append(d)
         return out
 
+    def _dx_ssr_hea(self):
+        """Diagnósticos para la HEA de SSR: la lista de SSR no dice el método de PF («atención relativa a la
+        anticoncepción»), así que mientras la fila siga siendo la sugerencia automática se usa el texto del ATA
+        («PF (ACOs)») para que la HEA hable de ese método."""
+        if not self._ssr_activo():
+            return []
+        sug = self.defaults.get("ssr_dx") or []
+        out = []
+        for i, cb in enumerate(self.ssr_rows):
+            d = ssr_cat.from_label(cb.get_value())[0] if hasattr(ssr_cat, "from_label") else cb.get_value()
+            if not d:
+                continue
+            abrev = self.dx_rows[i][0] if i < len(self.dx_rows) else ""
+            auto = i < len(sug) and (sug[i].get("descripcion") or "") == d
+            t = hea_banco.fuente_hea_ssr(abrev, d, auto)
+            if t not in out:
+                out.append(t)
+        return out
+
     def _dx_hea(self):
         """Todos los diagnósticos (APS y SSR): de ellos sale el examen físico, que es el mismo en ambas fichas."""
         dxs = list(self._dx_actuales())
@@ -884,7 +903,7 @@ class ActivityInfoDialog(_Modal):
     def _regen_hea_ssr(self, forzar):
         if not self._ssr_activo() or not hasattr(self, "ssr_hea"):
             return
-        dxs = self._dx_ssr()
+        dxs = self._dx_ssr_hea()
         if not dxs:
             return
         if not forzar and self.ssr_hea.get("1.0", "end").strip() != self._ssr_hea_auto.strip():
