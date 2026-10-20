@@ -266,9 +266,9 @@ LUGARES_ATENCION = ["San Pedro Sula", "Choloma"]      # «Lugar de atención» (
 
 
 def lugar_atencion(rec: dict, por_defecto: str = "San Pedro Sula") -> str:
-    """Choloma o San Pedro Sula según el ATA: primero el municipio del paciente, luego el de la hoja y el
-    establecimiento; si no dice ninguno, el valor de Configuración."""
-    for campo in ("mun", "mun_hoja", "establecimiento", "loc"):
+    """Choloma o San Pedro Sula según el ATA: el municipio del encabezado de la hoja (siempre es uno de los dos);
+    si falta, el establecimiento y luego el municipio del paciente; si no dice ninguno, el valor de Configuración."""
+    for campo in ("mun_hoja", "establecimiento", "mun", "loc"):
         t = cat.plain(str(rec.get(campo) or ""))
         if "choloma" in t:
             return "Choloma"

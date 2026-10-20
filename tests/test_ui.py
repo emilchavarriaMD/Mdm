@@ -455,7 +455,8 @@ class UITests(unittest.TestCase):
         self.assertEqual(ai.build_defaults(self.db, dict(base, mun="San Pedro Sula"))["lugar"], "San Pedro Sula")
         self.assertEqual(ai.build_defaults(self.db, dict(base, mun="", mun_hoja="Choloma"))["lugar"], "Choloma")
         self.assertEqual(ai.build_defaults(self.db, dict(base, mun="Villanueva"))["lugar"], "San Pedro Sula")   # sin dato: Configuración
-        self.assertEqual(ai.build_defaults(self.db, dict(base, mun="Choloma", mun_hoja="San Pedro Sula"))["lugar"], "Choloma")
+        self.assertEqual(ai.build_defaults(self.db, dict(base, mun="Choloma", mun_hoja="San Pedro Sula"))["lugar"], "San Pedro Sula")   # manda la hoja
+        self.assertEqual(ai.build_defaults(self.db, dict(base, mun="Choloma", mun_hoja=""))["lugar"], "Choloma")
 
     def test_04p_victima_sexual_por_defecto_no(self):
         from services import activityinfo as ai
