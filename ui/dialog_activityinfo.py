@@ -78,7 +78,8 @@ class ActivityInfoDialog(_Modal):
 
         E = lambda: widgets.EntryField(gf, width=26)  # noqa: E731
         C = lambda vals, ro=True: widgets.ComboField(gf, [""] + list(vals), readonly=ro, width=26)  # noqa: E731
-        add("lugar", "Lugar de atención (si es «…-Otro», escriba abajo cuál)", E())
+        add("lugar", "Lugar de atención (San Pedro Sula o Choloma según el ATA)",
+            widgets.ComboField(gf, [""] + list(ai.LUGARES_ATENCION), readonly=False, width=26))
         add("punto_especifico", "Especifique punto de atención (solo si el lugar es «Otro»)", E())
         add("donante", "Proyecto: Donante Nombre", E())
         add("proyecto", "Proyecto: Título del proyecto", E())

@@ -262,6 +262,21 @@ def defectos_ficha(rng=None):
             "discapacidad": "No", "derivado": "No"}
 
 
+LUGARES_ATENCION = ["San Pedro Sula", "Choloma"]      # «Lugar de atención» (Cortés): depende de lo que diga el ATA
+
+
+def lugar_atencion(rec: dict, por_defecto: str = "San Pedro Sula") -> str:
+    """Choloma o San Pedro Sula según el ATA: primero el municipio del paciente, luego el de la hoja y el
+    establecimiento; si no dice ninguno, el valor de Configuración."""
+    for campo in ("mun", "mun_hoja", "establecimiento", "loc"):
+        t = cat.plain(str(rec.get(campo) or ""))
+        if "choloma" in t:
+            return "Choloma"
+        if "san pedro" in t or t.strip() in ("sps", "s p s"):
+            return "San Pedro Sula"
+    return por_defecto
+
+
 def defectos_ssr():
     """Valores que se proponen en Salud Sexual y Reproductiva (antecedentes, obstétricos, anticoncepción, derivación)."""
     return {"ssr_violencia": "No", "ssr_menarquia": "12", "ssr_ritmo": SSR_RITMOS[0],
@@ -339,7 +354,7 @@ def build_defaults(db, rec: dict) -> dict:
         "ssr_servicio_brindado": "Salud", "ssr_servicio_salud": SSR_SERVICIO_SALUD, "peso": "", "examen_fisico": EXAMEN_FISICO_APS, "ssr_examen_fisico": EXAMEN_FISICO_SSR,
         "plan": PLAN_BASE, "va_derivado": "No", "n_servicios": "", "transfronteriza": "",
         "servicio_brindado": "Salud", "servicio_salud": SERVICIOS_SALUD[0],
-        "lugar": st["ai_lugar"], "punto_especifico": (rec.get("loc") or "").strip(), "fecha": (rec.get("fecha") or "")[:10], "genero": genero,
+        "lugar": lugar_atencion(rec, st["ai_lugar"]), "punto_especifico": (rec.get("loc") or "").strip(), "fecha": (rec.get("fecha") or "")[:10], "genero": genero,
         "donante": st["ai_donante"], "proyecto": st["ai_proyecto"], "perfin": st["ai_perfin"],
         "nacionalidad": st["ai_nacionalidad"], "idioma": st["ai_idioma"],
         "nombres": nombres, "apellidos": apellidos,

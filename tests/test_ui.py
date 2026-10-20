@@ -447,6 +447,16 @@ class UITests(unittest.TestCase):
         self.assertEqual(ai.payload({"discapacidad": "No", "discapacidad_tipo": ["Mental"], "dx": []})["discapacidad_tipo"], [])
         dlg.destroy()
 
+    def test_04q_lugar_de_atencion_segun_el_ata(self):
+        from services import activityinfo as ai
+        base = {"nombre": "Ana", "sexo": "M", "fecha": "2026-10-15", "edad_anios": "30", "dx1": "HTA"}
+        self.assertEqual(ai.build_defaults(self.db, dict(base, mun="Choloma"))["lugar"], "Choloma")
+        self.assertEqual(ai.build_defaults(self.db, dict(base, mun="CHOLOMA, Cortés"))["lugar"], "Choloma")
+        self.assertEqual(ai.build_defaults(self.db, dict(base, mun="San Pedro Sula"))["lugar"], "San Pedro Sula")
+        self.assertEqual(ai.build_defaults(self.db, dict(base, mun="", mun_hoja="Choloma"))["lugar"], "Choloma")
+        self.assertEqual(ai.build_defaults(self.db, dict(base, mun="Villanueva"))["lugar"], "San Pedro Sula")   # sin dato: Configuración
+        self.assertEqual(ai.build_defaults(self.db, dict(base, mun="Choloma", mun_hoja="San Pedro Sula"))["lugar"], "Choloma")
+
     def test_04p_victima_sexual_por_defecto_no(self):
         from services import activityinfo as ai
         d = ai.build_defaults(self.db, {"nombre": "Ana", "sexo": "M", "fecha": "2026-10-15", "edad_anios": "30", "dx1": "Vaginosis"})
