@@ -627,7 +627,7 @@ class ActivityInfoDialog(_Modal):
         for k, lab in (("gestaciones", "Gestaciones"), ("partos", "Partos"), ("cesareas", "Cesáreas"), ("abortos", "Abortos"),
                        ("obitos", "Óbitos"), ("hijos_vivos", "Hijos vivos"), ("hijos_muertos", "Hijos muertos")):
             combo("ssr_" + k, lab, ai.SSR_NUMEROS, self.ssr_ant_obst, gq)
-        combo("ssr_lactancia", "Lactancia materna", ai.SI_NO, self.ssr_ant_obst, gq)
+        combo("ssr_lactancia", "Lactancia materna (en ActivityInfo solo sale si Hijos vivos ≥ 1)", ai.SI_NO, self.ssr_ant_obst, gq)
         ttk.Label(f, text="Vacunación (marque las que apliquen)").pack(anchor="w", pady=(8, 0))
         self.w["ssr_vacunacion"] = ChecksField(f, ai.SSR_VACUNAS, columns=2)
         self.w["ssr_vacunacion"].pack(anchor="w")

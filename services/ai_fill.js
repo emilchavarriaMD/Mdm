@@ -1,6 +1,6 @@
 /* Llena el formulario de ActivityInfo. NUNCA pulsa Guardar registro ni Guardar como borrador. */
 (function () {
-  const VERSION = 27;
+  const VERSION = 28;
   if (window.__mdm && window.__mdm.version === VERSION) return;   // una versión vieja en la pestaña se reemplaza
   const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
   const norm = (s) => (s || "").replace(/\s+/g, " ").replace(/\*/g, "").replace(/OBLIGATORIO/g, "").trim().toLowerCase();
@@ -423,7 +423,12 @@
       await S("SSR: ¿Ha tenido control prenatal anterior?", () => setAuto("¿Ha tenido control prenatal anterior?", x.cpn));
       if (x.cpn === "Sí" && x.cpn_lugar) { await sleep(500); await S("SSR: Lugar de control prenatal", () => setText("Lugar de Control Prenatal", x.cpn_lugar)); }
     }
-    if (x.lactancia) await S("SSR: Lactancia materna", () => setAuto("Lactancia Materna", x.lactancia));
+    // «Lactancia Materna» solo existe en la página cuando «Hijos vivos» es 1 o más (y hubo embarazo anterior)
+    if (x.lactancia) await S("SSR: Lactancia materna", async () => {
+      const ok = await waitFor(() => findLabel("Lactancia Materna"), 3500);
+      if (!ok) throw new Error("no apareció: ActivityInfo solo la muestra si «Hijos vivos» es 1 o más; márquela a mano cuando corresponda");
+      await setAuto("Lactancia Materna", x.lactancia);
+    });
     if ((x.vacunacion || []).length) await S("SSR: Vacunación", () => setChecks("Vacunación", x.vacunacion));
     for (const [k, lab] of [["vph", "VPH"], ["papanicolau", "Papanicolau"], ["examen_mama", "Examen de mama"]]) {
       if (x[k]) await S("SSR: " + lab, () => setAuto(lab, x[k]));
