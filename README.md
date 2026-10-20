@@ -162,3 +162,6 @@ Están en `defectos_ficha()`, `defectos_ssr()` y `vitales_defecto()` de `service
 - **Fechas** con año de dos cifras (15/10/26) se completan solas; las comillas (") repiten la fila anterior.
 - **G/P/C/A/HV/HM** pasan a los antecedentes obstétricos de SSR (gestaciones, partos, cesáreas, abortos, hijos vivos y muertos). Con G=0 el embarazo anterior queda en «No hubo embarazo». La celda vacía («G=  P=  …» sin números) no llena nada.
 - El **teléfono** y los números obstétricos se guardan con cada paciente del ATA.
+- **Cargar ATA** ahora gira en torno a la plantilla: la tabla trae las columnas de la plantilla ATA-2023 (N°, nombre, teléfono, sexo, fecha de nacimiento, edad años/meses/días, departamento, municipio, localidad, 3 diagnósticos y G/P/C/A/HV/HM) y «Subir Excel (ATA-2023)» es el botón principal. HC, identidad, códigos CIE y referencias ya no se piden (lo ya guardado se conserva).
+- **Exportar Excel** sale con la misma distribución de la plantilla, así que se puede volver a subir tal cual.
+- **Sexo:** aunque el encabezado dice (M/F), en la hoja se escribe H/M. Solo si aparece «F» y ninguna «H» se entiende M/F y se convierte (con aviso).

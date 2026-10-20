@@ -152,3 +152,37 @@ class T21_PlantillaATA2023(unittest.TestCase):
         self.assertEqual(d0["ssr_embarazo_anterior"], "No hubo embarazo")
         self.assertNotIn("ssr_gestaciones", ai.build_defaults(Database(Path(tempfile.mkdtemp(dir=_TMP)) / "t5.db"), {
             "nombre": "Ana", "sexo": "M", "fecha": "2026-10-15", "edad_anios": "30", "dx1": "PF"}))
+
+
+class T22_ExportarEnPlantilla(unittest.TestCase):
+    def test_exportar_y_volver_a_subir_conserva_todo(self):
+        rows = [dict(fila("Ana Pérez", "M", 34, "HTA"), telefono="9988-7766", dx2="PF (ACOs)", dep="Cortés", mun="Choloma",
+                     loc="Brisas 1", obst="G=2 P=1 C=1 A=0 HV=3 HM=0", fecha_nacimiento="1990-03-12"),
+                dict(fila("Luis Mejía", "H", "", "Diarrea"), edad_meses="6", loc="Brisas 1")]
+        out = Path(tempfile.mkdtemp(dir=_TMP)) / "salida.xlsx"
+        A.export_excel(out, HEADER, rows)
+        h, vuelta, warns = A.import_excel(out)
+        self.assertEqual((h["establecimiento"], h["profesional"], h["municipio"], h["fecha"]), ("Brisas", "Dra", "Choloma", "13/10/2026"))
+        self.assertEqual(len(vuelta), 2)
+        self.assertEqual(vuelta[0]["obst"], "G=2 P=1 C=1 A=0 HV=3 HM=0")
+        self.assertEqual((vuelta[0]["sexo"], vuelta[1]["sexo"]), ("M", "H"))
+        self.assertEqual((vuelta[0]["telefono"], vuelta[0]["fecha_nacimiento"], vuelta[1]["edad_meses"]), ("9988-7766", "12/03/1990", "6"))
+        self.assertEqual(warns, [])
+
+    def test_sexo_solo_se_convierte_si_la_hoja_usa_m_f(self):
+        # en la hoja real el encabezado dice (M/F) pero se escribe H/M: no se cambia nada
+        p = Path(tempfile.mkdtemp(dir=_TMP)) / "hm.xlsx"
+        _plantilla_ata_2023(p)
+        import openpyxl
+        wb = openpyxl.load_workbook(p)
+        ws = wb.active
+        ws["D10"], ws["D11"] = "M", "H"
+        wb.save(p)
+        _h, rows, warns = A.import_excel(p)
+        self.assertEqual([r["sexo"] for r in rows], ["M", "H"])
+        self.assertEqual(warns, [])
+        ws["D10"], ws["D11"] = "F", "M"       # M/F de verdad: F = mujer (M), M = masculino (H)
+        wb.save(p)
+        _h, rows, warns = A.import_excel(p)
+        self.assertEqual([r["sexo"] for r in rows], ["M", "H"])
+        self.assertTrue(warns)

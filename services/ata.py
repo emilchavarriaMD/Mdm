@@ -25,6 +25,14 @@ COLUMNS = [
     ("telefono", "Teléfono", 13), ("obst", "Gestas, partos, cesáreas, abortos, HV, HM", 34),
 ]
 KEYS = [c[0] for c in COLUMNS]
+# Lo que se ve en la pantalla «Cargar ATA»: las columnas de la plantilla ATA-2023, en su orden
+# (HC, identidad, códigos CIE y referencias se conservan en la base, pero ya no se piden)
+UI_KEYS = ["numero", "nombre", "telefono", "sexo", "fecha_nacimiento", "edad_anios", "edad_meses", "edad_dias",
+           "dep", "mun", "loc", "dx1", "dx2", "dx3", "obst"]
+_CMAP = {c[0]: c for c in COLUMNS}
+UI_COLUMNS = [_CMAP[k] for k in UI_KEYS]
+UI_COLUMNS = [(k, {"obst": "G, P, C, A, HV, HM", "dx1": "Diagnóstico 1", "telefono": "Teléfono"}.get(k, l), w)
+              for k, l, w in UI_COLUMNS]
 HEADER_FIELDS = [
     ("establecimiento", "Establecimiento"), ("profesional", "Profesional"),
     ("codigo", "Código"), ("tipo_establecimiento", "Tipo de establecimiento"),
@@ -351,7 +359,7 @@ def import_excel(path):
             if val and not header[k]:
                 header[k] = val
     header["fecha"] = _anio2(header["fecha"])
-    rows, warnings = [], []
+    rows, warnings, sexos = [], [], set()
     for row in grid[data_start:]:
         r = {k: "" for k in KEYS}
         for j, k in colmap.items():
@@ -366,12 +374,16 @@ def import_excel(path):
         r["fecha_nacimiento"] = _anio2(r["fecha_nacimiento"], nacimiento=True)
         if r["obst"]:
             r["obst"] = fmt_obst(parse_obst(r["obst"]))         # «G=    P=   …» sin números = vacío
-        if sexo_mf and r["sexo"]:                                # (M/F) = masculino/femenino; el programa usa H/M
-            r["sexo"] = {"M": "H", "F": "M"}.get(r["sexo"].strip().upper(), r["sexo"])
+        if r["sexo"]:
+            sexos.add(r["sexo"].strip().upper())
         if not row_is_empty(r):
             rows.append(r)
-    if sexo_mf and any(r["sexo"] for r in rows):
-        warnings.append("El encabezado dice SEXO (M/F): se leyó M = masculino (H) y F = femenino (M). Verifique el sexo.")
+    # El encabezado dice SEXO (M/F), pero en la hoja se escribe H/M (Hombre/Mujer). Solo si aparece «F» y ninguna «H» se
+    # entiende M = masculino y F = femenino (y se convierte a H/M); si no, se deja tal como está escrito.
+    if sexo_mf and "F" in sexos and "H" not in sexos:
+        for r in rows:
+            r["sexo"] = {"M": "H", "F": "M"}.get(r["sexo"].strip().upper(), r["sexo"])
+        warnings.append("El sexo venía como M/F: se leyó M = masculino (H) y F = femenino (M). Verifique el sexo.")
     if not rows:
         warnings.append("El archivo no tiene filas de pacientes.")
     return header, rows, warnings
@@ -441,35 +453,59 @@ def image_path(name):
 
 
 def export_excel(path, header: dict, rows: list):
-    """Excel con las columnas de la hoja ATA (una fila por paciente)."""
+    """Excel con la distribución de la plantilla ATA-2023 (la misma que se sube con «Subir Excel»)."""
     from openpyxl import Workbook
-    from openpyxl.styles import Alignment, Font, PatternFill
-    from openpyxl.utils import get_column_letter
+    from openpyxl.styles import Alignment, Border, Font, Side
     wb = Workbook()
     ws = wb.active
-    ws.title = "ATA"
-    ws.append(["ATA – Atenciones Ambulatorias"])
-    ws["A1"].font = Font(bold=True, size=14)
-    for k, label in HEADER_FIELDS:
-        v = header.get(k) or ""
-        ws.append([label, fmt_date(v) if k == "fecha" and v else v])
-        ws.cell(ws.max_row, 1).font = Font(bold=True)
-    ws.append([])
-    start = ws.max_row + 1
-    ws.append([c[1] for c in COLUMNS])
-    for i, (_, _, w) in enumerate(COLUMNS, 1):
-        cell = ws.cell(start, i)
-        cell.font = Font(bold=True, color="FFFFFF")
-        cell.fill = PatternFill("solid", fgColor="1F4E78")
-        cell.alignment = Alignment(wrap_text=True, vertical="center", horizontal="center")
-        ws.column_dimensions[get_column_letter(i)].width = max(w, len(COLUMNS[i - 1][1]) + 2)
-    for r in rows:
-        vals = []
-        for k in KEYS:
-            v = r.get(k) or ""
-            if k == "fecha_nacimiento" and v:
+    ws.title = "ATA-2023"
+    fino = Side(style="thin")
+    borde = Border(left=fino, right=fino, top=fino, bottom=fino)
+    centro = Alignment(horizontal="center", vertical="center", wrap_text=True)
+    ws["A1"], ws["F1"], ws["O1"], ws["P1"], ws["Q1"] = ("SECRETARIA DE SALUD", "ATENCIONES AMBULATORIAS",
+                                                         "SERVICIO DE\nATENCIÓN:", "Consulta Externa ☐", "Emergencia ☐")
+    ws["A2"], ws["P2"], ws["Q2"] = "DEPARTAMENTO DE ESTADÍSTICA", "Filtro ☐", "Especialidad: Med General"
+    ws["A3"] = "HONDURAS C. A."
+    ws["A5"], ws["D5"], ws["J5"], ws["M5"], ws["O5"] = ("Establecimiento:", "Código:", "Tipo De Establecimiento:",
+                                                       "Departamento:", "Municipio:")
+    ws["A6"], ws["M6"] = "Profesional De Salud: MG", "Fecha (dd/mm/aa):"
+    ws["C6"] = "Nombre: " + (header.get("profesional") or "")
+    ws["C5"], ws["F5"], ws["L5"] = header.get("establecimiento") or "", header.get("codigo") or "", header.get("tipo_establecimiento") or ""
+    ws["N5"], ws["P5"] = header.get("departamento") or "", header.get("municipio") or ""
+    f = header.get("fecha") or ""
+    ws["N6"] = fmt_date(f) if f else ""
+    ws["A7"], ws["B7"], ws["C7"], ws["D7"] = "N°", "NOMBRES Y APELLIDOS", "NÚMERO DE TELEFONO", "SEXO (M/F)"
+    ws["E7"], ws["F7"], ws["I7"], ws["J7"] = "FECHA DE NACIMIENTO (dd/mm/aa)", "EDAD", "PACIENTE", "PROCEDENCIA"
+    ws["M7"], ws["P7"] = "DIAGNÓSTICO / ACTIVIDAD", "Gestas, partos, cesareas, abortos, HV, HM"
+    ws["M8"], ws["N8"], ws["O8"] = "1", "2", "3"
+    ws["F9"], ws["G9"], ws["H9"], ws["J9"], ws["K9"], ws["L9"] = "AÑOS", "MESES", "DÍAS", "DEPARTAMENTO", "MUNICIPIO", "LOCALIDAD"
+    n = max(20, len(rows))
+    for rng in ("A1:C1", "A2:C2", "A3:C3", "F1:N3", "O1:O3", "A5:B5", "D5:E5", "J5:K5", "P5:Q5", "A6:B6", "C6:L6",
+                "A7:A9", "B7:B9", "C7:C9", "D7:D9", "E7:E9", "F7:H8", "I7:I9", "J7:L8", "M7:O7", "M8:M9", "N8:N9",
+                "O8:O9", "P7:Q9") + tuple(f"P{10 + i}:Q{10 + i}" for i in range(n)):
+        ws.merge_cells(rng)
+    for r in range(7, 10):
+        for c in range(1, 18):
+            ws.cell(r, c).alignment = centro
+            ws.cell(r, c).font = Font(bold=True, size=9)
+    cols = {"numero": "A", "nombre": "B", "telefono": "C", "sexo": "D", "fecha_nacimiento": "E", "edad_anios": "F",
+            "edad_meses": "G", "edad_dias": "H", "dep": "J", "mun": "K", "loc": "L", "dx1": "M", "dx2": "N", "dx3": "O",
+            "obst": "P"}
+    for i in range(n):
+        r = 10 + i
+        datos = rows[i] if i < len(rows) else {}
+        for k, col in cols.items():
+            v = datos.get(k) or ""
+            if k == "numero":
+                v = v or i + 1
+            elif k == "fecha_nacimiento" and v:
                 v = fmt_date(v)
-            vals.append(v)
-        ws.append(vals)
-    ws.freeze_panes = ws.cell(start + 1, 4)
+            elif k == "obst" and not v:
+                v = "G=    P=    C=    A=    HV=    HM=   "
+            ws[f"{col}{r}"] = v
+        for c in range(1, 18):
+            ws.cell(r, c).border = borde
+    for col, w in {"A": 4, "B": 34, "C": 15, "D": 7, "E": 14, "F": 6, "G": 7, "H": 6, "I": 9, "J": 13, "K": 13, "L": 16,
+                   "M": 22, "N": 22, "O": 22, "P": 22, "Q": 16}.items():
+        ws.column_dimensions[col].width = w
     wb.save(path)

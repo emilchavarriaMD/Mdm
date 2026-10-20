@@ -28,9 +28,9 @@ class AtaPage(Page):
         self._sheets = {}
 
         ttk.Label(self, text="Hojas ATA (Atenciones Ambulatorias)", style="H1.TLabel").pack(anchor="w")
-        ttk.Label(self, text="Cargue la foto de la hoja, escriba o pegue los datos en la tabla y "
-                  "confírmelos. Nada se llena solo. Las comillas (\") en departamento, municipio y "
-                  "localidad se repiten desde la fila anterior.", style="Muted.TLabel",
+        ttk.Label(self, text="Suba el Excel de la hoja (formato ATA-2023: teléfono, edad, procedencia, 3 diagnósticos y "
+                  "gestas/partos), revise la tabla y confírmela. También puede escribir o pegar los datos. Nada se llena solo. "
+                  "Las comillas (\") en departamento, municipio y localidad se repiten desde la fila anterior.", style="Muted.TLabel",
                   wraplength=1000, justify="left").pack(anchor="w", pady=(0, 6))
 
         bar = ttk.Frame(self)
@@ -48,8 +48,8 @@ class AtaPage(Page):
         # segunda fila: así ningún botón queda cortado en pantallas de 1366 px
         bar2 = ttk.Frame(self)
         bar2.pack(fill="x", pady=(6, 0))
-        ttk.Button(bar2, text="Subir foto", command=self.load_image).pack(side="left")
-        ttk.Button(bar2, text="Subir Excel", command=self.load_excel).pack(side="left", padx=8)
+        ttk.Button(bar2, text="Subir Excel (ATA-2023)", style="Accent.TButton", command=self.load_excel).pack(side="left")
+        ttk.Button(bar2, text="Subir foto (solo para verla)", command=self.load_image).pack(side="left", padx=8)
         ttk.Button(bar2, text="Guardar en la base", style="Accent.TButton", command=self.save).pack(side="left")
         ttk.Button(bar2, text="Exportar Excel", command=self.export).pack(side="left", padx=8)
         self.hint = ttk.Label(self, text="", style="Hint.TLabel")
@@ -119,7 +119,7 @@ class AtaPage(Page):
         self.grid_frame = ttk.Frame(self.gcanvas, style="Flat.TFrame")
         self.gcanvas.create_window((0, 0), window=self.grid_frame, anchor="nw")
         self.grid_frame.bind("<Configure>", self._grid_resized)
-        for c, (_, label, w) in enumerate(ata_svc.COLUMNS):
+        for c, (_, label, w) in enumerate(ata_svc.UI_COLUMNS):
             ttk.Label(self.grid_frame, text=label, style="CardMuted.TLabel", wraplength=max(w * 8, 60)
                       ).grid(row=0, column=c, sticky="w", padx=2)
 
@@ -217,12 +217,12 @@ class AtaPage(Page):
     def _add_row(self, values=None):
         r = len(self.cells) + 1
         vars_ = {}
-        for c, (k, _, w) in enumerate(ata_svc.COLUMNS):
-            var = tk.StringVar(value=(values or {}).get(k, "") or "")
-            e = ttk.Entry(self.grid_frame, textvariable=var, width=w)
+        for k, _lbl, _w in ata_svc.COLUMNS:          # lo que ya no se pide (HC, identidad, CIE…) se conserva sin mostrarse
+            vars_[k] = tk.StringVar(value=(values or {}).get(k, "") or "")
+        for c, (k, _, w) in enumerate(ata_svc.UI_COLUMNS):
+            e = ttk.Entry(self.grid_frame, textvariable=vars_[k], width=w)
             e.grid(row=r, column=c, padx=1, pady=1)
             e.bind("<<Paste>>", lambda ev, row=len(self.cells), col=c: self._paste(row, col))
-            vars_[k] = var
         if values is None:
             vars_["numero"].set(str(r))
         self.cells.append(vars_)
@@ -245,8 +245,8 @@ class AtaPage(Page):
             while row + i >= len(self.cells):
                 self._add_row()
             for j, val in enumerate(ln.split("\t")):
-                if col + j < len(ata_svc.KEYS):
-                    self.cells[row + i][ata_svc.KEYS[col + j]].set(val.strip())
+                if col + j < len(ata_svc.UI_KEYS):
+                    self.cells[row + i][ata_svc.UI_KEYS[col + j]].set(val.strip())
         return "break"
 
     # -- hojas -------------------------------------------------------------------
