@@ -247,6 +247,12 @@ try:
     from services.examen_variantes import VARIANTES
 except ImportError:
     VARIANTES = {}
+try:       # redacciones adicionales (tools/exam_variantes_extra.py): se suman a las que ya había
+    from services.examen_variantes_extra import EXTRA
+    for _k, _v in EXTRA.items():
+        VARIANTES[_k] = list(VARIANTES.get(_k) or [_k]) + [x for x in _v if x not in VARIANTES.get(_k, [])]
+except ImportError:
+    pass
 
 
 

@@ -36,6 +36,8 @@ CURSO = ["de curso progresivo", "de curso persistente", "de curso intermitente",
 INTENS = ["leve", "moderada", "de intensidad moderada", "intensa", "de intensidad leve a moderada", "marcada"]
 
 SPECS = []
+BASE = 14        # versiones que ya existían (no cambian); N_VERSIONES = cuántas se generan ahora
+N_VERSIONES = 26
 ALIAS_EXTRA = [("Tumor o masa en el seno femenino (nódulo mamario)", 83)]
 
 
@@ -153,7 +155,33 @@ def _plantillas_s():
     return [t0, t1, t2, t3, t4, t5, t6, t7, t8]
 
 
-def generar(sp, n=14):
+def _plantillas_extra():
+    """Plantillas adicionales para las versiones 15 en adelante (también empiezan como frase nominal)."""
+    def u0(r, sp, m, d, a, c, x, ng):
+        return _unir(_fin(f"{m}, que lleva {d} de evolución" + (f" y se acompaña de {a}" if a else "")), c, ng, x)
+
+    def u1(r, sp, m, d, a, c, x, ng):
+        return _unir(_fin(f"cuadro de {d} de evolución que inicia con {m}" + (f", con posterior aparición de {a}" if a else "")), x, c, ng)
+
+    def u2(r, sp, m, d, a, c, x, ng):
+        return _unir(_fin(f"desde hace {d}, {m}" + (f", {r.choice(INICIO)} y con {a}" if a else f", {r.choice(INICIO)}")), ng, x, c)
+
+    def u3(r, sp, m, d, a, c, x, ng):
+        return _unir(_fin(f"{m}, referido por el paciente desde hace {d}" + (f", asociado a {a}" if a else "")), c, x, ng)
+
+    def u4(r, sp, m, d, a, c, x, ng):
+        return _unir(_fin(f"{m}, {r.choice(INICIO)} y de {d} de evolución" + (f"; se acompaña de {a}" if a else "")), x, ng, c)
+
+    def u5(r, sp, m, d, a, c, x, ng):
+        return _unir(_fin(f"molestias de {d} de evolución consistentes en {m}" + (f", junto con {a}" if a else "")), c, ng, x)
+
+    def u6(r, sp, m, d, a, c, x, ng):
+        return _unir(_fin(f"{m}, de {d} de evolución, {r.choice(CURSO)}" + (f", con {a}" if a else "")), ng, c, x)
+
+    return [u0, u1, u2, u3, u4, u5, u6]
+
+
+def generar(sp, n=26):
     rng = random.Random(sp["id"] * 7919 + 13)
     out = []
     if sp["k"] == "C":
@@ -163,6 +191,7 @@ def generar(sp, n=14):
     if sp["dur"] == ["-"]:
         return _generar_sin_dur(sp, rng, n)
     plant = _plantillas_s()
+    extra = _plantillas_extra()
     mains = list(sp["main"]) or [sp["t"]]
     durs = list(sp["dur"])
     intentos = 0
@@ -177,7 +206,10 @@ def generar(sp, n=14):
         c = _oracion(rng, sp["ctx"]) if rng.random() < .6 else ""
         x = _oracion(rng, sp["tx"]) if rng.random() < .55 else ""
         ng = _neg(rng, sp, m + " " + a)
-        v = plant[ti % len(plant)](rng, sp, m, d, a, c, x, ng)
+        if len(out) < BASE:          # las primeras versiones salen igual que siempre; después entran las plantillas nuevas
+            v = plant[ti % len(plant)](rng, sp, m, d, a, c, x, ng)
+        else:
+            v = (plant + extra)[ti % (len(plant) + len(extra))](rng, sp, m, d, a, c, x, ng)
         ti += 1
         v = re.sub(r"\s{2,}", " ", v).replace(" ,", ",").strip()
         if any(difflib.SequenceMatcher(None, v, o, autojunk=False).ratio() > .78 for o in out):
@@ -268,7 +300,8 @@ def _generar_c(sp, rng, n):
     return out
 
 
-def construir(n=14):
+def construir(n=None):
+    n = n or N_VERSIONES
     sys.path.insert(0, str(ROOT / "tools"))
     for f in sorted((ROOT / "tools").glob("hea_specs_*.py")):
         importlib.import_module(f.stem)

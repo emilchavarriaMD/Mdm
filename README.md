@@ -167,3 +167,9 @@ Están en `defectos_ficha()`, `defectos_ssr()` y `vitales_defecto()` de `service
 - **Sexo:** aunque el encabezado dice (M/F), en la hoja se escribe H/M. Solo si aparece «F» y ninguna «H» se entiende M/F y se convierte (con aviso).
 - **Sexo:** siempre queda como H (hombre) o M (mujer). Se corrige solo lo escrito como masculino/femenino, hombre/mujer, masc./fem., F, etc., tanto al subir el Excel como al guardar la tabla. Una «M» sola es mujer; solo en una hoja que usa «F» (no menos que «M») y ninguna «H» se entiende M = masculino. Al subir un Excel el programa avisa cuántos valores corrigió.
 - **Estética** — La app se llama «Expedientes MdM»; se quitó la foto de la pantalla de ATA (pantalla «Pacientes atendidos»); el tema oscuro pasó a gris cálido con acento terracota (como Claude Code) y barra de título oscura en Windows.
+
+## Más versiones de texto
+- HEA: 26 versiones por diagnóstico (las 14 primeras no cambian).
+- Examen físico: cada hallazgo positivo tiene hasta 12 redacciones nuevas (`services/examen_variantes_extra.py`).
+- Plan: al menos 10 medidas generales nuevas por diagnóstico (`services/plan_extra_data.py`, generado con `tools/plan_extra_build.py`).
+Los textos nuevos no han tenido revisión clínica.

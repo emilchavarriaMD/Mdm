@@ -13,6 +13,15 @@ try:
 except ImportError:  # sin banco: no se propone nada
     PLAN = {}
 
+try:                                       # frases extra: se agregan al final de cada reserva (las primeras no cambian)
+    from services.plan_extra_data import EXTRA
+    for _n, _e in EXTRA.items():
+        if _n in PLAN:
+            PLAN[_n]["m"] = list(PLAN[_n]["m"]) + [x for x in _e["m"] if x not in PLAN[_n]["m"]]
+            PLAN[_n]["a"] = list(PLAN[_n]["a"]) + [x for x in _e["a"] if x not in PLAN[_n]["a"]]
+except ImportError:
+    pass
+
 _NORM = {cat.plain(k): v for k, v in PLAN.items()}
 
 FRASES_M = ["Se recomienda {}.", "Se indica {}.", "Se aconseja {}.", "Se sugiere {}."]
@@ -100,8 +109,8 @@ def compose(descripciones, rng=None):
         return ""
     n = len(reg)
     # un párrafo corto: con varios diagnósticos solo lo de mayor peso de cada uno (las ideas repetidas se descartan)
-    m = _repartir([r["m"] for r in reg], 3 if n == 1 else 4, rng, must=1, top=6)
-    a = _repartir([r["a"] for r in reg], 3 if n == 1 else 4, rng, must=1, top=5)
+    m = _repartir([r["m"] for r in reg], 3 if n == 1 else 4, rng, must=1, top=24)
+    a = _repartir([r["a"] for r in reg], 3 if n == 1 else 4, rng, must=1, top=12)
     partes = []
     if m:
         t = _lista(m)
