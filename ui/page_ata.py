@@ -82,7 +82,7 @@ class AtaPage(Page):
         self.gcanvas = tk.Canvas(gh, highlightthickness=0, background=theme.CARD, height=200)
         ghs = ttk.Scrollbar(gh, orient="horizontal", command=self.gcanvas.xview)
         self.gcanvas.configure(xscrollcommand=ghs.set)
-        ghs.pack(side="bottom", fill="x")
+        ghs.pack(side="top", fill="x", pady=(0, 4))   # la barra horizontal va arriba, a la vista
         self.gcanvas.pack(side="top", fill="x")
         self.grid_frame = ttk.Frame(self.gcanvas, style="Flat.TFrame")
         self.gcanvas.create_window((0, 0), window=self.grid_frame, anchor="nw")
