@@ -32,3 +32,31 @@ G = {
          "llevar los resultados a las consultas", "evitar la automedicación"],
         ["empeoramiento de los síntomas", "fiebre persistente", "dolor intenso", "dificultad para respirar"]),
 }
+
+# frases adicionales por grupo (se suman a las de arriba para que haya más variedad)
+MAS_M = {
+ "its": ["evitar el contacto íntimo si hay lesiones visibles", "mantener la higiene genital con agua y jabón suave", "usar ropa interior de algodón", "evitar compartir toallas y ropa interior", "acudir al control aunque ya no haya molestias", "evitar el alcohol y las drogas antes de las relaciones", "dialogar con la pareja sobre el cuidado y la protección", "conocer los signos de las infecciones de transmisión sexual", "llevar un registro de los síntomas y de la fecha de inicio"],
+ "mens": ["tomar abundante líquido durante los días de sangrado", "evitar el ayuno prolongado y las dietas extremas", "llevar una alimentación rica en frutas y verduras", "evitar el consumo de tabaco", "realizar actividad física moderada varias veces por semana", "registrar los medicamentos que usa", "mantener horarios regulares de comida y sueño", "acudir al control con los resultados de los estudios", "conocer qué es un ciclo menstrual normal"],
+ "emb": ["evitar el esfuerzo físico intenso", "evitar los viajes largos sin valoración", "mantener una buena higiene bucal", "usar ropa y calzado cómodos", "evitar el contacto con personas con enfermedades infecciosas", "lavarse las manos con frecuencia", "realizar ejercicios suaves como caminar", "evitar las comidas crudas o poco cocidas", "acudir acompañada a las consultas", "conocer los signos de trabajo de parto"],
+ "pue": ["comer cinco veces al día en porciones pequeñas", "mantener una buena hidratación", "realizar ejercicios del piso pélvico", "mantener la higiene de las mamas antes de amamantar", "evitar levantar objetos pesados", "evitar el estreñimiento con fibra y líquidos", "descansar en posición cómoda para amamantar", "aceptar la ayuda de familiares", "consultar sobre el estado de ánimo si hay tristeza persistente"],
+ "mam": ["conocer cómo es una mama normal en cada etapa del ciclo", "evitar el tabaco", "evitar el exceso de grasas en la alimentación", "realizar ejercicio al menos tres veces por semana", "mantener los controles periódicos con el personal de salud", "evitar el calor excesivo sobre la mama si hay dolor", "acudir a control si hay antecedentes familiares de cáncer de mama", "evitar medicamentos sin indicación", "mantener una buena postura"],
+ "ant": ["conocer cuánto tarda en actuar el método elegido", "usar el método de forma constante y correcta", "guardar el método en un lugar adecuado", "conocer la fecha en que debe reponer el método", "mantener la comunicación con la pareja sobre la planificación", "acudir al servicio de salud ante cualquier duda", "saber que puede cambiar de método cuando lo desee", "evitar suspender el método sin consejería", "conocer los métodos de barrera"],
+ "mas": ["evitar el uso de ropa muy ajustada", "evitar el tabaco y el exceso de alcohol", "mantener una alimentación balanceada", "evitar el sedentarismo", "mantener el peso adecuado", "evitar el consumo excesivo de sal y azúcar", "acudir a revisión periódica", "evitar aguantar las ganas de orinar", "conocer los signos de alarma urinarios"],
+ "onc": ["acudir a las citas de seguimiento con puntualidad", "llevar un cuaderno con las preguntas para el equipo médico", "conversar con la familia sobre lo que se siente", "mantener una buena hidratación", "evitar el consumo de tabaco", "dormir lo suficiente", "conocer los servicios de apoyo disponibles", "realizar ejercicio suave si lo permite el médico", "mantener los vínculos con amigos y familiares"],
+ "sex": ["conocer los derechos sexuales y reproductivos", "poner límites claros en las relaciones", "no aceptar presión ni violencia en las relaciones", "recibir información fiable sobre sexualidad", "buscar acompañamiento de una persona de confianza", "mantener una vida sexual segura y consentida", "hablar de los temores y las dudas con el personal de salud", "conocer dónde acudir en caso de violencia", "evitar el alcohol y las drogas en situaciones de riesgo"],
+ "gen": ["mantener horarios regulares de sueño", "realizar ejercicio regular", "mantener un peso saludable", "mantener una buena higiene personal", "mantener las vacunas al día", "evitar el estrés excesivo", "acudir a revisión si cambian los síntomas", "no tomar medicamentos sin indicación", "mantener una dieta rica en frutas y verduras"],
+}
+MAS_A = {
+ "its": ["fiebre con escalofríos", "dolor al orinar", "dolor durante las relaciones", "inflamación de los ganglios de la ingle", "sangrado fuera de la menstruación"],
+ "mens": ["cansancio extremo o palidez", "dolor que no cede con las medidas indicadas", "retraso con prueba de embarazo positiva", "sangrado con fiebre", "desmayo"],
+ "emb": ["fiebre alta", "vómitos que impiden tomar líquidos", "dolor al orinar", "hinchazón repentina de cara y manos", "dolor en una pierna con hinchazón"],
+ "pue": ["dolor en una pierna con hinchazón", "salida de pus por la herida", "dificultad para respirar", "bulto doloroso en la mama", "ánimo muy bajo con dificultad para cuidar al bebé"],
+ "mam": ["retracción del pezón", "enrojecimiento de la piel de la mama", "mama que cambia de forma", "ganglios en el cuello o la axila", "dolor que persiste tras la menstruación"],
+ "ant": ["dolor intenso de cabeza", "problemas de visión", "retraso menstrual con el método", "fiebre con dolor pélvico", "dolor en una pierna con hinchazón"],
+ "mas": ["fiebre con escalofríos", "dolor en la espalda baja", "orina con mal olor y turbia", "hinchazón de los testículos", "secreción por el pene o la vagina"],
+ "onc": ["sangrado que no cede", "hinchazón de las piernas", "tos persistente", "dolor de huesos", "fatiga extrema"],
+ "sex": ["pensamientos de hacerse daño", "lesiones en los genitales", "miedo a regresar a casa", "dolor pélvico intenso", "sangrado después de una agresión"],
+ "gen": ["decaimiento marcado", "vómitos persistentes", "sangrado que no cede", "confusión", "dolor en el pecho"],
+}
+for _g, _v in MAS_M.items():
+    G[_g] = (list(dict.fromkeys(G[_g][0] + _v)), list(dict.fromkeys(G[_g][1] + MAS_A[_g])))

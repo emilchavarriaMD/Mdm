@@ -34,9 +34,6 @@ for i, n in enumerate(nombres):
     for t in GEN_M:                      # completa hasta 10 medidas y 4 alarmas con frases generales y seguras
         if len(nm) >= 10: break
         if nuevo(t, pm + nm): nm.append(t)
-    for t in GEN_A:
-        if len(na) >= 4: break
-        if nuevo(t, pa + na): na.append(t)
     out[n] = {"m": nm, "a": na}
 print("sin extras:", falta)
 print("min m", min(len(v["m"]) for v in out.values()), "min a", min(len(v["a"]) for v in out.values()))

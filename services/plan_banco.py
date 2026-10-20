@@ -30,11 +30,15 @@ _NORM_SSR = {cat.plain(k): v for k, v in PLAN_SSR.items()}
 
 _NORM = {cat.plain(k): v for k, v in PLAN.items()}
 
+ABRE_M = [None, "Se recomienda {}.", "Se aconseja {}.", "Se indica {}.", "Como medidas generales se sugiere {}.", "Medidas generales: {}."]
 FRASES_M = ["Se recomienda {}.", "Se indica {}.", "Se aconseja {}.", "Se sugiere {}."]
 FRASES_A = ["Vigilar signos de alarma como {}; en caso de presentarlos, acudir de inmediato a un centro de salud.",
             "Vigilar la aparición de signos de alarma como {} y, en caso de presentarlos, acudir sin demora al centro de salud.",
             "Estar atento a signos de alarma como {}; si se presentan, acudir de inmediato a un centro de salud.",
             "Vigilar por signos de alarma como {} y, de presentarlos, buscar atención médica de inmediato."]
+
+
+_VACIAS = {"con", "los", "las", "del", "por", "una", "que", "para", "sin", "muy", "más", "mas", "día", "uso", "hasta", "como", "todos", "todas"}
 
 
 class _Primero:
@@ -94,8 +98,8 @@ def _repartir(pools, total, rng, must=2, top=8):
         i += 1
         while p:
             x = p.pop(0)
-            w = {t for t in re.findall(r"\w{4,}", x.lower())}
-            parecido = x.lower() in vistos or any(w and q and len(w & q) / min(len(w), len(q)) >= 0.6 for q in palabras)
+            w = {t for t in re.findall(r"\w{3,}", x.lower()) if t not in _VACIAS}
+            parecido = x.lower() in vistos or any(w and q and len(w & q) / min(len(w), len(q)) >= 0.5 for q in palabras)
             if not parecido:
                 vistos.add(x.lower())
                 palabras.append(w)
@@ -118,12 +122,16 @@ def compose(descripciones, rng=None, ssr=False):
         return ""
     n = len(reg)
     # un párrafo corto: con varios diagnósticos solo lo de mayor peso de cada uno (las ideas repetidas se descartan)
-    m = _repartir([r["m"] for r in reg], 3 if n == 1 else 4, rng, must=1, top=24)
-    a = _repartir([r["a"] for r in reg], 3 if n == 1 else 4, rng, must=1, top=12)
+    m = _repartir([r["m"] for r in reg], 3 if n == 1 else 4, rng, must=1, top=26)
+    a = _repartir([r["a"] for r in reg], 3 if n == 1 else 4, rng, must=1, top=14)
     partes = []
     if m:
         t = _lista(m)
-        partes.append(t[0].upper() + t[1:] + ".")
+        if det:                                          # sin rng: siempre la forma sencilla (estable para pruebas)
+            partes.append(t[0].upper() + t[1:] + ".")
+        else:                                            # con rng: distintas formas de abrir la oración
+            f = rng.choice(ABRE_M)
+            partes.append(t[0].upper() + t[1:] + "." if f is None else f.format(t))
     if a:
         partes.append(rng.choice(FRASES_A).format(_lista(a)))
     return " ".join(partes)
