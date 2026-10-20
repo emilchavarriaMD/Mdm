@@ -169,10 +169,17 @@ def setup(root: tk.Tk):
     s.map("TCombobox", bordercolor=[("focus", PRIMARY)],
           fieldbackground=[("disabled", FIELD_DIS), ("readonly", FIELD)],
           foreground=[("disabled", ENTRY_DIS_FG)])
-    s.configure("TCheckbutton", background=BG, font=FONT)
-    s.configure("Card.TCheckbutton", background=CARD)
-    s.configure("TRadiobutton", background=BG, font=FONT)
-    s.configure("Card.TRadiobutton", background=CARD)
+    for nombre, fondo in (("TCheckbutton", BG), ("Card.TCheckbutton", CARD), ("TRadiobutton", BG),
+                          ("Card.TRadiobutton", CARD)):
+        s.configure(nombre, background=fondo, foreground=TEXT, font=FONT, indicatorbackground=FIELD,
+                    indicatorforeground="white", bordercolor=BORDER, lightcolor=FIELD, darkcolor=FIELD,
+                    focuscolor=fondo)
+        s.map(nombre, indicatorbackground=[("selected", PRIMARY), ("pressed", BTN_ACT), ("!selected", FIELD)],
+              background=[("active", fondo)], foreground=[("disabled", BTN_DIS_FG)])
+    s.configure("TScrollbar", background=BTN, troughcolor=TROUGH, bordercolor=TROUGH, arrowcolor=MUTED,
+                lightcolor=BTN, darkcolor=BTN, gripcount=0, relief="flat")
+    s.map("TScrollbar", background=[("pressed", PRIMARY), ("active", BTN_ACT)],
+          arrowcolor=[("pressed", TEXT), ("active", TEXT)])
 
     s.configure("TNotebook", background=BG, borderwidth=0, tabmargins=(0, 4, 0, 0))
     s.configure("TNotebook.Tab", padding=(14, 8), font=FONT_B, background=TAB_BG, foreground=MUTED,

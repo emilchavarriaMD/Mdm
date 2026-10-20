@@ -565,6 +565,9 @@ def _sort_key(text):
 
 
 def sort_tree(tree, col, reverse):
+    titulos = getattr(tree, "_titulos", {})
+    for c, t in titulos.items():                      # flecha ▲/▼ solo en la columna ordenada
+        tree.heading(c, text=t + ((" ▼" if reverse else " ▲") if c == col else ""))
     items = [(tree.set(k, col), k) for k in tree.get_children("")]
     items.sort(key=lambda t: _sort_key(t[0]), reverse=reverse)
     for i, (_, k) in enumerate(items):
@@ -584,6 +587,7 @@ def make_tree(parent, columns, height=10, selectmode="browse"):
     frame = ttk.Frame(parent)
     tree = ttk.Treeview(frame, columns=[c[0] for c in columns], show="headings", height=height,
                         selectmode=selectmode)
+    tree._titulos = {c[0]: c[1] for c in columns if c[1]}
     for cid, title, width, *rest in columns:
         tree.heading(cid, text=title, command=lambda c=cid: sort_tree(tree, c, False))
         width = max(width, int(len(title) * 9.5) + 26)  # que el encabezado nunca se corte
