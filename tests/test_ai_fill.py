@@ -68,7 +68,8 @@ LEER = """() => {
         meno: rr('meno'), citol: (q('#citol') || {}).value, pvph: rr('pvph'), amam: rr('amam'),
         emb: rr('emb'), cfum: rr('cfum'), fum: (q('#fum') || {}).value, cpn: rr('cpn'), cpnl: (q('#cpnl') || {}).value,
         eant: rr('eant'), ob0: (q('#ob0') || {}).value, ob6: (q('#ob6') || {}).value, lact: rr('lact'),
-        mel: [...document.querySelectorAll('#ssr #mel input:checked')].map(x => x.value), acc: rr('acc') }; })(),
+        mel: [...document.querySelectorAll('#ssr #mel input:checked')].map(x => x.value), acc: rr('acc'),
+        lve: [1,2,3,4,5,6].map(i => (q('#lve' + i + ' input') || {}).value) }; })(),
     aps_abierto: !!document.getElementById('aps'),
   };
 }"""
@@ -152,6 +153,7 @@ class T08_LlenadoSimulado(unittest.TestCase):
                       "menarquia": "12", "ritmo": "28/5", "trast_mens": "No", "menopausia": "No", "citologia": "2025-03-04",
                       "prueba_vph": "No sabe", "autoex_mamas": "Sí", "embarazo_actual": "Sí", "conoce_fum": "Sí", "fum": "2026-08-01", "cpn": "Sí", "cpn_lugar": "Hospital",
                       "embarazo_anterior": "< 2 AÑOS", "gestaciones": "2", "hijos_muertos": "0", "lactancia": "Sí", "metodos_actuales": ["DIU"], "metodos_elegidos": ["Preservativo masculino"], "acceso": "Sí",
+                      "lve": {"menstruacion": "No", "abstinencia": "Sí", "metodo": "No", "bebe4": "No", "bebe6": "No", "aborto": "No"},
                       "hea": "HEA de SSR", "examen_fisico": "Examen SSR", "plan": "Plan SSR", "vph": "No", "papanicolau": "Sí", "examen_mama": "No",
                       "vacunacion": ["Td (toxoide tetánico)", "HEPATITIS B:"], "observaciones": "Obs gral", "obs_dx": "Obs dx",
                       "consejeria": "Si", "va_derivado": "Sí", "transfronteriza": "No", "servicio_brindado": "Salud",
@@ -186,6 +188,7 @@ class T08_LlenadoSimulado(unittest.TestCase):
         self.assertEqual((s["emb"], s["cfum"], s["fum"], s["cpn"], s["cpnl"]), ("Sí", "Sí", "2026-08-01", "Sí", "Hospital"))
         self.assertEqual((s["eant"], s["ob0"], s["ob6"], s["lact"]), ("< 2 AÑOS", "2", "0", "Sí"))
         self.assertEqual((s["yap"], s["mact"], s["mel"], s["acc"]), ("Sí", ["DIU"], ["Preservativo masculino"], "Sí"))
+        self.assertEqual(s["lve"], ["No", "Sí", "No", "No", "No", "No"])      # lista de verificación de embarazo
         self.assertEqual(s["vacuna"], ["Td (toxoide tetánico)", "HEPATITIS B:"])
         self.assertEqual((s["obs"], s["obsdx"], s["conse"]), ("Obs gral", "Obs dx", "Si"))
         self.assertEqual((s["sder"], s["strans"], s["ssvc"], s["ssalud"], s["victima"]),

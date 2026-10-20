@@ -648,8 +648,26 @@ class ActivityInfoDialog(_Modal):
         gra = widgets.FormGrid(ga2, 2)
         combo("ssr_act_1", "Método actual", ai.SSR_METODOS_ACTUALES, ga2, gra)
         combo("ssr_act_2", "Otro método actual (opcional)", ai.SSR_METODOS_ACTUALES, ga2, gra)
+        # Lista de verificación de embarazo (en ActivityInfo va entre el método actual y el método elegido)
+        self.ssr_lve = ttk.LabelFrame(self.ssr_met, text=" Lista de verificación de embarazo ", padding=8)
+        ttk.Label(self.ssr_lve, text="Solo para Mujer CIS u Hombre TRANS. Si TODAS son «No» no se puede descartar embarazo; "
+                  "con alguna «Sí» se puede estar razonablemente seguro/a. Vacío = no se llena.", style="Muted.TLabel",
+                  wraplength=740, justify="left").pack(anchor="w")
+        glv = ttk.Frame(self.ssr_lve)
+        glv.pack(fill="x")
+        grlv = widgets.FormGrid(glv, 2)
+        for k, _rot, preg in ai.LVE_PREGUNTAS:
+            combo("ssr_lve_" + k, preg, ai.SI_NO, glv, grlv)
+            self.w["ssr_lve_" + k].bind("<<ComboboxSelected>>", lambda e: self._lve_actualizar())
+        fb = ttk.Frame(self.ssr_lve)
+        fb.pack(fill="x", pady=(4, 0))
+        ttk.Button(fb, text="Todas «No»", command=lambda: self._lve_todas("No")).pack(side="left")
+        ttk.Button(fb, text="Limpiar", command=lambda: self._lve_todas("")).pack(side="left", padx=6)
+        self.ssr_lve_res = ttk.Label(self.ssr_lve, text="", wraplength=740, justify="left")
+        self.ssr_lve_res.pack(anchor="w", pady=(4, 0))
         marco_e = ttk.LabelFrame(self.ssr_met, text=" 2) Método ELEGIDO HOY (después de la consejería) ", padding=8)
         marco_e.pack(fill="x", pady=(8, 0))
+        self._ssr_marco_e = marco_e
         ttk.Label(marco_e, text="Elija hasta 2 métodos que la persona decidió usar a partir de esta consulta "
                   "(se recomienda protección dual). «Ninguno» si no eligió.", style="Muted.TLabel", wraplength=740,
                   justify="left").pack(anchor="w")
@@ -730,6 +748,26 @@ class ActivityInfoDialog(_Modal):
         self.ssr_actuales.pack_forget()
         if cons and self.w["ssr_ya_planifica"].get_value() == "Sí":
             self.ssr_actuales.pack(fill="x", after=self._ssr_gm2, pady=(6, 0))
+        self.ssr_lve.pack_forget()
+        if self._lve_aplica():
+            self.ssr_lve.pack(fill="x", before=self._ssr_marco_e, pady=(8, 0))
+        self._lve_actualizar()
+
+    def _lve_aplica(self):
+        return (self.w["ssr_consejeria"].get_value() == "Si" and self.w["genero"].get_value() in ai.LVE_GENEROS)
+
+    def _lve_respuestas(self):
+        return {k: self.w["ssr_lve_" + k].get_value() for k, _, _ in ai.LVE_PREGUNTAS}
+
+    def _lve_todas(self, v):
+        for k, _, _ in ai.LVE_PREGUNTAS:
+            self.w["ssr_lve_" + k].set_value(v)
+        self._lve_actualizar()
+
+    def _lve_actualizar(self):
+        r = ai.lve_resultado(self._lve_respuestas())
+        self.ssr_lve_res.configure(text=("Resultado: " + r) if r else "Resultado: (responda las preguntas)",
+                                   foreground="#b54708" if r.startswith("No se puede") else "")
 
     def _mostrar_ssr_der(self):
         self.ssr_der_extra.pack_forget()
@@ -972,6 +1010,7 @@ class ActivityInfoDialog(_Modal):
                            "lactancia": W("ssr_lactancia") if W("ssr_embarazo_anterior") not in ("", "No hubo embarazo") else "",
                            "metodos_actuales": uniq("ssr_act_1", "ssr_act_2") if W("ssr_ya_planifica") == "Sí" and W("ssr_consejeria") == "Si" else [],
                            "metodos_elegidos": uniq("ssr_eleg_1", "ssr_eleg_2") if W("ssr_consejeria") == "Si" else [],
+                           "lve": ({k: v for k, v in self._lve_respuestas().items() if v} if self._lve_aplica() else {}),
                            "plan": self.ssr_plan.get("1.0", "end").strip(),
                            "va_derivado": W("ssr_va_derivado"), "victima_sexual": W("ssr_victima_sexual")}
             if data["ssr"]["va_derivado"] == "Sí":

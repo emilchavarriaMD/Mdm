@@ -111,6 +111,29 @@ PLAN_BASE = "Plan"
 TIPOS_SSR = ["Primera", "Reconsulta", "Seguimiento"]
 SSR_FICHAS = ["Corta", "Larga"]
 SI_NO = ["Sí", "No"]
+# Lista de verificación de embarazo (SSR): sale con consejería «Si» y género Mujer CIS u Hombre TRANS.
+# (clave, rótulo exacto en ActivityInfo, pregunta corta para la ventana)
+LVE_PREGUNTAS = [
+    ("menstruacion", "1. Menstruación", "¿La menstruación comenzó en los últimos 7 días (12 días si quiere DIU de cobre)?"),
+    ("abstinencia", "2. Abstinencia sexual", "¿Abstinencia sexual desde la última menstruación, parto, cesárea o aborto?"),
+    ("metodo", "3. Metodo anticonceptvo desde última menstruación",
+     "¿Usa un método fiable de forma consistente y correcta desde la última menstruación, parto, cesárea o aborto?"),
+    ("bebe4", "4. Bebé en las últimas 4 semanas", "¿Tuvo un bebé en las últimas 4 semanas?"),
+    ("bebe6", "5. Bebé de menos de 6 meses",
+     "¿Bebé de menos de 6 meses con lactancia exclusiva (o casi) y sin menstruación desde el parto?"),
+    ("aborto", "6. Aborto en los últimos días", "¿Tuvo un aborto en los últimos 7 días (12 días si quiere DIU de cobre)?"),
+]
+LVE_GENEROS = ("Mujer CIS", "Hombre TRANS")
+
+
+def lve_resultado(resp: dict) -> str:
+    """Lo mismo que calcula ActivityInfo: todas «No» → no se descarta embarazo; alguna «Sí» → razonablemente seguro."""
+    vals = [resp.get(k, "") for k, _, _ in LVE_PREGUNTAS]
+    if any(v == "Sí" for v in vals):
+        return "Se puede estar razonablemente seguro/a de que no está embarazada y empezar método anticonceptivo"
+    if all(v == "No" for v in vals):
+        return "No se puede descartar embarazo, es necesario descartarlo mediante otro método"
+    return ""
 SSR_MAX_DX = 2
 SSR_VIOLENCIA = ["No", "Violencia Basada en Género", "Otra Situación de Violencia"]
 SSR_SI_NO_NS = ["Sí", "No", "No sabe"]

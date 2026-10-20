@@ -282,10 +282,13 @@ function openSsr() {
       document.querySelectorAll(".ax").forEach((q) => q.remove());
       if (w === "Sí") { const a = checks("mact", "Metodo/s anticonceptivo/s actual/es*", ["DIU", "Preservativo masculino", "Inyección hormonal / DEPO"]); a.classList.add("ax", "cx"); yp.after(a); }
     });
+    const lve = ["1. Menstruación", "2. Abstinencia sexual", "3. Metodo anticonceptvo desde última menstruación",
+      "4. Bebé en las últimas 4 semanas", "5. Bebé de menos de 6 meses", "6. Aborto en los últimos días"]
+      .map((t, i) => { const b = field(t, lookup("lve" + (i + 1), t, ["Sí", "No"])); b.classList.add("cx"); return b; });
     const el = checks("mel", "Método/s anticonceptivo/s elegido/s*", ["DIU", "Preservativo masculino", "Ninguno"]);
     const ac = radios("acc", "Acceso*", ["Sí", "No"]);
     [yp, el, ac].forEach((q) => q.classList.add("cx"));
-    conse.after(yp); yp.after(el); el.after(ac);
+    conse.after(yp); let prev = yp; lve.forEach((b) => { prev.after(b); prev = b; }); prev.after(el); el.after(ac);
   });
   ssr.appendChild(conse);
   ssr.appendChild(text("plan", "Plan", true));

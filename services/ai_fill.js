@@ -1,6 +1,6 @@
 /* Llena el formulario de ActivityInfo. NUNCA pulsa Guardar registro ni Guardar como borrador. */
 (function () {
-  const VERSION = 23;
+  const VERSION = 24;
   if (window.__mdm && window.__mdm.version === VERSION) return;   // una versión vieja en la pestaña se reemplaza
   const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
   const norm = (s) => (s || "").replace(/\s+/g, " ").replace(/\*/g, "").replace(/OBLIGATORIO/g, "").trim().toLowerCase();
@@ -416,6 +416,14 @@
           await S("SSR: ¿Ya planifica?", () => setAuto("¿Ya planifica?", x.ya_planifica));
           await sleep(600);
           if (x.ya_planifica === "Sí" && (x.metodos_actuales || []).length) await S("SSR: Método/s actual/es", () => setChecks("Metodo/s anticonceptivo/s actual", x.metodos_actuales));
+        }
+        // Lista de verificación de embarazo (sale con Mujer CIS / Hombre TRANS), antes del método elegido
+        const LVE = [["menstruacion", "1. Menstruación"], ["abstinencia", "2. Abstinencia sexual"],
+          ["metodo", "3. Metodo anticonceptvo desde última menstruación"], ["bebe4", "4. Bebé en las últimas 4 semanas"],
+          ["bebe6", "5. Bebé de menos de 6 meses"], ["aborto", "6. Aborto en los últimos días"]];
+        for (const [k, rot] of LVE) {
+          const v = (x.lve || {})[k];
+          if (v) await S("SSR: Lista de verificación de embarazo — " + rot, () => setAuto(rot, v));
         }
         if ((x.metodos_elegidos || []).length) { await S("SSR: Método/s elegido/s", () => setChecks("Método/s anticonceptivo/s elegido", x.metodos_elegidos)); await sleep(500); }
         if (x.acceso) await S("SSR: Acceso", () => setAuto("Acceso", x.acceso));

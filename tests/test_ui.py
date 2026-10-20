@@ -456,6 +456,19 @@ class UITests(unittest.TestCase):
         dlg._ssr_condicionales()
         for fr in (dlg.ssr_its_x, dlg.ssr_itu_x, dlg.ssr_viol_g, dlg.ssr_met, dlg.ssr_actuales):
             self.assertEqual(fr.winfo_manager(), "pack")
+        # lista de verificación de embarazo: con consejería «Si» y Mujer CIS / Hombre TRANS
+        if dlg.w["genero"].get_value() in ai.LVE_GENEROS:
+            self.assertEqual(dlg.ssr_lve.winfo_manager(), "pack")
+            dlg._lve_todas("No")
+            self.assertIn("No se puede descartar", dlg.ssr_lve_res.cget("text"))
+            dlg.w["ssr_lve_abstinencia"].set_value("Sí"); dlg._lve_actualizar()
+            self.assertIn("razonablemente seguro", dlg.ssr_lve_res.cget("text"))
+        g0 = dlg.w["genero"].get_value()
+        dlg.w["genero"].set_value("Hombre CIS"); dlg._ssr_condicionales()
+        self.assertFalse(dlg.ssr_lve.winfo_manager())
+        dlg.w["genero"].set_value(g0 or "Mujer CIS"); dlg._ssr_condicionales()
+        self.assertEqual(dlg.ssr_lve.winfo_manager(), "pack")
+        self.assertIn("razonablemente seguro", dlg.ssr_lve_res.cget("text"))
         self.assertFalse(dlg.ssr_viol_o.winfo_manager())
         dlg.w["ssr_its_cual"].set_value("Sífilis")
         dlg.w["ssr_act_1"].set_value("DIU"); dlg.w["ssr_fum"].set_value("2026-08-01"); dlg.w["ssr_embarazo_actual"].set_value("Sí"); dlg.w["ssr_conoce_fum"].set_value("Sí"); dlg._ssr_condicionales()
@@ -469,6 +482,8 @@ class UITests(unittest.TestCase):
                          ("Sífilis", ["DIU"], "Sí", "Sí"))
         self.assertEqual(r["ssr"]["fum"], "2026-08-01")
         self.assertEqual(r["ssr"]["menarquia"], "12")
+        self.assertEqual(r["ssr"]["lve"]["abstinencia"], "Sí")
+        self.assertEqual(len(r["ssr"]["lve"]), 6)
         self.assertNotIn("espermarquia", r["ssr"])
         self.assertEqual(ai.SSR_METODOS_ELEGIDOS[:2], ["Píldora anticonceptiva", "Inyección hormonal / DEPO"])
         self.assertEqual(ai.SSR_METODOS_ELEGIDOS[-2], "Anillo vaginal")
