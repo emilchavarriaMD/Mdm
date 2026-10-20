@@ -130,7 +130,7 @@ class T21_PlantillaATA2023(unittest.TestCase):
         self.assertEqual(a["obst"], "G=2 P=1 C=1 A=0 HV=3 HM=0")
         self.assertEqual((a["sexo"], b["sexo"]), ("M", "H"))        # (M/F): F = mujer -> M, M = masculino -> H
         self.assertEqual((b["edad_meses"], b["loc"], b["obst"]), ("6", '"', ""))
-        self.assertTrue(any("M/F" in w for w in warns))
+        self.assertTrue(any("sexo" in w.lower() for w in warns))
         hh, clean, errores = A.prepare_sheet(h, rows)
         self.assertEqual(errores, [])
         self.assertEqual(clean[1]["loc"], "Brisas 1")               # la comilla se expande con la fila anterior
@@ -186,3 +186,35 @@ class T22_ExportarEnPlantilla(unittest.TestCase):
         _h, rows, warns = A.import_excel(p)
         self.assertEqual([r["sexo"] for r in rows], ["M", "H"])
         self.assertTrue(warns)
+
+
+class T23_NormalizarSexo(unittest.TestCase):
+    def _n(self, *vals):
+        rows = [{"sexo": v} for v in vals]
+        A.normalizar_sexos(rows)
+        return [r["sexo"] for r in rows]
+
+    def test_palabras_y_letras(self):
+        self.assertEqual(self._n("Masculino", "Femenino", "hombre", "MUJER", "masc.", "fem", "Varón"), ["H", "M", "H", "M", "H", "M", "H"])
+        self.assertEqual(self._n("H", "F", "M"), ["H", "M", "M"])             # H/F: F es mujer; M es mujer
+        self.assertEqual(self._n("H", "M", "h", "m"), ["H", "M", "H", "M"])
+        self.assertEqual(self._n("F", "F", "M"), ["M", "M", "H"])             # M/F de verdad: M = masculino
+        self.assertEqual(self._n("M", "M", "M", "F"), ["M", "M", "M", "M"])   # una «F» de error no voltea a las demás
+        self.assertEqual(self._n("", "M"), ["", "M"])
+
+    def test_se_corrige_al_guardar_y_al_subir(self):
+        h = dict(HEADER, fecha="13/10/2026")
+        rows = [dict(fila("Ana", "Femenino", 30), numero="1"), dict(fila("Luis", "Masculino", 40), numero="2")]
+        _h, clean, errores = A.prepare_sheet(h, rows)
+        self.assertEqual(errores, [])
+        self.assertEqual([r["sexo"] for r in clean], ["M", "H"])
+        p = Path(tempfile.mkdtemp(dir=_TMP)) / "sx.xlsx"
+        _plantilla_ata_2023(p)
+        import openpyxl
+        wb = openpyxl.load_workbook(p)
+        ws = wb.active
+        ws["D10"], ws["D11"] = "Femenino", "Masculino"
+        wb.save(p)
+        _h, filas, warns = A.import_excel(p)
+        self.assertEqual([r["sexo"] for r in filas], ["M", "H"])
+        self.assertTrue(any("sexo" in w.lower() for w in warns))

@@ -76,8 +76,9 @@ def prepare_sheet(header: dict, rows: list):
     except ValidationError as exc:
         errors.append(str(exc))
     clean = []
-    for i, r in enumerate(expand_ditto(rows), 1):
-        r = {k: (r.get(k) or "").strip() for k in KEYS}
+    filas = [{k: (r.get(k) or "").strip() for k in KEYS} for r in expand_ditto(rows)]
+    normalizar_sexos(filas)                       # masculino/femenino, F, palabras… -> H o M
+    for i, r in enumerate(filas, 1):
         if row_is_empty(r):
             continue
         tag = f"Fila {r['numero'] or i}"
@@ -255,6 +256,32 @@ def _anio2(texto, nacimiento=False):
     return f"{int(m.group(1)):02d}/{int(m.group(2)):02d}/{anio}"
 
 
+_SEXO_PALABRAS = {"HOMBRE": "H", "MASCULINO": "H", "MASC": "H", "VARON": "H", "VARÓN": "H", "MALE": "H", "H": "H",
+                  "MUJER": "M", "FEMENINO": "M", "FEM": "M", "FEMENINA": "M", "FEMALE": "M", "F": "M"}
+
+
+def normalizar_sexos(rows):
+    """Deja el sexo de cada fila como H (hombre) o M (mujer). Acepta H/M, M/F (masculino/femenino) y palabras
+    (hombre, mujer, masculino, femenino…). Una «M» sola es mujer, salvo en una hoja que usa «F» (no menos que «M») y no usa
+    «H» (M/F): ahí M = masculino. Devuelve cuántos valores se cambiaron de significado (M masculino -> H, F -> M)."""
+    vals = [str(r.get("sexo") or "").strip().upper() for r in rows]
+    # M/F de verdad (M = masculino) solo si hay «F», no hay «H» y las «F» no son menos que las «M» (en una hoja de H/M con una
+    # «F» de error, la «M» sigue siendo mujer)
+    mf = "F" in vals and "H" not in vals and vals.count("F") >= vals.count("M")
+    cambios = 0
+    for r, v in zip(rows, vals):
+        if not v:
+            continue
+        if v == "M":
+            nuevo = "H" if mf else "M"
+        else:
+            nuevo = _SEXO_PALABRAS.get(v) or _SEXO_PALABRAS.get(v.rstrip(".")) or v
+        if nuevo != v:
+            cambios += 1
+        r["sexo"] = nuevo
+    return cambios
+
+
 def parse_obst(texto):
     """«G=2 P=1 C=1 A=0 HV=3 HM=0» -> {'G': 2, 'P': 1, 'C': 1, 'A': 0, 'HV': 3, 'HM': 0} (solo lo que trae número)."""
     import re as _re
@@ -359,7 +386,7 @@ def import_excel(path):
             if val and not header[k]:
                 header[k] = val
     header["fecha"] = _anio2(header["fecha"])
-    rows, warnings, sexos = [], [], set()
+    rows, warnings = [], []
     for row in grid[data_start:]:
         r = {k: "" for k in KEYS}
         for j, k in colmap.items():
@@ -374,16 +401,15 @@ def import_excel(path):
         r["fecha_nacimiento"] = _anio2(r["fecha_nacimiento"], nacimiento=True)
         if r["obst"]:
             r["obst"] = fmt_obst(parse_obst(r["obst"]))         # «G=    P=   …» sin números = vacío
-        if r["sexo"]:
-            sexos.add(r["sexo"].strip().upper())
         if not row_is_empty(r):
             rows.append(r)
-    # El encabezado dice SEXO (M/F), pero en la hoja se escribe H/M (Hombre/Mujer). Solo si aparece «F» y ninguna «H» se
-    # entiende M = masculino y F = femenino (y se convierte a H/M); si no, se deja tal como está escrito.
-    if sexo_mf and "F" in sexos and "H" not in sexos:
-        for r in rows:
-            r["sexo"] = {"M": "H", "F": "M"}.get(r["sexo"].strip().upper(), r["sexo"])
-        warnings.append("El sexo venía como M/F: se leyó M = masculino (H) y F = femenino (M). Verifique el sexo.")
+    sx = {str(r.get("sexo") or "").strip().upper() for r in rows}
+    cambios = normalizar_sexos(rows)
+    if "F" in sx and "M" in sx and "H" not in sx:
+        warnings.append("La hoja mezcla M y F sin H: revise el sexo de cada paciente (M puede ser mujer o masculino).")
+    if cambios:
+        warnings.append(f"Se corrigió el sexo de {cambios} fila(s) a H (hombre) o M (mujer) "
+                        "(venía como masculino/femenino, F o palabras). Verifique el sexo.")
     if not rows:
         warnings.append("El archivo no tiene filas de pacientes.")
     return header, rows, warnings
