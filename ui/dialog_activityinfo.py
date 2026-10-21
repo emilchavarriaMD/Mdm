@@ -222,13 +222,22 @@ class ActivityInfoDialog(_Modal):
         self.meds_aps = med_picker.MedPicker(f_plan, defaults.get("meds_aps") or [])
         self.meds_aps.pack(fill="x", pady=(8, 0))
         ttk.Label(f_der, text="Derivación (hacia) y servicio brindado.", style="Muted.TLabel").pack(anchor="w")
-        ttk.Label(f_der, text="Si elige Sí en «¿Va a ser derivado?» se muestran los demás campos, como en ActivityInfo "
-                  "(recapitulativo interno de MdM). El servicio brindado siempre es Salud.", style="Muted.TLabel",
+        ttk.Label(f_der, text="«¿Referencia Transfronteriza?» está siempre (por defecto No). Si elige Sí en «¿Va a ser derivado?» se "
+                  "muestran los demás campos, como en ActivityInfo (recapitulativo interno de MdM). El servicio brindado "
+                  "siempre es Salud.", style="Muted.TLabel",
                   wraplength=780, justify="left").pack(anchor="w")
         gf3 = ttk.Frame(f_der)
         gf3.pack(fill="x")
         g3 = widgets.FormGrid(gf3, 3)
-        # como en la página: lo demás solo aparece cuando «¿Va a ser derivado?» es Sí
+        # como en la página: «¿A cuántos servicios se deriva?» y «Servicio brindado» solo aparecen con «¿Va a ser derivado?»
+        # = Sí; «¿Referencia Transfronteriza?» está siempre (por defecto No), justo después de «¿Va a ser derivado?»
+        self.der_n = ttk.Frame(f_der)
+        gfn = ttk.Frame(self.der_n)
+        gfn.pack(fill="x")
+        gn = widgets.FormGrid(gfn, 3)
+        self._der_transf = ttk.Frame(f_der)
+        self._der_transf.pack(fill="x")
+        gt = widgets.FormGrid(self._der_transf, 3)
         self.der_extra = ttk.Frame(f_der)
         gf4 = ttk.Frame(self.der_extra)
         gf4.pack(fill="x")
@@ -241,8 +250,10 @@ class ActivityInfoDialog(_Modal):
             grid.add(label, w)
 
         add3("va_derivado", "¿Va a ser derivado?", ai.VA_DERIVADO, gf3, g3)
-        add3("n_servicios", "¿A cuántos servicios se deriva?", ai.N_SERVICIOS, gf4, g4)
-        add3("transfronteriza", "¿Referencia Transfronteriza?", ai.VA_DERIVADO, gf4, g4)
+        add3("n_servicios", "¿A cuántos servicios se deriva?", ai.N_SERVICIOS, gfn, gn)
+        add3("transfronteriza", "¿Referencia Transfronteriza?", ai.VA_DERIVADO, self._der_transf, gt)
+        if not self.w["transfronteriza"].get_value():
+            self.w["transfronteriza"].set_value("No")
         add3("servicio_brindado", "Servicio brindado", ai.SERVICIOS_BRINDADOS, gf4, g4)
         add3("servicio_salud", "Salud (si el servicio es Salud)", ai.SERVICIOS_SALUD, gf4, g4)
         self.w["va_derivado"].bind("<<ComboboxSelected>>", lambda e: self._mostrar_derivacion())
@@ -474,8 +485,10 @@ class ActivityInfoDialog(_Modal):
         """Diagnósticos de la HEA de APS: los del ATA que NO pasaron a SSR (cada renglón de SSR corresponde al
         diagnóstico del ATA del mismo número). Si todos pasaron a SSR, se usan todos para no dejar la HEA vacía."""
         todos = self._dx_actuales()
-        if not self._ssr_activo():
+        if not hasattr(self, "ssr_rows"):
             return todos
+        # los diagnósticos que pasan a SSR no entran en la HEA de APS, esté o no marcada la consulta de SSR
+        # (igual que al abrir la ventana); si no, «Otra versión» los volvía a meter
         a_ssr = {i for i, cb in enumerate(self.ssr_rows) if ssr_cat.from_label(cb.get_value())[0]}
         aps = [d for i, d in enumerate(todos) if i not in a_ssr]
         return aps if any(aps) else todos
@@ -873,8 +886,10 @@ class ActivityInfoDialog(_Modal):
     def _mostrar_derivacion(self):
         """«Servicio brindado» y lo demás solo existen en la página cuando «¿Va a ser derivado?» es Sí."""
         if self.w["va_derivado"].get_value() == "Sí":
+            self.der_n.pack(fill="x", before=self._der_transf)
             self.der_extra.pack(fill="x")
         else:
+            self.der_n.pack_forget()
             self.der_extra.pack_forget()
 
     def _hay_hta(self):
@@ -1079,7 +1094,7 @@ class ActivityInfoDialog(_Modal):
         data["examen_fisico"] = self.examen.get("1.0", "end").strip()
         data["plan"] = medicamentos.agregar_al_plan(self.plan.get("1.0", "end"), self.meds_aps.valores())
         if data.get("va_derivado") != "Sí":       # sin Sí no existen esos campos en la página
-            for k in ("n_servicios", "transfronteriza", "servicio_brindado", "servicio_salud"):
+            for k in ("n_servicios", "servicio_brindado", "servicio_salud"):
                 data[k] = ""
         data["tiene_fecha_nac"] = "No"  # siempre se usa la edad
         for k in [k for k in data if k.startswith("ssr_")]:

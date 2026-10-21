@@ -381,7 +381,7 @@ def build_defaults(db, rec: dict) -> dict:
         "ssr_tipo": "Primera", "ssr_dx": ssr_dx, "ssr_va_derivado": "No", "ssr_transfronteriza": "",
         **defectos_ssr(), **defectos_obstetricos(rec),
         "ssr_servicio_brindado": "Salud", "ssr_servicio_salud": SSR_SERVICIO_SALUD, "peso": "", "examen_fisico": EXAMEN_FISICO_APS, "ssr_examen_fisico": EXAMEN_FISICO_SSR,
-        "plan": PLAN_BASE, "va_derivado": "No", "n_servicios": "", "transfronteriza": "",
+        "plan": PLAN_BASE, "va_derivado": "No", "n_servicios": "", "transfronteriza": "No",
         "servicio_brindado": "Salud", "servicio_salud": SERVICIOS_SALUD[0],
         "lugar": lugar_atencion(rec, st["ai_lugar"]), "punto_especifico": (rec.get("loc") or "").strip(), "fecha": (rec.get("fecha") or "")[:10], "genero": genero,
         "donante": st["ai_donante"], "proyecto": st["ai_proyecto"], "perfin": st["ai_perfin"],

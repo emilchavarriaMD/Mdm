@@ -231,6 +231,10 @@ class TestMedicamentos(unittest.TestCase):
         self.assertIn("Acetaminofén 500 mg tableta: 2 Tab VO c/6 horas por 5 días", m.MEDICAMENTOS)
         for insumo in ("Jeringa", "Guantes", "Gasa", "Algodón", "Esparadrapo", "Prueba de embarazo"):
             self.assertFalse(any(insumo.lower() in t.lower() for t in m.MEDICAMENTOS), insumo)
+        claves = [m._clave(t) for t in m.MEDICAMENTOS]
+        self.assertEqual(claves, sorted(claves))                                  # orden alfabético
+        self.assertTrue(m.MEDICAMENTOS[0].startswith("Acetaminofén"))
+        self.assertTrue(m.MEDICAMENTOS[-1].startswith("Trimetoprim"))
         self.assertEqual(m.agregar_al_plan("Plan.", []), "Plan.")
         t = m.agregar_al_plan("Plan.", ["A 1 Tab", "B 2 Tab"])
         self.assertEqual(t, "Plan.\nMedicamentos indicados: A 1 Tab; B 2 Tab.")

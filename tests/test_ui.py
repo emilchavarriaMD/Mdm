@@ -652,7 +652,8 @@ class UITests(unittest.TestCase):
         base_aps = dlg.plan.get("1.0", "end").strip()
         base_ssr = dlg.ssr_plan.get("1.0", "end").strip()
         # se eligen varios, uno tras otro, de la lista
-        for m in (medicamentos.MEDICAMENTOS[0], medicamentos.MEDICAMENTOS[6], medicamentos.MEDICAMENTOS[16]):
+        M = lambda pref: next(t for t in medicamentos.MEDICAMENTOS if t.startswith(pref))  # noqa: E731
+        for m in (M("Acetaminofén"), M("Azitromicina 500 mg tableta: 1 Tab"), M("Metronidazol 500 mg tableta: 1 Tab VO c/12")):
             dlg.meds_aps.combo.set_value(m)
             dlg.meds_aps.agregar()
         self.assertEqual(dlg.meds_aps.combo.get_value(), "")            # el selector queda libre para el siguiente
@@ -661,9 +662,9 @@ class UITests(unittest.TestCase):
         self.assertEqual(len(dlg.meds_aps.valores()), 4)
         dlg.meds_aps._quitar(dlg.meds_aps._filas[1])                    # se puede quitar uno
         self.assertEqual(len(dlg.meds_aps.valores()), 3)
-        dlg.meds_ssr.combo.set_value(medicamentos.MEDICAMENTOS[16])
+        dlg.meds_ssr.combo.set_value(M("Metronidazol 500 mg tableta: 1 Tab VO c/12"))
         dlg.meds_ssr.agregar()
-        dlg.meds_ssr.combo.set_value(medicamentos.MEDICAMENTOS[18])
+        dlg.meds_ssr.combo.set_value(M("Fluconazol"))
         dlg.meds_ssr.agregar()
         # lo escrito en la fila se puede corregir
         dlg.meds_ssr._filas[0][1].set_value("Metronidazol 500 mg tableta: 1 Tab VO c/12 horas por 7 días")
@@ -689,6 +690,67 @@ class UITests(unittest.TestCase):
         self.assertEqual(dlg2.plan.get("1.0", "end").strip(), base_aps)
         dlg2.destroy()
         dlg.destroy()
+
+    def test_04h3_referencia_transfronteriza_siempre_visible_y_no_por_defecto(self):
+        from services import activityinfo as ai
+        from ui.dialog_activityinfo import ActivityInfoDialog
+        d = ai.build_defaults(self.db, {"nombre": "Ana Pérez López", "sexo": "M", "fecha": "2026-10-15", "edad_anios": "30"})
+        self.assertEqual(d["transfronteriza"], "No")
+        dlg = ActivityInfoDialog(self.root, d)
+        self.upd()
+        self.assertEqual(dlg.w["va_derivado"].get_value(), "No")
+        self.assertEqual(dlg.w["transfronteriza"].get_value(), "No")
+        self.assertTrue(dlg.w["transfronteriza"].winfo_ismapped())            # se ve aunque «¿Va a ser derivado?» sea No
+        self.assertFalse(dlg.w["n_servicios"].winfo_ismapped())               # esos dos solo con Sí
+        self.assertFalse(dlg.w["servicio_brindado"].winfo_ismapped())
+        for k, v in {"estado_civil": "Soltero/a", "escolaridad": "Primaria", "ocupacion": "Estudiante",
+                     "discapacidad": "No", "derivado": "No", "tipo_consulta": "Primera"}.items():
+            dlg.w[k].set_value(v)
+        dlg._ok()
+        self.assertEqual(dlg.result["transfronteriza"], "No")
+        self.assertEqual(ai.payload(dlg.result)["transfronteriza"], "No")      # y se llena en la página
+        self.assertEqual(dlg.result["servicio_brindado"], "")
+        dlg2 = ActivityInfoDialog(self.root, d)
+        dlg2.w["va_derivado"].set_value("Sí")
+        dlg2._mostrar_derivacion()
+        self.upd()
+        for k in ("n_servicios", "transfronteriza", "servicio_brindado"):
+            self.assertTrue(dlg2.w[k].winfo_ismapped(), k)
+        # el orden en pantalla es el de la página: ¿Va a ser derivado? → ¿A cuántos servicios? → ¿Referencia Transfronteriza?
+        ys = [dlg2.w[k].winfo_rooty() for k in ("va_derivado", "n_servicios", "transfronteriza", "servicio_brindado")]
+        self.assertEqual(ys, sorted(ys))
+        dlg2.w["transfronteriza"].set_value("Sí")
+        dlg2.w["va_derivado"].set_value("No")
+        dlg2._mostrar_derivacion()
+        dlg2.destroy()
+        dlg.destroy()
+
+    def test_04h4_hea_de_aps_nunca_lleva_dx_de_ssr(self):
+        """Candidiasis vaginal (SSR) + parasitismo (APS): la HEA de APS habla solo del parásito, aunque la consulta de SSR
+        no esté marcada y por muchas veces que se pida «Otra versión»; la de SSR habla solo de la candidiasis."""
+        import re
+        from services import activityinfo as ai
+        from ui.dialog_activityinfo import ActivityInfoDialog
+        for abrev in ("Candidiasis vaginal", "CVV"):
+            d = ai.build_defaults(self.db, {"nombre": "Ana Pérez López", "sexo": "M", "fecha": "2026-10-15",
+                                            "edad_anios": "30", "dx1": abrev, "dx2": "Parasitismo"})
+            self.assertEqual(d["ssr_dx"][0]["descripcion"], "Candidiasis vulvovaginal", abrev)
+            dlg = ActivityInfoDialog(self.root, d)
+            self.upd()
+            ginec = r"vagin|vulv|flujo|candid|dispareunia|leucorrea"
+            self.assertEqual([x for x in dlg._dx_aps_hea() if x], ["Parasitismo"], abrev)
+            for i in range(25):
+                dlg._regen_hea_aps(True)
+                self.assertNotRegex(dlg.hea.get("1.0", "end").lower(), ginec, (abrev, i))
+            dlg.w["consultas"].set_value([ai.CONSULTA_APS, "Salud Sexual y Reproductiva"])
+            dlg._mostrar_ssr()
+            self.upd()
+            for i in range(25):
+                dlg._regen_hea_aps(True)
+                dlg._regen_hea_ssr(True)
+                self.assertNotRegex(dlg.hea.get("1.0", "end").lower(), ginec, (abrev, i))
+                self.assertRegex(dlg.ssr_hea.get("1.0", "end").lower(), ginec, (abrev, i))
+            dlg.destroy()
 
     def test_04g_hea_de_pf_conserva_el_metodo_del_ata(self):
         """«PF (ACOs)» en SSR: la lista de SSR dice solo «anticoncepción», pero la HEA tiene que hablar de pastillas."""

@@ -5,8 +5,8 @@ Solo medicamentos: los insumos del listado (jeringas, guantes, gasas, algodón, 
 alcohol, baja lenguas, curitas, toallitas, prueba de embarazo) no se recetan y no están aquí.
 """
 
-# (texto completo que se escribe en el plan). El orden es el de la lista desplegable.
-MEDICAMENTOS = [
+# (texto completo que se escribe en el plan); más abajo se ordena alfabéticamente para la lista desplegable.
+_LISTA = [
     # analgésicos, antiinflamatorios, relajantes
     "Acetaminofén 500 mg tableta: 2 Tab VO c/6 horas por 5 días",
     "Ibuprofeno 600 mg tableta: 1 Tab VO c/8 horas por 5 días",
@@ -58,6 +58,16 @@ MEDICAMENTOS = [
     "Medroxiprogesterona 150 mg ampolla: 1 Amp IM cada 3 meses",
     "Levonorgestrel 1.5 mg (PAE): 1 Tab VO dosis única lo antes posible, dentro de las primeras 72 horas",
 ]
+
+
+def _clave(texto):
+    """Para ordenar sin que los acentos ni las mayúsculas cambien el orden."""
+    import unicodedata
+    return unicodedata.normalize("NFD", texto).encode("ascii", "ignore").decode().lower()
+
+
+# La lista desplegable va en orden alfabético (de la A a la Z por el nombre del medicamento).
+MEDICAMENTOS = sorted(_LISTA, key=_clave)
 
 
 def nombre(texto):
