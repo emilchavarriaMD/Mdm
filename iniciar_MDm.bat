@@ -24,6 +24,7 @@ if not exist ".venv\Scripts\python.exe" (
 ".venv\Scripts\python.exe" -m pip install --upgrade pip >nul
 ".venv\Scripts\python.exe" -m pip install -r requirements.txt
 if errorlevel 1 goto :error
+".venv\Scripts\python.exe" -m compileall -q . >nul 2>nul
 echo listo> ".venv\listo.txt"
 
 :abrir

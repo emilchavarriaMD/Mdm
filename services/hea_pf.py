@@ -272,7 +272,25 @@ def _armar(m, total=60):
     return out
 
 
-VERSIONES = {m: _armar(m) for m in _PIEZAS}
+def _huella():
+    import hashlib
+    return hashlib.md5(repr(_PIEZAS).encode("utf-8")).hexdigest()
+
+
+def _cargar():
+    """Las versiones se arman con una semilla fija y tardan unos 25 s en una PC normal; por eso están ya calculadas en
+    services/hea_pf_cache.py (se vuelve a generar con tools/hea_pf_cache.py). Si alguien cambia las piezas de arriba y no
+    regenera el archivo, la huella no coincide y se calculan aquí (lento pero correcto)."""
+    try:
+        from services import hea_pf_cache
+        if hea_pf_cache.HUELLA == _huella():
+            return hea_pf_cache.VERSIONES
+    except ImportError:
+        pass
+    return {m: _armar(m) for m in _PIEZAS}
+
+
+VERSIONES = _cargar()
 
 
 def versiones(texto, por_defecto="generico"):
