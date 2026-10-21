@@ -456,26 +456,68 @@ def _port_open(port=DEBUG_PORT):
         return False
 
 
+def _descartar_driver():
+    """Olvida la conexión con Chrome (sin cerrar el Chrome de la persona): solo se detiene chromedriver."""
+    global _driver
+    d, _driver = _driver, None
+    if d is not None:
+        try:
+            d.service.stop()
+        except Exception:  # noqa: BLE001
+            pass
+
+
+def _sesion_sana(drv):
+    """True si el driver sigue conectado a una ventana abierta. Si la persona cerró la pestaña o ventana a la que el
+    driver apuntaba pero quedan otras, pasa a una de las que quedan (antes daba «no such window»)."""
+    try:
+        hs = drv.window_handles
+    except Exception:  # noqa: BLE001
+        return False
+    if not hs:
+        return False
+    try:
+        _ = drv.current_url
+    except Exception:  # noqa: BLE001
+        try:
+            drv.switch_to.window(hs[-1])
+            _ = drv.current_url
+        except Exception:  # noqa: BLE001
+            return False
+    return True
+
+
+def _ventana_muerta(exc):
+    """¿El error es de una ventana o sesión de Chrome que ya no existe (se cerró)?"""
+    t = str(exc).lower()
+    return any(x in t for x in ("no such window", "target window already closed", "web view not found",
+                                "invalid session id", "not connected to devtools", "disconnected",
+                                "chrome not reachable", "session deleted", "no such execution context"))
+
+
+def _abrir_chrome(chrome):
+    import subprocess
+    subprocess.Popen([chrome, f"--remote-debugging-port={DEBUG_PORT}",
+                      f"--user-data-dir={_profile_dir()}", "--no-first-run",
+                      "--no-default-browser-check", "--start-maximized", "about:blank"])
+
+
 def _get_driver():
     """Chrome NORMAL (ventana de siempre, sin aviso de automatización ni modo incógnito).
     Se abre como cualquier Chrome y Selenium solo se conecta a él. Usa un perfil propio del programa
-    (Chrome no deja controlar el perfil de uso diario): la primera vez se inicia sesión y queda guardada."""
+    (Chrome no deja controlar el perfil de uso diario): la primera vez se inicia sesión y queda guardada.
+    Si la persona cerró la ventana (o todo el Chrome) después de un registro, se vuelve a abrir y conectar sola."""
     global _driver
     if _driver is not None:
-        try:
-            _ = _driver.window_handles
+        if _sesion_sana(_driver):
             return _driver
-        except Exception:  # noqa: BLE001  (la ventana fue cerrada)
-            _driver = None
+        _descartar_driver()          # la ventana fue cerrada
     from selenium import webdriver
     chrome = _find_chrome()
     opts = webdriver.ChromeOptions()
     if chrome:
-        import subprocess
         if not _port_open():
-            subprocess.Popen([chrome, f"--remote-debugging-port={DEBUG_PORT}",
-                              f"--user-data-dir={_profile_dir()}", "--no-first-run",
-                              "--no-default-browser-check", "--start-maximized", "about:blank"])
+            _abrir_chrome(chrome)
             for _ in range(40):
                 if _port_open():
                     break
@@ -488,13 +530,30 @@ def _get_driver():
         opts.add_experimental_option("detach", True)
         opts.add_experimental_option("excludeSwitches", ["enable-automation"])
     _driver = webdriver.Chrome(options=opts)
+    if chrome and not _sesion_sana(_driver):
+        # Chrome sigue en segundo plano pero sin ninguna ventana (se cerraron todas): se abre una nueva en ese mismo Chrome
+        _abrir_chrome(chrome)
+        for _ in range(30):
+            if _sesion_sana(_driver):
+                break
+            time.sleep(0.5)
     return _driver
 
 
 def fill_form(data: dict, wait_login_seconds=300):
     """Abre una pestaña nueva con el formulario y lo llena. Devuelve {'ficha': [...], 'aps': [...]}
-    con los campos que no se pudieron llenar. No guarda nada."""
-    drv = _get_driver()
+    con los campos que no se pudieron llenar. No guarda nada. Si Chrome se cerró entre un registro y otro,
+    se reconecta y vuelve a intentarlo una vez."""
+    try:
+        return _fill_form_una_vez(_get_driver(), data, wait_login_seconds)
+    except Exception as exc:  # noqa: BLE001
+        if not _ventana_muerta(exc):
+            raise
+        _descartar_driver()
+        return _fill_form_una_vez(_get_driver(), data, wait_login_seconds)
+
+
+def _fill_form_una_vez(drv, data, wait_login_seconds):
     if drv.current_url not in ("data:,", "about:blank", "") and "activityinfo" in drv.current_url:
         drv.switch_to.new_window("tab")  # no se toca la pestaña anterior (puede tener datos sin guardar)
     drv.get(FORM_URL)

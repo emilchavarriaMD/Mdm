@@ -239,3 +239,71 @@ class TestMedicamentos(unittest.TestCase):
         t = m.agregar_al_plan("Plan.", ["A 1 Tab", "B 2 Tab"])
         self.assertEqual(t, "Plan.\nMedicamentos indicados: A 1 Tab; B 2 Tab.")
         self.assertEqual(m.agregar_al_plan(t, ["A 1 Tab", "B 2 Tab"]), t)     # no se repite
+
+
+class TestChromeCerrado(unittest.TestCase):
+    """Si la persona cierra la ventana de Chrome entre un registro y otro, el programa se reconecta solo."""
+
+    class _Sw:
+        def __init__(self, d):
+            self.d = d
+
+        def window(self, h):
+            if h not in self.d.handles:
+                raise RuntimeError("no such window: target window already closed")
+            self.d.actual = h
+
+    class _Drv:
+        def __init__(self, handles, actual):
+            self.handles, self.actual = list(handles), actual
+            self.switch_to = TestChromeCerrado._Sw(self)
+            self.service = type("S", (), {"stop": lambda s: None})()
+
+        @property
+        def window_handles(self):
+            return list(self.handles)
+
+        @property
+        def current_url(self):
+            if self.actual not in self.handles:
+                raise RuntimeError("no such window: target window already closed from unknown error: web view not found")
+            return "https://www.activityinfo.org/app"
+
+    def test_sesion_sana(self):
+        from services import activityinfo as ai
+        self.assertTrue(ai._sesion_sana(self._Drv(["a", "b"], "b")))
+        d = self._Drv(["a"], "b")                       # se cerró la pestaña a la que apuntaba, queda otra
+        self.assertTrue(ai._sesion_sana(d))
+        self.assertEqual(d.actual, "a")
+        self.assertFalse(ai._sesion_sana(self._Drv([], "a")))     # no queda ninguna ventana
+
+    def test_ventana_muerta(self):
+        from services import activityinfo as ai
+        for t in ("no such window: target window already closed", "web view not found", "invalid session id",
+                  "disconnected: not connected to DevTools"):
+            self.assertTrue(ai._ventana_muerta(Exception(t)), t)
+        self.assertFalse(ai._ventana_muerta(Exception("No apareció el formulario")))
+
+    def test_fill_form_reintenta_una_vez_con_chrome_nuevo(self):
+        from services import activityinfo as ai
+        llamadas = []
+        guardados = (ai._get_driver, ai._fill_form_una_vez, ai._descartar_driver)
+        try:
+            ai._get_driver = lambda: llamadas.append("get") or "drv"
+            ai._descartar_driver = lambda: llamadas.append("descartar")
+
+            def una_vez(drv, data, espera):
+                llamadas.append("llenar")
+                if llamadas.count("llenar") == 1:
+                    raise RuntimeError("no such window: target window already closed")
+                return {"ficha": [], "aps": []}
+            ai._fill_form_una_vez = una_vez
+            self.assertEqual(ai.fill_form({}), {"ficha": [], "aps": []})
+            self.assertEqual(llamadas, ["get", "llenar", "descartar", "get", "llenar"])
+            llamadas.clear()
+            ai._fill_form_una_vez = lambda *a: (_ for _ in ()).throw(RuntimeError("otro error"))   # otro error: no se reintenta
+            with self.assertRaises(RuntimeError):
+                ai.fill_form({})
+            self.assertEqual(llamadas, ["get"])
+        finally:
+            ai._get_driver, ai._fill_form_una_vez, ai._descartar_driver = guardados

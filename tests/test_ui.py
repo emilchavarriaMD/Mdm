@@ -185,6 +185,7 @@ class UITests(unittest.TestCase):
                 return d
 
         ppmod.ActivityInfoDialog = FakeDialog
+        self.addCleanup(setattr, activityinfo, "fill_form", activityinfo.fill_form)     # que el simulacro no se quede puesto
         activityinfo.fill_form = lambda data, **k: (seen.update(sent=data) or {"ficha": ["Perfil: falta"], "aps": []})
         pp.tree.selection_set(str(rid))
         self.answers[:] = ["ok", "yes"]  # aviso final y «marcar como registrado»
