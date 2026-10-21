@@ -22,3 +22,17 @@ empieza con su propia base vacía. Para llevarse los datos a otra computadora, u
 - «Falta Tkinter»: reinstale Python con la opción *tcl/tk and IDLE*.
 - El llenado de ActivityInfo nunca guarda ni crea la ficha: se revisa y se guarda a mano.
 - Los errores quedan en el archivo de registro de la carpeta de datos.
+
+## Cómo actualizar el programa (sin perder nada)
+
+Los pacientes y las copias de seguridad **no están dentro de la carpeta del programa** (están en `AppData\Local\BrigadasMedicas`), así que actualizar el programa no los borra.
+
+1. Cierre el programa.
+2. Descargue de nuevo el ZIP desde GitHub (botón verde **Code** → **Download ZIP**).
+3. Haga clic derecho sobre el ZIP → **Propiedades** → marque **Desbloquear** → **Aceptar** (si no, Windows bloquea los archivos nuevos).
+4. Descomprima el ZIP en cualquier lugar (por ejemplo, el Escritorio).
+5. Abra la carpeta descomprimida, seleccione **todo** su contenido y cópielo encima de la carpeta donde tiene instalado el programa. Cuando Windows pregunte, elija **Reemplazar los archivos en el destino**.
+6. **No borre** la carpeta oculta `.venv` de la carpeta instalada: ahí están los componentes ya instalados y evita esperar otra vez.
+7. Abra `iniciar_MDm.bat` como siempre.
+
+Solo si alguna actualización indica que cambiaron los componentes (la lista `requirements.txt`), borre el archivo `.venv\listo.txt` y vuelva a abrir `iniciar_MDm.bat`: así descarga los componentes nuevos (necesita internet).
