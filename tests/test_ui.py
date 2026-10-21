@@ -637,6 +637,59 @@ class UITests(unittest.TestCase):
         self.assertNotEqual(dlg.plan.get("1.0", "end").strip(), "Mi plan escrito a mano")
         dlg.destroy()
 
+    def test_04h2_medicamentos_se_agregan_al_plan_de_aps_y_de_ssr(self):
+        from services import activityinfo as ai, medicamentos
+        from ui.dialog_activityinfo import ActivityInfoDialog
+        d = ai.build_defaults(self.db, {"nombre": "Ana Pérez López", "sexo": "M", "fecha": "2026-10-15", "edad_anios": "30",
+                                        "dx1": "Vaginosis mixta"})
+        dlg = ActivityInfoDialog(self.root, d)
+        dlg.w["consultas"].set_value([ai.CONSULTA_APS, "Salud Sexual y Reproductiva"])
+        dlg._mostrar_ssr()
+        self.upd()
+        for k, v in {"estado_civil": "Soltero/a", "escolaridad": "Primaria", "ocupacion": "Estudiante",
+                     "discapacidad": "No", "derivado": "No", "tipo_consulta": "Primera"}.items():
+            dlg.w[k].set_value(v)
+        base_aps = dlg.plan.get("1.0", "end").strip()
+        base_ssr = dlg.ssr_plan.get("1.0", "end").strip()
+        # se eligen varios, uno tras otro, de la lista
+        for m in (medicamentos.MEDICAMENTOS[0], medicamentos.MEDICAMENTOS[6], medicamentos.MEDICAMENTOS[16]):
+            dlg.meds_aps.combo.set_value(m)
+            dlg.meds_aps.agregar()
+        self.assertEqual(dlg.meds_aps.combo.get_value(), "")            # el selector queda libre para el siguiente
+        dlg.meds_aps.combo.set_value("Medicamento escrito a mano 1 Tab VO c/12 horas")   # también se puede escribir otro
+        dlg.meds_aps.agregar()
+        self.assertEqual(len(dlg.meds_aps.valores()), 4)
+        dlg.meds_aps._quitar(dlg.meds_aps._filas[1])                    # se puede quitar uno
+        self.assertEqual(len(dlg.meds_aps.valores()), 3)
+        dlg.meds_ssr.combo.set_value(medicamentos.MEDICAMENTOS[16])
+        dlg.meds_ssr.agregar()
+        dlg.meds_ssr.combo.set_value(medicamentos.MEDICAMENTOS[18])
+        dlg.meds_ssr.agregar()
+        # lo escrito en la fila se puede corregir
+        dlg.meds_ssr._filas[0][1].set_value("Metronidazol 500 mg tableta: 1 Tab VO c/12 horas por 7 días")
+        self.assertEqual(dlg.plan.get("1.0", "end").strip(), base_aps)  # el cuadro del plan no se toca
+        self.assertEqual(dlg.ssr_plan.get("1.0", "end").strip(), base_ssr)
+        snap = dlg.snapshot()
+        dlg._ok()
+        r = dlg.result
+        self.assertIsNotNone(r)
+        self.assertTrue(r["plan"].startswith(base_aps))
+        self.assertIn("Medicamentos indicados: Acetaminofén 500 mg tableta: 2 Tab VO c/6 horas por 5 días; ", r["plan"])
+        self.assertIn("Medicamento escrito a mano 1 Tab VO c/12 horas.", r["plan"])
+        self.assertNotIn("Azitromicina 500 mg tableta: 1 Tab VO c/24", r["plan"])      # el que se quitó
+        self.assertTrue(r["ssr"]["plan"].startswith(base_ssr))
+        self.assertIn("Metronidazol 500 mg tableta: 1 Tab VO c/12 horas por 7 días; Fluconazol 150 mg tableta: 1 Tab VO dosis única.",
+                      r["ssr"]["plan"])
+        self.assertNotIn("Fluconazol", r["plan"])                                   # cada plan lleva solo los suyos
+        # reabrir la ventana con lo guardado: las listas vuelven y el plan no se duplica
+        self.assertEqual(snap["meds_aps"], dlg.meds_aps.valores())
+        dlg2 = ActivityInfoDialog(self.root, dict(snap, _restaurado=True))
+        self.assertEqual(dlg2.meds_aps.valores(), snap["meds_aps"])
+        self.assertEqual(dlg2.meds_ssr.valores(), snap["meds_ssr"])
+        self.assertEqual(dlg2.plan.get("1.0", "end").strip(), base_aps)
+        dlg2.destroy()
+        dlg.destroy()
+
     def test_04g_hea_de_pf_conserva_el_metodo_del_ata(self):
         """«PF (ACOs)» en SSR: la lista de SSR dice solo «anticoncepción», pero la HEA tiene que hablar de pastillas."""
         import re

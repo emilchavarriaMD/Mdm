@@ -218,3 +218,20 @@ class T23_NormalizarSexo(unittest.TestCase):
         _h, filas, warns = A.import_excel(p)
         self.assertEqual([r["sexo"] for r in filas], ["M", "H"])
         self.assertTrue(any("sexo" in w.lower() for w in warns))
+
+
+class TestMedicamentos(unittest.TestCase):
+    def test_catalogo_y_formato(self):
+        from services import medicamentos as m
+        self.assertGreaterEqual(len(m.MEDICAMENTOS), 40)
+        self.assertEqual(len(set(m.MEDICAMENTOS)), len(m.MEDICAMENTOS))
+        for t in m.MEDICAMENTOS:
+            self.assertIn(":", t)
+            self.assertRegex(t.split(":", 1)[1], r"\S")
+        self.assertIn("Acetaminofén 500 mg tableta: 2 Tab VO c/6 horas por 5 días", m.MEDICAMENTOS)
+        for insumo in ("Jeringa", "Guantes", "Gasa", "Algodón", "Esparadrapo", "Prueba de embarazo"):
+            self.assertFalse(any(insumo.lower() in t.lower() for t in m.MEDICAMENTOS), insumo)
+        self.assertEqual(m.agregar_al_plan("Plan.", []), "Plan.")
+        t = m.agregar_al_plan("Plan.", ["A 1 Tab", "B 2 Tab"])
+        self.assertEqual(t, "Plan.\nMedicamentos indicados: A 1 Tab; B 2 Tab.")
+        self.assertEqual(m.agregar_al_plan(t, ["A 1 Tab", "B 2 Tab"]), t)     # no se repite

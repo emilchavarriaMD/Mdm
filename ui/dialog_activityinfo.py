@@ -9,7 +9,8 @@ from services import cie11_catalog as cat
 from services import cie11_ssr as ssr_cat
 from services import hea_banco
 from services import examen_fisico, plan_banco
-from ui import dialogs, theme, widgets
+from services import medicamentos
+from ui import dialogs, med_picker, theme, widgets
 from ui.dialogs import _Modal
 
 
@@ -211,13 +212,15 @@ class ActivityInfoDialog(_Modal):
         self._exa_auto = defaults.get("examen_fisico", "")
         self.examen.pack(fill="x")
         ttk.Label(f_plan, text="Se escribe en «Plan» de APS.", style="Muted.TLabel").pack(anchor="w")
-        ttk.Label(f_plan, text="Medidas generales y signos de alarma según los diagnósticos (sin medicamentos: "
-                  "esos se agregan a mano). Puede corregir el texto; vacío = no se llena.", style="Muted.TLabel", wraplength=780, justify="left").pack(anchor="w")
+        ttk.Label(f_plan, text="Medidas generales y signos de alarma según los diagnósticos. Los medicamentos se "
+                  "agregan abajo, con su dosis. Puede corregir el texto; vacío = no se llena.", style="Muted.TLabel", wraplength=780, justify="left").pack(anchor="w")
         self.plan = tk.Text(f_plan, height=8, wrap="word", font=theme.FONT_TEXT, relief="solid", bd=1)
         self.plan.insert("1.0", defaults.get("plan", ""))
         self._plan_auto = defaults.get("plan", "")
         ttk.Button(f_plan, text="Otra versión del plan", command=lambda: self._regen_plan(True, "aps")).pack(anchor="e")
         self.plan.pack(fill="x")
+        self.meds_aps = med_picker.MedPicker(f_plan, defaults.get("meds_aps") or [])
+        self.meds_aps.pack(fill="x", pady=(8, 0))
         ttk.Label(f_der, text="Derivación (hacia) y servicio brindado.", style="Muted.TLabel").pack(anchor="w")
         ttk.Label(f_der, text="Si elige Sí en «¿Va a ser derivado?» se muestran los demás campos, como en ActivityInfo "
                   "(recapitulativo interno de MdM). El servicio brindado siempre es Salud.", style="Muted.TLabel",
@@ -729,13 +732,15 @@ class ActivityInfoDialog(_Modal):
                   style="Muted.TLabel").pack(anchor="w")
 
         titulo("Plan (SSR)")
-        nota("Medidas generales según los diagnósticos de SSR (sin medicamentos; distintas a las del plan de Atención primaria). "
-             "Vacío = no se llena.")
+        nota("Medidas generales según los diagnósticos de SSR (distintas a las del plan de Atención primaria); los medicamentos "
+             "se agregan abajo, con su dosis. Vacío = no se llena.")
         bp = ttk.Frame(f)
         bp.pack(fill="x")
         ttk.Button(bp, text="Otra versión del plan (SSR)", command=lambda: self._regen_plan(True, "ssr")).pack(side="right")
         self.ssr_plan = caja("Plan", 7, defaults.get("ssr_plan", defaults.get("plan", "")))
         self._ssr_plan_auto = defaults.get("ssr_plan", defaults.get("plan", ""))
+        self.meds_ssr = med_picker.MedPicker(f, defaults.get("meds_ssr") or [])
+        self.meds_ssr.pack(fill="x", pady=(8, 0))
 
         titulo("Derivación (SSR)")
         gd = ttk.Frame(f)
@@ -998,9 +1003,10 @@ class ActivityInfoDialog(_Modal):
         """Todo lo que hay en la ventana, en el mismo formato de `defaults`, para volver a abrirla igual."""
         s = {k: w.get_value() for k, w in self.w.items()}
         txt = lambda c: c.get("1.0", "end").strip()  # noqa: E731
-        s.update(hea=txt(self.hea), examen_fisico=txt(self.examen), plan=txt(self.plan))
+        s.update(hea=txt(self.hea), examen_fisico=txt(self.examen), plan=txt(self.plan), meds_aps=self.meds_aps.valores())
         if hasattr(self, "ssr_hea"):
-            s.update(ssr_hea=txt(self.ssr_hea), ssr_examen_fisico=txt(self.ssr_examen), ssr_plan=txt(self.ssr_plan))
+            s.update(ssr_hea=txt(self.ssr_hea), ssr_examen_fisico=txt(self.ssr_examen), ssr_plan=txt(self.ssr_plan),
+                     meds_ssr=self.meds_ssr.valores())
         s["dx"] = [{"abrev": a, "descripcion": cb.get_value(), "cie11": ""} for a, cb in self.dx_rows]
         if hasattr(self, "ssr_rows"):
             sug = self.defaults.get("ssr_dx") or []
@@ -1071,7 +1077,7 @@ class ActivityInfoDialog(_Modal):
                 return
         data["hea"] = self.hea.get("1.0", "end").strip()
         data["examen_fisico"] = self.examen.get("1.0", "end").strip()
-        data["plan"] = self.plan.get("1.0", "end").strip()
+        data["plan"] = medicamentos.agregar_al_plan(self.plan.get("1.0", "end"), self.meds_aps.valores())
         if data.get("va_derivado") != "Sí":       # sin Sí no existen esos campos en la página
             for k in ("n_servicios", "transfronteriza", "servicio_brindado", "servicio_salud"):
                 data[k] = ""
@@ -1119,7 +1125,7 @@ class ActivityInfoDialog(_Modal):
                            "metodos_actuales": uniq("ssr_act_1", "ssr_act_2") if W("ssr_ya_planifica") == "Sí" and W("ssr_consejeria") == "Si" else [],
                            "metodos_elegidos": uniq("ssr_eleg_1", "ssr_eleg_2") if W("ssr_consejeria") == "Si" else [],
                            "lve": ({k: v for k, v in self._lve_respuestas().items() if v} if self._lve_aplica() else {}),
-                           "plan": self.ssr_plan.get("1.0", "end").strip(),
+                           "plan": medicamentos.agregar_al_plan(self.ssr_plan.get("1.0", "end"), self.meds_ssr.valores()),
                            "va_derivado": W("ssr_va_derivado"), "victima_sexual": W("ssr_victima_sexual")}
             if data["ssr"]["va_derivado"] == "Sí":
                 data["ssr"].update({"transfronteriza": self.w["ssr_transfronteriza"].get_value(),
