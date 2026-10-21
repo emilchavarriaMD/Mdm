@@ -17,17 +17,22 @@ sys.path.insert(0, str(ROOT))
 sys.path.insert(0, str(ROOT / "tools"))
 from services.examen_variantes import VARIANTES  # noqa: E402
 
-NUEVAS = 12   # redacciones nuevas por hallazgo
+NUEVAS = 24   # redacciones nuevas por hallazgo
 
 VERBOS = [("a la exploración se observa", "a la exploración se observan"), ("se observa", "se observan"),
           ("se aprecia", "se aprecian"), ("se evidencia", "se evidencian"), ("al examen se encuentra", "al examen se encuentran"),
           ("se constata", "se constatan"), ("durante el examen se evidencia", "durante el examen se evidencian"),
           ("se identifica", "se identifican"), ("en la exploración se aprecia", "en la exploración se aprecian"),
           ("se detecta", "se detectan"), ("al examen físico se observa", "al examen físico se observan"),
-          ("se documenta", "se documentan")]
+          ("se documenta", "se documentan"), ("al explorar se encuentra", "al explorar se encuentran"),
+          ("se registra", "se registran"), ("se comprueba", "se comprueban"), ("en el examen se observa", "en el examen se observan"),
+          ("al inspeccionar se aprecia", "al inspeccionar se aprecian"), ("a la valoración se identifica", "a la valoración se identifican"),
+          ("se advierte", "se advierten"), ("se reconoce", "se reconocen")]
 LEADS = ["a la exploración, ", "durante la valoración, ", "al examen físico, ", "en la valoración clínica, ",
          "al momento del examen, ", "durante el examen físico, ", "a la valoración, ", "en el examen, ",
-         "en la exploración física, ", "al evaluar, ", "en la consulta, ", "durante la exploración, "]
+         "en la exploración física, ", "al evaluar, ", "en la consulta, ", "durante la exploración, ",
+         "en la revisión clínica, ", "al revisar, ", "en la evaluación, ", "al inspeccionar, ", "durante la consulta, ",
+         "a la inspección, ", "en el examen clínico, ", "al momento de la valoración, "]
 SING_S = {"tos", "crisis", "pelvis", "diabetes", "dermatitis", "cuadris"}
 # primeras palabras que no admiten «se observa …» delante (adjetivos, negaciones, preposiciones, verbos…)
 NO_VERBO = re.compile(r"^(sin|no|se|en|con|de|del|al|a|la|el|los|las|un|una|simétric|móvil|movil|normo|libre|blando|"

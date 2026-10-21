@@ -60,3 +60,30 @@ MAS_A = {
 }
 for _g, _v in MAS_M.items():
     G[_g] = (list(dict.fromkeys(G[_g][0] + _v)), list(dict.fromkeys(G[_g][1] + MAS_A[_g])))
+
+MAS2_M = {
+ "its": ["evitar las relaciones sexuales con parejas que tengan síntomas", "conocer el estado de salud de la pareja", "guardar los preservativos lejos del calor", "no usar dos preservativos a la vez", "evitar compartir juguetes sexuales sin protección", "acudir a control con la pareja cuando se indique", "realizar la prueba de VIH una vez al año si hay riesgo", "recibir información sobre la vacuna contra el VPH"],
+ "mens": ["evitar los analgésicos sin indicación durante la menstruación", "consultar antes de cambiar de método anticonceptivo", "evitar el exceso de ejercicio extenuante", "mantener una buena higiene durante la menstruación", "cambiar la toalla sanitaria cada 4 a 6 horas", "conocer los cambios normales según la edad", "llevar el registro del ciclo en una aplicación o cuaderno", "mantener una buena hidratación"],
+ "emb": ["evitar el consumo de alcohol tabaco y drogas", "evitar la exposición a sustancias tóxicas", "mantener la higiene de manos y de alimentos", "evitar la cafeína en exceso", "usar el cinturón de seguridad bajo el abdomen", "asistir a las charlas de preparación para el parto", "tener lista la bolsa para el hospital", "conocer el centro de salud más cercano"],
+ "pue": ["evitar el uso de biberones y chupones al inicio de la lactancia", "extraer manualmente la leche si hay congestión", "dormir cuando el bebé duerma", "limitar las visitas los primeros días", "mantener una postura cómoda al amamantar", "alimentarse con proteínas y frutas", "usar medias o ropa cómoda si hay hinchazón de piernas", "caminar suavemente a diario"],
+ "mam": ["mantener el sostén limpio y seco", "evitar golpes en las mamas", "evitar fumar", "mantener actividad física", "mirar y palpar las mamas frente al espejo", "anotar los cambios que note entre un mes y otro", "acudir a la consulta ante cualquier duda", "comer más frutas y verduras"],
+ "ant": ["tener siempre una barrera de respaldo a mano", "revisar la fecha de vencimiento del método", "no compartir el método con otras personas", "acudir al control aunque no tenga molestias", "pedir información sobre cambios de método", "conocer cómo actuar ante un olvido", "informarse sobre el método para después del parto", "hablar sobre el método con su pareja"],
+ "mas": ["tomar agua de forma regular", "mantener una buena higiene de manos", "evitar el calor excesivo en los genitales", "evitar baños muy calientes", "revisar los testículos y el pene una vez al mes", "orinar al terminar las relaciones sexuales", "acudir al control con laboratorios", "evitar el estreñimiento"],
+ "onc": ["pedir al equipo médico información sencilla sobre la enfermedad", "organizar el calendario de citas", "tener una persona de apoyo en cada consulta", "evitar el contacto con personas con infecciones", "descansar entre actividades", "mantener una higiene bucal cuidadosa", "comer en porciones pequeñas con más frecuencia", "informarse en fuentes confiables"],
+ "sex": ["no tomar decisiones bajo presión", "hablar con alguien de confianza", "conocer la anticoncepción de emergencia", "conocer el número de ayuda de la comunidad", "cuidar el descanso y la alimentación", "llevar un registro de lo ocurrido si desea hacerlo", "acudir al control de seguimiento", "tener un plan de seguridad"],
+ "gen": ["mantener la actividad social", "limitar la cafeína", "mantener los controles preventivos", "evitar el sedentarismo", "tomar agua de forma regular", "mantener la higiene personal", "pedir ayuda si los síntomas empeoran", "llevar el carné de salud"],
+}
+MAS2_A = {
+ "its": ["dolor al orinar que no cede", "fiebre alta", "dolor durante las relaciones", "inflamación de la ingle"],
+ "mens": ["sangrado que empapa más de una toalla por hora", "mareo", "dolor que no cede", "fiebre con dolor en el vientre"],
+ "emb": ["dolor intenso en el vientre", "fiebre alta", "hinchazón repentina", "convulsiones"],
+ "pue": ["fiebre", "sangrado abundante", "dolor intenso en la herida", "dolor en una pierna"],
+ "mam": ["bulto nuevo", "secreción con sangre", "cambios en la piel", "dolor de una sola mama"],
+ "ant": ["dolor intenso de cabeza", "dolor en el pecho", "sangrado abundante", "retraso menstrual"],
+ "mas": ["dolor intenso", "fiebre", "sangre en la orina", "imposibilidad de orinar"],
+ "onc": ["sangrado", "pérdida de peso", "dolor persistente", "falta de aire"],
+ "sex": ["pensamientos de hacerse daño", "dolor intenso", "sangrado", "miedo a regresar a casa"],
+ "gen": ["fiebre", "dolor intenso", "vómitos persistentes", "confusión"],
+}
+for _g, _v in MAS2_M.items():
+    G[_g] = (list(dict.fromkeys(G[_g][0] + _v)), list(dict.fromkeys(G[_g][1] + MAS2_A[_g])))

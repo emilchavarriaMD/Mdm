@@ -85,3 +85,57 @@ MANUAL = {
         "se valora únicamente si da su consentimiento",
     ],
 }
+
+# más redacciones para los mismos hallazgos
+_MAS = {
+    "sin dolor a la palpación de la pared torácica": [
+        "la pared torácica no duele a la palpación", "no hay dolor al palpar la parrilla costal", "palpación torácica sin dolor",
+        "sin dolor a la palpación de costillas ni esternón", "no refiere dolor a la presión de la pared del tórax", "tórax óseo indoloro a la palpación",
+        "parrilla costal indolora", "sin hipersensibilidad en la pared torácica", "no se reproduce dolor al palpar el tórax",
+        "pared torácica no dolorosa a la palpación", "no presenta dolor a la palpación de la pared costal", "sin dolor a la palpación torácica"],
+    "sin edema significativo ni várices": [
+        "no hay edema significativo ni várices", "sin várices visibles y sin edema significativo", "extremidades sin edema significativo ni várices",
+        "no se observan várices ni edema significativo", "no presenta edema relevante ni várices", "sin edema de importancia ni várices",
+        "sin edema significativo y sin várices", "ausencia de edema significativo y de várices", "no se aprecian várices ni edema importante",
+        "sin várices ni edema de relevancia", "no hay várices ni edema que destaque", "sin signos de edema significativo ni de várices"],
+    "sin lesiones, de coloración normal, hidratada y con turgencia conservada; uñas y cabello de implantación y aspecto normales": [
+        "piel sin lesiones, de coloración normal, hidratada y con turgencia conservada; uñas y cabello normales",
+        "sin lesiones cutáneas, con coloración normal, buena hidratación y turgencia conservada; uñas y cabello normales",
+        "piel de coloración normal, sin lesiones, hidratada y con buena turgencia; uñas y cabello de aspecto normal",
+        "sin lesiones; coloración normal, hidratación adecuada y turgencia conservada; uñas y cabello de implantación normal",
+        "piel íntegra de coloración normal, hidratada y turgente; uñas y cabello con implantación y aspecto normales",
+        "sin lesiones en la piel, de color normal, hidratada y con turgencia normal; uñas y cabello normales",
+        "piel sin lesiones, normocoloreada, hidratada y con turgencia conservada; uñas y cabello de aspecto normal",
+        "sin lesiones, con piel normocoloreada e hidratada, turgencia conservada, y uñas y cabello normales",
+        "piel hidratada de coloración normal y turgencia conservada, sin lesiones; uñas y cabello normales",
+        "sin lesiones; piel de coloración y turgencia normales e hidratada; uñas y cabello de aspecto normal",
+        "sin lesiones cutáneas; coloración normal, hidratación y turgencia conservadas; uñas y cabello normales",
+        "piel sin lesiones y de aspecto normal, hidratada; uñas y cabello con implantación normal"],
+    "sin lesiones; dolor a la palpación de musculatura pericraneal y temporal, sin signos meníngeos": [
+        "sin lesiones; dolor a la palpación de la musculatura pericraneal y temporal; sin signos meníngeos",
+        "sin lesiones, con dolor a la palpación pericraneal y temporal y sin signos meníngeos",
+        "cuero cabelludo sin lesiones; dolor a la palpación de músculos pericraneales y temporales; sin signos meníngeos",
+        "sin lesiones; se provoca dolor al palpar la musculatura pericraneal y temporal; no hay signos meníngeos",
+        "sin lesiones; doloroso a la palpación de la musculatura temporal y pericraneal; sin irritación meníngea",
+        "sin lesiones, dolor a la palpación de la región pericraneal y temporal, sin signos de irritación meníngea",
+        "sin lesiones visibles; dolor a la palpación de músculos temporales y pericraneales; sin signos meníngeos",
+        "sin lesiones; musculatura pericraneal y temporal dolorosa a la palpación; sin signos meníngeos",
+        "sin lesiones; hay dolor a la palpación de la musculatura pericraneal y temporal, sin signos meníngeos",
+        "sin lesiones; dolor a la palpación temporal y pericraneal; sin rigidez de nuca ni signos meníngeos",
+        "sin lesiones; la palpación de la musculatura temporal y pericraneal es dolorosa; sin signos meníngeos",
+        "sin lesiones, con sensibilidad dolorosa pericraneal y temporal; sin signos meníngeos"],
+    "no se explora de forma adecuada por falta de espacio clínico apropiado": [
+        "no se logra explorar de forma adecuada por falta de un espacio clínico apropiado", "la exploración no es adecuada por falta de espacio clínico apropiado",
+        "no se realiza una exploración adecuada por no contar con espacio clínico apropiado", "exploración limitada por falta de espacio clínico apropiado",
+        "no se explora adecuadamente por no haber espacio clínico apropiado", "no es posible una exploración adecuada por falta de espacio clínico",
+        "no se explora de manera adecuada por falta de un espacio clínico adecuado", "sin exploración adecuada por falta de espacio clínico apropiado",
+        "no se puede explorar bien por falta de espacio clínico apropiado", "exploración no adecuada por falta de espacio clínico apropiado",
+        "no se explora en condiciones adecuadas por falta de espacio clínico apropiado", "no se explora de forma adecuada debido a la falta de espacio clínico apropiado"],
+    "se valora únicamente con su consentimiento": [
+        "se evalúa únicamente con su consentimiento", "solo se valora con su consentimiento", "se examina únicamente con su consentimiento",
+        "la valoración se realiza solo con su consentimiento", "se valora solamente con su consentimiento", "únicamente se valora con su consentimiento",
+        "se realiza la valoración solo con su autorización", "se explora solamente con su consentimiento", "se valora solo si la paciente da su consentimiento",
+        "la exploración se hace únicamente con su consentimiento", "se valora exclusivamente con su consentimiento", "se examina solo con su consentimiento"],
+}
+for _k, _v in _MAS.items():
+    MANUAL[_k] = MANUAL[_k] + [x for x in _v if x not in MANUAL[_k]]

@@ -20,6 +20,23 @@ GEN_M = ["acudir a los controles programados", "mantener una buena hidratación"
          "evitar la automedicación", "evitar el tabaco y el alcohol", "llevar un registro de los síntomas", "realizar actividad física suave según tolerancia",
          "manejar el estrés con técnicas de relajación", "lavarse las manos con frecuencia", "reposar según la necesidad", "llevar los resultados a todas las consultas"]
 GEN_A = ["empeoramiento de los síntomas", "fiebre persistente", "dolor intenso que no cede", "dificultad para respirar", "debilidad o mareo intenso"]
+sys.path.insert(0, os.path.join(ROOT, "tools"))
+from plan_aps_grupos import APS as GRUPOS_APS, grupo as grupo_aps
+_ns = {}
+exec(open(os.path.join(ROOT, "tools", "plan_ssr", "g.py"), encoding="utf-8").read(), _ns)
+_GSSR = _ns["G"]
+
+
+def _grupo_frases(n):
+    g = grupo_aps(n)
+    if g == "emb":                       # los grupos de salud sexual y reproductiva se reutilizan
+        return _GSSR["emb"]
+    if g == "gin":
+        import re
+        return _GSSR["mam"] if re.search(r"mama|mastit|mastodinia|galactorrea|seno", n.lower()) else _GSSR["mens"]
+    return GRUPOS_APS[g]
+
+
 out, falta = {}, []
 for i, n in enumerate(nombres):
     if i not in X:
@@ -34,6 +51,11 @@ for i, n in enumerate(nombres):
     for t in GEN_M:                      # completa hasta 10 medidas y 4 alarmas con frases generales y seguras
         if len(nm) >= 10: break
         if nuevo(t, pm + nm): nm.append(t)
+    gm, ga = _grupo_frases(n)           # frases de grupo clínico, después de las propias del diagnóstico
+    for t in gm:
+        if nuevo(t, pm + nm): nm.append(t)
+    for t in ga:
+        if nuevo(t, pa + na): na.append(t)
     out[n] = {"m": nm, "a": na}
 print("sin extras:", falta)
 print("min m", min(len(v["m"]) for v in out.values()), "min a", min(len(v["a"]) for v in out.values()))

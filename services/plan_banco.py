@@ -122,8 +122,8 @@ def compose(descripciones, rng=None, ssr=False):
         return ""
     n = len(reg)
     # un párrafo corto: con varios diagnósticos solo lo de mayor peso de cada uno (las ideas repetidas se descartan)
-    m = _repartir([r["m"] for r in reg], 3 if n == 1 else 4, rng, must=1, top=26)
-    a = _repartir([r["a"] for r in reg], 3 if n == 1 else 4, rng, must=1, top=14)
+    m = _repartir([r["m"] for r in reg], 3 if n == 1 else 4, rng, must=1, top=44)
+    a = _repartir([r["a"] for r in reg], 3 if n == 1 else 4, rng, must=1, top=22)
     partes = []
     if m:
         t = _lista(m)

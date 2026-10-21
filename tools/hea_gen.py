@@ -37,7 +37,8 @@ INTENS = ["leve", "moderada", "de intensidad moderada", "intensa", "de intensida
 
 SPECS = []
 BASE = 14        # versiones que ya existían (no cambian); N_VERSIONES = cuántas se generan ahora
-N_VERSIONES = 26
+BASE2 = 26       # las 26 primeras ya estaban; de ahí en adelante entran más plantillas
+N_VERSIONES = 52
 ALIAS_EXTRA = [("Tumor o masa en el seno femenino (nódulo mamario)", 83)]
 
 
@@ -181,7 +182,60 @@ def _plantillas_extra():
     return [u0, u1, u2, u3, u4, u5, u6]
 
 
-def generar(sp, n=26):
+def _plantillas_extra2():
+    """Plantillas para las versiones 27 en adelante."""
+    def w0(r, sp, m, d, a, c, x, ng):
+        return _unir(_fin(f"cuadro que inicia hace {d} con {m}" + (f", con {a}" if a else "")), x, c, ng)
+
+    def w1(r, sp, m, d, a, c, x, ng):
+        return _unir(_fin(f"refiere {m} con {d} de evolución" + (f" y {a}" if a else "")), c, ng, x)
+
+    def w2(r, sp, m, d, a, c, x, ng):
+        return _unir(_fin(f"acude por {m}, {r.choice(INICIO)}, desde hace {d}" + (f"; también presenta {a}" if a else "")), ng, x, c)
+
+    def w3(r, sp, m, d, a, c, x, ng):
+        return _unir(_fin(f"cuadro de {d} que cursa con {m}" + (f", {r.choice(CURSO)}, y con {a}" if a else f", {r.choice(CURSO)}")), c, x, ng)
+
+    def w4(r, sp, m, d, a, c, x, ng):
+        return _unir(_fin(f"desde hace {d} presenta {m}" + (f", acompañado de {a}" if a else "")), x, c, ng)
+
+    def w5(r, sp, m, d, a, c, x, ng):
+        return _unir(_fin(f"antecedente de {d} con {m}, {r.choice(INICIO)}" + (f", asociado a {a}" if a else "")), ng, c, x)
+
+    def w6(r, sp, m, d, a, c, x, ng):
+        return _unir(_fin(f"motivo de consulta: {m}, de {d} de evolución" + (f", con {a}" if a else "")), c, ng, x)
+
+    def w7(r, sp, m, d, a, c, x, ng):
+        return _unir(_fin(f"{m} de {d} de duración, {r.choice(CURSO)}" + (f"; se agrega {a}" if a else "")), x, c, ng)
+
+    def w8(r, sp, m, d, a, c, x, ng):
+        return _unir(_fin(f"{d} con {m}, {r.choice(INICIO)}" + (f", y {a}" if a else "")), c, ng, x)
+
+    def w9(r, sp, m, d, a, c, x, ng):
+        return _unir(_fin(f"inicia hace {d} con {m}" + (f"; posteriormente aparece {a}" if a else "")), x, ng, c)
+
+    def w10(r, sp, m, d, a, c, x, ng):
+        return _unir(_fin(f"{m}, {r.choice(CURSO)}" + (f", asociado a {a}" if a else "") + f", de {d} de evolución"), ng, x, c)
+
+    def w11(r, sp, m, d, a, c, x, ng):
+        return _unir(_fin(f"manifiesta {m}, de {d} de evolución" + (f", junto a {a}" if a else "")), c, x, ng)
+
+    def w12(r, sp, m, d, a, c, x, ng):
+        return _unir(_fin(f"el cuadro comenzó hace {d} con {m}, {r.choice(INICIO)}" + (f"; presenta además {a}" if a else "")), x, c, ng)
+
+    def w13(r, sp, m, d, a, c, x, ng):
+        return _unir(_fin(f"refiere que desde hace {d} tiene {m}" + (f" y {a}" if a else "")), ng, c, x)
+
+    def w14(r, sp, m, d, a, c, x, ng):
+        return _unir(_fin(f"se trata de {m} de {d} de evolución, {r.choice(CURSO)}" + (f", con {a}" if a else "")), c, ng, x)
+
+    def w15(r, sp, m, d, a, c, x, ng):
+        return _unir(_fin(f"historia de {d} de {m}" + (f", acompañada de {a}" if a else "") + f", {r.choice(INICIO)}"), x, ng, c)
+
+    return [w0, w1, w2, w3, w4, w5, w6, w7, w8, w9, w10, w11, w12, w13, w14, w15]
+
+
+def generar(sp, n=52):
     rng = random.Random(sp["id"] * 7919 + 13)
     out = []
     if sp["k"] == "C":
@@ -192,12 +246,13 @@ def generar(sp, n=26):
         return _generar_sin_dur(sp, rng, n)
     plant = _plantillas_s()
     extra = _plantillas_extra()
+    extra2 = _plantillas_extra2()
     mains = list(sp["main"]) or [sp["t"]]
     durs = list(sp["dur"])
     intentos = 0
     ti = 0
     mi = 0
-    while len(out) < n and intentos < 400:
+    while len(out) < n and intentos < 1500:
         intentos += 1
         m = mains[mi % len(mains)]
         mi += 1
@@ -208,11 +263,14 @@ def generar(sp, n=26):
         ng = _neg(rng, sp, m + " " + a)
         if len(out) < BASE:          # las primeras versiones salen igual que siempre; después entran las plantillas nuevas
             v = plant[ti % len(plant)](rng, sp, m, d, a, c, x, ng)
-        else:
+        elif len(out) < BASE2:
             v = (plant + extra)[ti % (len(plant) + len(extra))](rng, sp, m, d, a, c, x, ng)
+        else:
+            tt = plant + extra + extra2
+            v = tt[ti % len(tt)](rng, sp, m, d, a, c, x, ng)
         ti += 1
         v = re.sub(r"\s{2,}", " ", v).replace(" ,", ",").strip()
-        if any(difflib.SequenceMatcher(None, v, o, autojunk=False).ratio() > .78 for o in out):
+        if any(difflib.SequenceMatcher(None, v, o, autojunk=False).ratio() > (.78 if len(out) < BASE2 else .86) for o in out):
             continue
         out.append(_fix(v))
     return out
@@ -223,14 +281,18 @@ def _generar_sin_dur(sp, rng, n):
     out = []
     mains = list(sp["main"])
     intentos = 0
-    while len(out) < n and intentos < 400:
+    while len(out) < n and intentos < 1500:
         intentos += 1
         m = mains[intentos % len(mains)]
         a = _asoc(rng, sp, 0, 2, m)
         c = _oracion(rng, sp["ctx"]) if rng.random() < .75 else ""
         x = _oracion(rng, sp["tx"]) if rng.random() < .5 else ""
-        f = intentos % 4
-        if f == 0:
+        f = intentos % 4 if len(out) < BASE2 else intentos % 6
+        if f == 4:
+            v = _unir(_fin("Motivo de consulta: " + m[0].lower() + m[1:] + (f", con {a}" if a else "")), x, c, _neg(rng, sp, m + " " + a))
+        elif f == 5:
+            v = _unir(_fin(m), _fin("Se acompaña de " + a) if a else "", x, _neg(rng, sp, m + " " + a), c)
+        elif f == 0:
             v = _unir(_fin(m + (f", con {a}" if a else "")), c, x, _neg(rng, sp, m + " " + a))
         elif f == 1:
             v = _unir(_fin(m), c, _fin("Refiere " + a) if a else "", _neg(rng, sp, m + " " + a + " " + c), x)
@@ -239,7 +301,7 @@ def _generar_sin_dur(sp, rng, n):
         else:
             v = _unir(_fin(m), x, c, _neg(rng, sp, m + " " + a))
         v = re.sub(r"\s{2,}", " ", v).replace(" ,", ",")
-        if any(difflib.SequenceMatcher(None, v, o, autojunk=False).ratio() > .8 for o in out):
+        if any(difflib.SequenceMatcher(None, v, o, autojunk=False).ratio() > (.8 if len(out) < BASE2 else .86) for o in out):
             continue
         out.append(_fix(v))
     return out
@@ -249,22 +311,26 @@ def _generar_emb(sp, rng, n):
     out = []
     mains = list(sp["main"])
     intentos = 0
-    while len(out) < n and intentos < 400:
+    while len(out) < n and intentos < 1500:
         intentos += 1
         w = rng.choice(sp["dur"]).split()[0]
         m = mains[intentos % len(mains)].replace("{w}", w)
         a = _asoc(rng, sp, 0, 2, m)
         c = _oracion(rng, sp["ctx"]) if rng.random() < .7 else ""
         x = _oracion(rng, sp["tx"]) if rng.random() < .5 else ""
-        f = intentos % 3
-        if f == 0:
+        f = intentos % 3 if len(out) < BASE2 else intentos % 5
+        if f == 3:
+            v = _unir(_fin("Acude por " + m[0].lower() + m[1:] + (f"; refiere {a}" if a else "")), x, c, _neg(rng, sp, m + " " + a))
+        elif f == 4:
+            v = _unir(_fin(m), c, _fin("Refiere " + a) if a else "", x, _neg(rng, sp, m + " " + a))
+        elif f == 0:
             v = _unir(_fin(m + (f"; refiere {a}" if a else "")), c, x, _neg(rng, sp, m + " " + a))
         elif f == 1:
             v = _unir(_fin(m + (f", con {a}" if a else "")), x, c, _neg(rng, sp, m + " " + a))
         else:
             v = _unir(_fin(m), _fin("Se acompaña de " + a) if a else "", c, _neg(rng, sp, m + " " + a + " " + c), x)
         v = re.sub(r"\s{2,}", " ", v).replace(" ,", ",")
-        if any(difflib.SequenceMatcher(None, v, o, autojunk=False).ratio() > .8 for o in out):
+        if any(difflib.SequenceMatcher(None, v, o, autojunk=False).ratio() > (.8 if len(out) < BASE2 else .86) for o in out):
             continue
         out.append(_fix(v))
     return out
@@ -274,16 +340,20 @@ def _generar_c(sp, rng, n):
     out = []
     durs = sp["dur"]
     intentos = 0
-    while len(out) < n and intentos < 400:
+    while len(out) < n and intentos < 1500:
         intentos += 1
         d = rng.choice(durs)
         tx = rng.choice(sp["tx"]) if sp["tx"] else ""
         a = _asoc(rng, sp, 0, 2, "")
         c = _oracion(rng, sp["ctx"]) if rng.random() < .7 else ""
         main = rng.choice(sp["main"]) if sp["main"] else "acude a control de rutina"
-        forma = intentos % 4
+        forma = intentos % 4 if len(out) < BASE2 else intentos % 6
         ini = f"antecedente de {sp['t']} de {d} de diagnóstico"
-        if forma == 0:
+        if forma == 4:
+            v = f"antecedente de {sp['t']} conocido desde hace {d}" + (f", {tx}" if tx else "") + f"; {main}"
+        elif forma == 5:
+            v = f"antecedente de {sp['t']} de {d} de evolución" + (f", {tx}" if tx else "") + f". {_cap(main)}" + (f", con {a}" if a else "")
+        elif forma == 0:
             v = f"{ini}, {tx}; {main}" if tx else f"{ini}; {main}"
         elif forma == 1:
             v = f"{ini}. {_cap(main)}" + (f", con {a}" if a else "") + (f". Se encuentra {tx}" if tx else "")
@@ -294,7 +364,7 @@ def _generar_c(sp, rng, n):
         v = _fin(v)
         v = _unir(v, c, _neg(rng, sp, main + " " + a))
         v = re.sub(r"\s{2,}", " ", v).replace(" ,", ",").replace(",.", ".").replace(";.", ".").replace("..", ".")
-        if any(difflib.SequenceMatcher(None, v, o, autojunk=False).ratio() > .8 for o in out):
+        if any(difflib.SequenceMatcher(None, v, o, autojunk=False).ratio() > (.8 if len(out) < BASE2 else .86) for o in out):
             continue
         out.append(_fix(v))
     return out
