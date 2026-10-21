@@ -753,6 +753,70 @@ class UITests(unittest.TestCase):
                 self.assertRegex(dlg.ssr_hea.get("1.0", "end").lower(), ginec, (abrev, i))
             dlg.destroy()
 
+    def test_04h5_menores_de_18_tienen_estado_civil_escolaridad_y_ocupacion_por_defecto(self):
+        from services import activityinfo as ai
+        from ui.dialog_activityinfo import ActivityInfoDialog
+        base = {"nombre": "Ana Pérez López", "sexo": "M", "fecha": "2026-10-15"}
+        for rec in ({"edad_anios": "10"}, {"edad_anios": "17"}, {"edad_anios": "0", "edad_meses": "8"},
+                    {"edad_anios": "", "edad_dias": "12"}):
+            d = ai.build_defaults(self.db, dict(base, **rec))
+            self.assertEqual((d["estado_civil"], d["escolaridad"], d["ocupacion"]), ("No aplica", "Ninguno", "No aplica"), rec)
+        for edad in ("18", "30"):
+            d = ai.build_defaults(self.db, dict(base, edad_anios=edad))
+            self.assertEqual(d["estado_civil"], "Unión Libre", edad)
+            self.assertNotEqual((d["escolaridad"], d["ocupacion"]), ("Ninguno", "No aplica"))
+        # en la ventana: al corregir la edad se vuelve a proponer, salvo lo que la persona ya cambió
+        d = ai.build_defaults(self.db, dict(base, edad_anios="30"))
+        dlg = ActivityInfoDialog(self.root, d)
+        self.upd()
+        self.assertEqual(dlg.w["estado_civil"].get_value(), "Unión Libre")
+        dlg.w["edad"].set_value("12")
+        dlg._regen_hea(True)
+        self.assertEqual([dlg.w[k].get_value() for k in ("estado_civil", "escolaridad", "ocupacion")],
+                         ["No aplica", "Ninguno", "No aplica"])
+        dlg.w["estado_civil"].set_value("Soltero/a")                       # lo cambió a mano
+        dlg.w["edad"].set_value("40")
+        dlg._regen_hea(True)
+        self.assertEqual(dlg.w["estado_civil"].get_value(), "Soltero/a")   # se respeta
+        self.assertNotEqual(dlg.w["escolaridad"].get_value(), "Ninguno")
+        self.assertNotEqual(dlg.w["ocupacion"].get_value(), "No aplica")
+        dlg.destroy()
+
+    def test_04h6_buscador_de_medicamentos_con_lupa(self):
+        from services import activityinfo as ai, medicamentos
+        from ui.dialog_activityinfo import ActivityInfoDialog
+        d = ai.build_defaults(self.db, {"nombre": "Ana Pérez López", "sexo": "M", "fecha": "2026-10-15", "edad_anios": "30"})
+        dlg = ActivityInfoDialog(self.root, d)
+        self.upd()
+        mp = dlg.meds_aps
+        self.assertEqual(mp.buscar(""), [])
+        self.assertEqual(mp.buscar("xyzxyz"), [])
+        self.assertTrue(all("metronidazol" in m.lower() for m in mp.buscar("METRONIDAZOL")))
+        self.assertEqual(len(mp.buscar("metronidazol")), 2)
+        self.assertEqual(mp.buscar("acetaminofen"), [m for m in medicamentos.MEDICAMENTOS if m.startswith("Acetaminofén")])  # sin acentos
+        self.assertTrue(all("tab" in m.lower() and "500" in m for m in mp.buscar("500 tab")))                  # varias palabras
+        self.assertFalse(mp.lista_res.winfo_manager())
+        mp.buscador.set_value("metro")                                  # escribir muestra los resultados
+        mp._buscar()
+        self.upd()
+        self.assertEqual(mp.lista_res.winfo_manager(), "pack")
+        self.assertEqual(mp.lista_res.size(), 2)                        # las dos de Metronidazol
+        mp._agregar_resultado(1)                                        # se toca un resultado: pasa a la lista
+        self.assertEqual(len(mp.valores()), 1)
+        self.assertTrue(mp.valores()[0].startswith("Metronidazol"))
+        self.assertEqual(mp.buscador.get_value(), "")                   # la búsqueda queda libre
+        self.assertFalse(mp.lista_res.winfo_manager())
+        mp.buscador.set_value("fluco")
+        mp._buscar()
+        mp._agregar_resultado(0)                                        # Enter agrega el primero
+        self.assertEqual(len(mp.valores()), 2)
+        mp.buscador.set_value("zzzz")
+        mp._buscar()
+        self.assertEqual(mp.lista_res.size(), 1)                        # aviso de que no hay coincidencias
+        mp._agregar_resultado(0)
+        self.assertEqual(len(mp.valores()), 2)                          # y el aviso no se agrega como medicamento
+        dlg.destroy()
+
     def test_04g_hea_de_pf_conserva_el_metodo_del_ata(self):
         """«PF (ACOs)» en SSR: la lista de SSR dice solo «anticoncepción», pero la HEA tiene que hablar de pastillas."""
         import re

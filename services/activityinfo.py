@@ -252,14 +252,26 @@ def delete_dx_map(db, abrev):
     db.execute("DELETE FROM dx_map WHERE abrev=?", (abrev,))
 
 
-def defectos_ficha(rng=None):
+def es_menor_de_edad(edad, unidad="años"):
+    """Menor de 18 años: lo que está en meses o días siempre lo es; en años, de 0 a 17. Sin edad: False."""
+    if str(unidad or "").lower() in ("meses", "días", "dias"):
+        return True
+    e = str(edad or "").strip()
+    return e.isdigit() and int(e) < 18
+
+
+def defectos_ficha(rng=None, menor=False):
     """Valores que se proponen en la ficha cuando el ATA no los trae (la persona los cambia en la ventana).
-    Escolaridad y sector de ocupación se eligen al azar entre dos opciones."""
+    Escolaridad y sector de ocupación se eligen al azar entre dos opciones. En menores de 18 años:
+    estado civil «No aplica», escolaridad «Ninguno» y sector de ocupación «No aplica»."""
     rng = rng or random
-    return {"lgtbiq": "No", "pueblo": "Ladino / Mestizo", "estado_civil": "Unión Libre",
-            "escolaridad": rng.choice(["Primaria", "Secundaria/Bachillerato"]),
-            "ocupacion": rng.choice(["Trabajo doméstico NO remunerado", "Otro"]),
-            "discapacidad": "No", "derivado": "No"}
+    d = {"lgtbiq": "No", "pueblo": "Ladino / Mestizo", "estado_civil": "Unión Libre",
+         "escolaridad": rng.choice(["Primaria", "Secundaria/Bachillerato"]),
+         "ocupacion": rng.choice(["Trabajo doméstico NO remunerado", "Otro"]),
+         "discapacidad": "No", "derivado": "No"}
+    if menor:
+        d.update(estado_civil="No aplica", escolaridad="Ninguno", ocupacion="No aplica")
+    return d
 
 
 LUGARES_ATENCION = ["San Pedro Sula", "Choloma"]      # «Lugar de atención» (Cortés): depende de lo que diga el ATA
@@ -388,7 +400,7 @@ def build_defaults(db, rec: dict) -> dict:
         "nacionalidad": st["ai_nacionalidad"], "idioma": st["ai_idioma"],
         "nombres": nombres, "apellidos": apellidos, "telefono": telefono_internacional(rec.get("telefono")),
         "tiene_fecha_nac": "No", "edad": edad,
-        **defectos_ficha(), "perfil": PERFIL_FIJO,
+        **defectos_ficha(menor=es_menor_de_edad(persona["edad"], persona["unidad"])), "perfil": PERFIL_FIJO,
         "consultas": [CONSULTA_APS], "profesional": st["ai_profesional"],
         "tipo_consulta": "Primera", "dx": dxs,
     }

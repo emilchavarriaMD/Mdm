@@ -152,6 +152,9 @@ class ActivityInfoDialog(_Modal):
         self._vit_auto = {k: self.w[k].get_value() for k in ("sistolica", "diastolica", "fc", "fr")}
         _p0 = defaults.get("hea_persona") or {}
         self._vit_grupo = ai.grupo_vitales(_p0.get("sexo"), _p0.get("edad"), _p0.get("unidad", "años"))
+        # menores de 18 años: estado civil, escolaridad y ocupación «No aplica / Ninguno / No aplica» (solo mientras no se cambien)
+        self._soc_auto = {k: self.w[k].get_value() for k in ("estado_civil", "escolaridad", "ocupacion")}
+        self._soc_menor = ai.es_menor_de_edad(_p0.get("edad"), _p0.get("unidad", "años"))
 
         dxs = defaults.get("dx") or []
         ttk.Label(f_dx, text="Lista de ActivityInfo (descripción y código).",
@@ -911,6 +914,22 @@ class ActivityInfoDialog(_Modal):
                 self.w[k].set_value(nuevo[k])
                 self._vit_auto[k] = nuevo[k]
 
+    def _ajustar_social(self):
+        """Si la edad cambia de menor a mayor de 18 años (o al revés), estado civil, escolaridad y sector de ocupación se
+        proponen de nuevo, solo en los campos que la persona no había cambiado."""
+        if self._restaurado or not hasattr(self, "_soc_menor"):
+            return
+        p = self._persona()
+        menor = ai.es_menor_de_edad(p.get("edad"), p.get("unidad", "años"))
+        if menor == self._soc_menor:
+            return
+        self._soc_menor = menor
+        nuevo = ai.defectos_ficha(menor=menor)
+        for k in ("estado_civil", "escolaridad", "ocupacion"):
+            if self.w[k].get_value() == self._soc_auto.get(k):
+                self.w[k].set_value(nuevo[k])
+                self._soc_auto[k] = nuevo[k]
+
     def _clave_hea(self):
         p = self._persona()
         return (tuple(self._dx_aps_hea()), tuple(self._dx_ssr()), p.get("sexo"), p.get("edad"), p.get("unidad"))
@@ -968,6 +987,7 @@ class ActivityInfoDialog(_Modal):
             return
         self._marcar_fuentes()
         self._ajustar_vitales()
+        self._ajustar_social()
         self._regen_examen()
         self._regen_plan()
         if solo_si_cambio:
