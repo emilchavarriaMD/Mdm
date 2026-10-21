@@ -7,6 +7,7 @@ método (así no se mezclan síntomas o tratamientos de otro método). Es determ
 
 Cada versión empieza con un verbo (acude / utiliza / solicita…) porque va después de «…de edad, que ».
 """
+import difflib
 import random
 import re
 
@@ -237,12 +238,12 @@ _PIEZAS = {
 }
 
 
-def _armar(m, total=30):
+def _armar(m, total=60):
     p = _PIEZAS[m]
     rng = random.Random("pf-" + m)            # fijo: las versiones son siempre las mismas
     out = list(p["fijas"])
     intentos = 0
-    while len(out) < total and intentos < 400:
+    while len(out) < total and intentos < 3000:
         intentos += 1
         ap = rng.choice(p["ap"]).format(d=rng.choice(p["d"]))
         con_sx = rng.random() < 0.65 and p["sx"]
@@ -263,8 +264,11 @@ def _armar(m, total=30):
         neg = rng.sample(p["neg"], rng.choice([2, 3, 3]))
         partes.append("Niega " + _o(neg) + ".")
         v = " ".join(partes)
-        if v not in out:
-            out.append(v)
+        if v in out:
+            continue
+        if len(out) >= 30 and any(difflib.SequenceMatcher(None, v, o, autojunk=False).ratio() > 0.85 for o in out):
+            continue                      # de la 31 en adelante no se aceptan versiones casi iguales a otra
+        out.append(v)
     return out
 
 

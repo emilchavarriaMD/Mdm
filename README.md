@@ -172,7 +172,7 @@ Están en `defectos_ficha()`, `defectos_ssr()` y `vitales_defecto()` de `service
 - **Estética** — La app se llama «Expedientes MdM»; se quitó la foto de la pantalla de ATA (pantalla «Pacientes atendidos»); el tema oscuro pasó a gris cálido con acento terracota (como Claude Code) y barra de título oscura en Windows.
 
 ## Más versiones de texto
-- HEA: 52 versiones por diagnóstico (las 26 primeras no cambian); sirven igual para APS y para SSR.
+- HEA: 52 versiones por diagnóstico (las 26 primeras no cambian); sirven igual para APS y para SSR. Planificación familiar: 60 versiones por método.
 - Examen físico: cada hallazgo positivo tiene hasta 24 redacciones nuevas (`services/examen_variantes_extra.py`).
 - Plan de APS: frases propias de cada diagnóstico más frases por grupo clínico (`services/plan_extra_data.py`, generado con `tools/plan_extra_build.py` y `tools/plan_aps_grupos.py`): de 26 a 51 medidas y al menos 9 signos de alarma por diagnóstico.
 Los textos nuevos no han tenido revisión clínica.
