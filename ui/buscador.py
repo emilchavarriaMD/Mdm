@@ -84,7 +84,15 @@ class BuscadorLista:
 
     def _ocultar_tarde(self):
         self._cancelar_ocultar()
-        self._ocultar_job = self.cb.after(250, lambda: None if self.lista.focus_get() is self.lista else self.ocultar())
+        self._ocultar_job = self.cb.after(250, lambda: None if self._foco_en_lista() else self.ocultar())
+
+    def _foco_en_lista(self):
+        """¿La lista de resultados tiene el foco? No se usa focus_get(): con la lista desplegable del combo abierta, tkinter
+        no sabe convertir esa ventana («popdown») y lanza KeyError."""
+        try:
+            return str(self.lista.tk.call("focus")) == str(self.lista)
+        except tk.TclError:
+            return False
 
     def _cancelar_ocultar(self):
         if self._ocultar_job:

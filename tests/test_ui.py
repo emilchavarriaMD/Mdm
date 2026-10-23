@@ -862,6 +862,37 @@ class UITests(unittest.TestCase):
         self.assertTrue(r and cat.plain(r[0]).startswith("vomito"))
         dlg.destroy()
 
+    def test_04h7b_abrir_la_lista_desplegable_del_diagnostico_no_da_error(self):
+        """Con la lista desplegable abierta el foco está en una ventana «popdown»; antes eso daba KeyError al perder el foco."""
+        import time
+        from services import activityinfo as ai
+        from ui.dialog_activityinfo import ActivityInfoDialog
+        d = ai.build_defaults(self.db, {"nombre": "Ana Pérez López", "sexo": "M", "fecha": "2026-10-15", "edad_anios": "30",
+                                        "dx1": "Dermatitis seborreica"})
+        dlg = ActivityInfoDialog(self.root, d)
+        self.upd()
+        errores = []
+        anterior = self.root.report_callback_exception
+        self.root.report_callback_exception = lambda *a: errores.append(a)
+        try:
+            cb = dlg.dx_rows[0][1]
+            b = dlg._buscadores[cb]
+            cb.focus_force()
+            self.upd()
+            self.root.tk.call("ttk::combobox::Post", str(cb))               # se abre la lista desplegable
+            self.upd()
+            self.assertIn("popdown", str(self.root.tk.call("focus")))
+            self.assertFalse(b._foco_en_lista())
+            b._ocultar_tarde()                                               # lo que pasaba al perder el foco
+            fin = time.time() + 0.6
+            while time.time() < fin:
+                self.root.update()
+                time.sleep(0.02)
+            self.assertEqual(errores, [])
+        finally:
+            self.root.report_callback_exception = anterior
+        dlg.destroy()
+
     def test_04h8_antecedentes_obstetricos_lista_o_escritura_libre(self):
         from services import activityinfo as ai
         from ui.dialog_activityinfo import ActivityInfoDialog
