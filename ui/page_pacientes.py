@@ -59,8 +59,8 @@ class PacientesPage(Page):
 
         frame, self.tree = widgets.make_tree(self, [
             ("sel", "", 46, "center"), ("fecha", "Fecha", 108), ("nombre", "Paciente", 270), ("accion", "Acción", 160, "center"),
-            ("estado", "ActivityInfo", 120, "center"), ("sexo", "Sexo", 50, "center"),
-            ("edad", "Edad", 70), ("dx", "Diagnósticos", 340)], height=10)
+            ("estado", "ActivityInfo", 120, "center"), ("loc", "Localidad", 150),
+            ("dx", "Diagnósticos", 340)], height=10)
         frame.pack(fill="both", expand=True, pady=(8, 0))
         self.tree.tag_configure("e_Pendiente", foreground=theme.TEXT)
         self.tree.tag_configure("e_Llenado", foreground=theme.WARN)
@@ -123,7 +123,7 @@ class PacientesPage(Page):
             r["id"], ("☑" if r["id"] in self._checked else "☐", fmt_date(r["fecha"]),
                       ("⚠ " if self._alertas.get(r["id"]) else "") + r["nombre"],
                       ACTION if r["ai_estado"] != "Registrado" else "Registrado ✔",
-                      marca.get(r["ai_estado"], r["ai_estado"]), r["sexo"], ata_svc.age_text(r),
+                      marca.get(r["ai_estado"], r["ai_estado"]), (r["loc"] or "").strip(),
                       " · ".join(x for x in (r["dx1"], r["dx2"], r["dx3"]) if x)),
             ["e_" + r["ai_estado"]]) for r in rows])
         pend = sum(1 for r in rows if r["ai_estado"] == "Pendiente")

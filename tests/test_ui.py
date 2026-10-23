@@ -235,6 +235,8 @@ class UITests(unittest.TestCase):
         self.assertEqual(len(pp.tree.get_children()), 2)
         self.assertEqual(self.db.scalar("SELECT COUNT(*) FROM ata_rows WHERE borrado_en IS NULL"), 2)
         self.assertEqual(self.db.scalar("SELECT COUNT(*) FROM ata_rows WHERE borrado_en IS NOT NULL"), 1)   # en la papelera
+        # la tabla muestra Localidad (no Sexo ni Edad)
+        self.assertEqual(list(pp.tree['columns']), ['sel', 'fecha', 'nombre', 'accion', 'estado', 'loc', 'dx'])
         # filtros de sexo y edad, y alerta de la fila seleccionada
         pp.sexo.set_value("Hombre")
         pp.load()
