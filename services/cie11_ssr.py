@@ -122,6 +122,11 @@ def descriptions():
     return [d for d, _c in CATALOG]
 
 
+def descriptions_sorted():
+    """Las descripciones de la lista de SSR en orden alfabético (sin tomar en cuenta acentos)."""
+    return sorted(descriptions(), key=plain)
+
+
 def from_label(text):
     """(descripcion, codigo) a partir de lo elegido en el selector; ('', '') si no está en la lista SSR."""
     t = (text or "").strip()

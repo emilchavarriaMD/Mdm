@@ -817,6 +817,81 @@ class UITests(unittest.TestCase):
         self.assertEqual(len(mp.valores()), 2)                          # y el aviso no se agrega como medicamento
         dlg.destroy()
 
+    def test_04h7_diagnosticos_en_orden_alfabetico_con_buscador(self):
+        from services import activityinfo as ai, cie11_catalog as cat, cie11_ssr as ssr_cat
+        from ui import buscador
+        from ui.dialog_activityinfo import ActivityInfoDialog
+        for mod in (cat, ssr_cat):
+            ds = mod.descriptions_sorted()
+            self.assertEqual(sorted(ds), sorted(mod.descriptions()))              # no se pierde ninguno
+            self.assertEqual([cat.plain(x) for x in ds], sorted(cat.plain(x) for x in ds))
+        d = ai.build_defaults(self.db, {"nombre": "Ana Pérez López", "sexo": "M", "fecha": "2026-10-15", "edad_anios": "30",
+                                        "dx1": "Dermatitis seborreica", "dx2": "Vaginosis mixta"})
+        dlg = ActivityInfoDialog(self.root, d)
+        dlg.w["consultas"].set_value([ai.CONSULTA_APS, "Salud Sexual y Reproductiva"])
+        dlg._mostrar_ssr()
+        self.upd()
+        aps_cb = dlg.dx_rows[0][1]
+        for cb in (aps_cb, dlg.ssr_rows[0]):
+            vals = [cat.plain(v.rsplit("  [", 1)[0]) for v in cb["values"]]
+            self.assertEqual(vals, sorted(vals))                                  # la lista desplegable va de la A a la Z
+        # buscador con lupa: escribir muestra las coincidencias, tocar una la pone en el cuadro
+        b = dlg._buscadores[aps_cb]
+        aps_cb.set_value("dermatitis")
+        b.mostrar("dermatitis")
+        self.upd()
+        self.assertEqual(b.lista.winfo_manager(), "pack")
+        self.assertTrue(b.resultados and all("dermatitis" in cat.plain(x) for x in b.resultados))
+        elegido = b.resultados[0]
+        b._elegir(0)
+        self.assertEqual(aps_cb.get_value(), elegido)
+        self.assertFalse(b.lista.winfo_manager())                                # la lista se cierra
+        b2 = dlg._buscadores[dlg.ssr_rows[1]]
+        b2.mostrar("candidiasis")
+        self.assertTrue(any("Candidiasis" in x for x in b2.resultados))
+        b2._elegir(0)
+        self.assertTrue(dlg.ssr_rows[1].get_value())
+        # búsqueda: sin acentos, por código y varias palabras; primero las que empiezan igual
+        etq = [cat.label(x) for x in cat.descriptions_sorted()]
+        self.assertEqual(buscador.buscar("", etq), [])
+        self.assertEqual(buscador.buscar("zzzzqq", etq), [])
+        r = buscador.buscar("ea8z", etq)
+        self.assertTrue(r and "[EA8Z]" in r[0])
+        self.assertTrue(buscador.buscar("ulcera", etq))
+        r = buscador.buscar("vomito", etq)
+        self.assertTrue(r and cat.plain(r[0]).startswith("vomito"))
+        dlg.destroy()
+
+    def test_04h8_antecedentes_obstetricos_lista_o_escritura_libre(self):
+        from services import activityinfo as ai
+        from ui.dialog_activityinfo import ActivityInfoDialog
+        d = ai.build_defaults(self.db, {"nombre": "Ana Pérez López", "sexo": "M", "fecha": "2026-10-15", "edad_anios": "30",
+                                        "dx1": "Vaginosis mixta"})
+        dlg = ActivityInfoDialog(self.root, d)
+        dlg.w["consultas"].set_value([ai.CONSULTA_APS, "Salud Sexual y Reproductiva"])
+        dlg._mostrar_ssr()
+        self.upd()
+        claves = ("gestaciones", "partos", "cesareas", "abortos", "obitos", "hijos_vivos", "hijos_muertos")
+        for k in claves:
+            w = dlg.w["ssr_" + k]
+            self.assertEqual(str(w["state"]), "normal", k)                            # se puede escribir
+            self.assertEqual(list(w["values"]), [""] + [str(n) for n in range(17)], k)   # y sigue la lista 0–16
+        for k, v in {"estado_civil": "Soltero/a", "escolaridad": "Primaria", "ocupacion": "Estudiante",
+                     "discapacidad": "No", "derivado": "No", "tipo_consulta": "Primera"}.items():
+            dlg.w[k].set_value(v)
+        dlg.w["ssr_embarazo_anterior"].set_value("> 2 AÑOS")
+        dlg._ssr_condicionales()
+        dlg.w["ssr_partos"].set_value("dos")               # texto que no es un número: no se envía
+        dlg._ok()
+        self.assertIsNone(dlg.result)
+        dlg.w["ssr_gestaciones"].set_value(" 3 ")          # escrito a mano
+        dlg.w["ssr_partos"].set_value("")                  # vacío sí vale (no se llena)
+        dlg.w["ssr_hijos_vivos"].set_value("12")            # número fuera de la lista corta, pero entero
+        dlg.w["ssr_abortos"].set_value("1")
+        dlg._ok()
+        s = dlg.result["ssr"]
+        self.assertEqual((s["gestaciones"], s["partos"], s["hijos_vivos"], s["abortos"]), ("3", "", "12", "1"))
+
     def test_04g_hea_de_pf_conserva_el_metodo_del_ata(self):
         """«PF (ACOs)» en SSR: la lista de SSR dice solo «anticoncepción», pero la HEA tiene que hablar de pastillas."""
         import re

@@ -284,6 +284,11 @@ def descriptions():
     return [d for d, _c in CATALOG]
 
 
+def descriptions_sorted():
+    """Las descripciones de la lista de ActivityInfo en orden alfabético (sin tomar en cuenta acentos)."""
+    return sorted(descriptions(), key=plain)
+
+
 def from_label(text):
     """Devuelve (descripcion, codigo) a partir de lo escrito/elegido en el selector; ('', '') si no está en la lista."""
     t = (text or "").strip()

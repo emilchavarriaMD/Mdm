@@ -6,21 +6,7 @@ from tkinter import ttk
 
 from services import cie11_catalog as cat
 from services import medicamentos
-from ui import theme, widgets
-
-
-class _Lupa(tk.Canvas):
-    """Lupa dibujada (no depende de emojis ni de la fuente del sistema)."""
-
-    def __init__(self, master):
-        try:
-            fondo = ttk.Style().lookup("TFrame", "background") or master.cget("background")
-        except tk.TclError:
-            fondo = "#f0f0f0"
-        super().__init__(master, width=22, height=22, highlightthickness=0, bd=0, background=fondo)
-        color = "#444444"
-        self.create_oval(3, 3, 14, 14, outline=color, width=2)
-        self.create_line(13, 13, 19, 19, fill=color, width=3, capstyle="round")
+from ui import buscador, theme, widgets
 
 
 class MedPicker(ttk.Frame):
@@ -38,7 +24,7 @@ class MedPicker(ttk.Frame):
         # búsqueda con lupa
         bus = ttk.Frame(self)
         bus.pack(fill="x", pady=(4, 0))
-        _Lupa(bus).pack(side="left", padx=(0, 4))
+        buscador.Lupa(bus).pack(side="left", padx=(0, 4))
         self.buscador = widgets.EntryField(bus, width=30)
         self.buscador.pack(side="left", fill="x", expand=True)
         self.buscador.bind("<KeyRelease>", self._buscar)

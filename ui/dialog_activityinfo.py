@@ -10,7 +10,7 @@ from services import cie11_ssr as ssr_cat
 from services import hea_banco
 from services import examen_fisico, plan_banco
 from services import medicamentos
-from ui import dialogs, med_picker, theme, widgets
+from ui import buscador, dialogs, med_picker, theme, widgets
 from ui.dialogs import _Modal
 
 
@@ -161,7 +161,8 @@ class ActivityInfoDialog(_Modal):
                   style="Muted.TLabel").pack(anchor="w")
         self.dx_rows = []
         self.dx_tags = []
-        labels = [cat.label(d) for d in cat.descriptions()]
+        self._buscadores = {}             # combo de diagnóstico → su buscador con lupa
+        labels = [cat.label(d) for d in cat.descriptions_sorted()]
         self._labels = labels
         if dxs:
             for i, d in enumerate(dxs):
@@ -177,11 +178,12 @@ class ActivityInfoDialog(_Modal):
                 cb.bind("<<ComboboxSelected>>", lambda e: self._regen_hea(True))
                 cb.bind("<FocusOut>", lambda e: self._regen_hea(True))
                 cb.bind("<KeyRelease>", lambda e, c=cb: self._filtrar(c, e))
+                self._buscadores[cb] = buscador.BuscadorLista(cb, row, labels, lambda: self._regen_hea(True))   # lupa y resultados
                 tag = ttk.Label(f_dx, text="", style="Muted.TLabel")
                 tag.pack(anchor="w", padx=(170, 0))
                 self.dx_tags.append(tag)
                 self.dx_rows.append((d["abrev"], cb))
-            ttk.Label(f_dx, text="Elija en la lista de ActivityInfo (puede escribir para buscar). Al elegir la "
+            ttk.Label(f_dx, text="Elija en la lista de ActivityInfo (en orden alfabético) o escriba para buscar: aparecen las opciones que coinciden. Al elegir la "
                       "descripción, ActivityInfo pone el código solo. Si uno no está en la lista, déjelo vacío: no se llena en "
                       "ActivityInfo, pero la HEA sí lo incluye (vea «HEA usa» debajo de cada uno).",
                       style="Muted.TLabel", wraplength=780, justify="left").pack(anchor="w")
@@ -647,7 +649,7 @@ class ActivityInfoDialog(_Modal):
         gq = widgets.FormGrid(self.ssr_ant_obst, 4)
         for k, lab in (("gestaciones", "Gestaciones"), ("partos", "Partos"), ("cesareas", "Cesáreas"), ("abortos", "Abortos"),
                        ("obitos", "Óbitos"), ("hijos_vivos", "Hijos vivos"), ("hijos_muertos", "Hijos muertos")):
-            combo("ssr_" + k, lab, ai.SSR_NUMEROS, self.ssr_ant_obst, gq)
+            combo("ssr_" + k, lab, ai.SSR_NUMEROS, self.ssr_ant_obst, gq, ro=False)     # lista 0–16 o se escribe el número
         combo("ssr_lactancia", "Lactancia materna (en ActivityInfo solo sale si Hijos vivos ≥ 1)", ai.SI_NO, self.ssr_ant_obst, gq)
         ttk.Label(f, text="Vacunación (marque las que apliquen)").pack(anchor="w", pady=(8, 0))
         self.w["ssr_vacunacion"] = ChecksField(f, ai.SSR_VACUNAS, columns=2)
@@ -666,7 +668,7 @@ class ActivityInfoDialog(_Modal):
         self._ssr_exa_auto = defaults.get("ssr_examen_fisico", defaults.get("examen_fisico", ""))
 
         titulo("Diagnósticos — lista de ActivityInfo SSR (descripción y código)")
-        self._ssr_labels = [ssr_cat.label(d) for d in ssr_cat.descriptions()]
+        self._ssr_labels = [ssr_cat.label(d) for d in ssr_cat.descriptions_sorted()]
         self.ssr_rows = []
         sug = defaults.get("ssr_dx") or []
         if not sug:
@@ -682,8 +684,9 @@ class ActivityInfoDialog(_Modal):
             cb.bind("<KeyRelease>", lambda e, c=cb: self._filtrar(c, e, self._ssr_labels))
             cb.bind("<<ComboboxSelected>>", lambda e: self._regen_hea(True))
             cb.bind("<FocusOut>", lambda e: self._regen_hea(True))
+            self._buscadores[cb] = buscador.BuscadorLista(cb, row, self._ssr_labels, lambda: self._regen_hea(True))
             self.ssr_rows.append(cb)
-        nota("Elija en la lista de ActivityInfo de SSR (puede escribir para buscar). SSR admite máximo 2 diagnósticos: deje "
+        nota("Elija en la lista de ActivityInfo de SSR (en orden alfabético) o escriba para buscar. SSR admite máximo 2 diagnósticos: deje "
              "vacíos los que no apliquen (los que no tienen equivalente en SSR quedan vacíos).")
         go = ttk.Frame(f)
         go.pack(fill="x", pady=(6, 0))
@@ -1109,6 +1112,15 @@ class ActivityInfoDialog(_Modal):
             if fum and (f is None or f > __import__("datetime").date.today()):
                 dialogs.info(self, "La fecha de la última menstruación (FUM) no es válida. Escójala con el calendario 📅 "
                              "(formato AAAA-MM-DD, y no puede ser futura).")
+                return
+        if quiere_ssr and self.w["ssr_embarazo_anterior"].get_value() not in ("", "No hubo embarazo"):
+            etiquetas = {"gestaciones": "Gestaciones", "partos": "Partos", "cesareas": "Cesáreas", "abortos": "Abortos",
+                         "obitos": "Óbitos", "hijos_vivos": "Hijos vivos", "hijos_muertos": "Hijos muertos"}
+            malos = [lab for k, lab in etiquetas.items()
+                     if self.w["ssr_" + k].get_value().strip() and not self.w["ssr_" + k].get_value().strip().isdigit()]
+            if malos:
+                dialogs.info(self, "Estos campos de antecedentes gineco-obstétricos deben ser un número entero (escríbalo o "
+                             "elíjalo de la lista):\n\n" + "\n".join(f"• {m}" for m in malos))
                 return
         data["hea"] = self.hea.get("1.0", "end").strip()
         data["examen_fisico"] = self.examen.get("1.0", "end").strip()
