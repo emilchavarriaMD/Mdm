@@ -23,15 +23,17 @@ COLUMNS = [
     ("dx3", "Diagnóstico 3", 22), ("cie3", "CIE 3", 7),
     ("ref_enviada", "Referencia enviada", 14), ("ref_recibida", "Referencia recibida", 14),
     ("telefono", "Teléfono", 13), ("obst", "Gestas, partos, cesáreas, abortos, HV, HM", 34),
+    ("estado_civil", "Estado civil", 8), ("profesion", "Profesión", 8),
 ]
 KEYS = [c[0] for c in COLUMNS]
 # Lo que se ve en la pantalla «Cargar ATA»: las columnas de la plantilla ATA-2023, en su orden
 # (HC, identidad, códigos CIE y referencias se conservan en la base, pero ya no se piden)
-UI_KEYS = ["numero", "nombre", "telefono", "sexo", "fecha_nacimiento", "edad_anios", "edad_meses", "edad_dias",
+UI_KEYS = ["numero", "nombre", "telefono", "sexo", "estado_civil", "profesion", "fecha_nacimiento", "edad_anios", "edad_meses", "edad_dias",
            "dep", "mun", "loc", "dx1", "dx2", "dx3", "obst"]
 _CMAP = {c[0]: c for c in COLUMNS}
 UI_COLUMNS = [_CMAP[k] for k in UI_KEYS]
-UI_COLUMNS = [(k, {"obst": "G, P, C, A, HV, HM", "dx1": "Diagnóstico 1", "telefono": "Teléfono"}.get(k, l), w)
+UI_COLUMNS = [(k, {"obst": "G, P, C, A, HV, HM", "dx1": "Diagnóstico 1", "telefono": "Teléfono",
+                                   "estado_civil": "Estado civil (S, C, UL…)", "profesion": "Profesión (AM u O)"}.get(k, l), w)
               for k, l, w in UI_COLUMNS]
 HEADER_FIELDS = [
     ("establecimiento", "Establecimiento"), ("profesional", "Profesional"),
@@ -41,6 +43,71 @@ HEADER_FIELDS = [
 DITTO_KEYS = ("dep", "mun", "loc")
 DITTOS = {'"', "''", "“", "”", "〃", "11", ",,"}   # «11» es como se ve la comilla de «ídem» escrita a mano
 MAX_ROWS = 40
+
+
+# Estado civil del ATA nuevo: una o dos letras (S soltero/a, C casado/a, UL unión libre, D divorciado/a, V viudo/a)
+ESTADO_CIVIL_CODIGOS = {"S": "Soltero/a", "C": "Casado/a", "UL": "Unión Libre", "D": "Divorciado/a", "V": "Viudo/a"}
+_EC_ALIAS = {"U": "UL", "SOLTERO": "S", "SOLTERA": "S", "SOLTERO/A": "S", "CASADO": "C", "CASADA": "C", "CASADO/A": "C",
+             "UNION LIBRE": "UL", "UNIONLIBRE": "UL", "LIBRE": "UL", "DIVORCIADO": "D", "DIVORCIADA": "D",
+             "DIVORCIADO/A": "D", "VIUDO": "V", "VIUDA": "V", "VIUDO/A": "V", "UNION": "UL"}
+# Profesión del ATA nuevo: AM = trabajo doméstico no remunerado, O = otro
+PROFESION_CODIGOS = {"AM": "Trabajo doméstico NO remunerado", "O": "Otro"}
+_PROF_ALIAS = {"A M": "AM", "A.M": "AM", "A.M.": "AM", "AMA DE CASA": "AM", "OTRO": "O", "OTRA": "O", "0": "O"}
+
+
+def _mayus_sin_acentos(t):
+    from services.validators import normalize
+    return normalize(str(t or "")).upper().strip()
+
+
+def normalizar_estado_civil(texto) -> str:
+    """«ul», «Unión libre», «soltera»… -> S, C, UL, D o V. Lo que no se reconoce se deja como se escribió (en mayúsculas)."""
+    t = _mayus_sin_acentos(texto).replace(".", "")
+    t = _EC_ALIAS.get(t, t)
+    return t if t in ESTADO_CIVIL_CODIGOS or not t else str(texto).strip().upper()
+
+
+def normalizar_profesion(texto) -> str:
+    """«am», «ama de casa», «otro»… -> AM u O. Otras profesiones se dejan como se escribieron."""
+    t = _mayus_sin_acentos(texto)
+    t = _PROF_ALIAS.get(t, t)
+    return t if t in PROFESION_CODIGOS or not t else str(texto).strip()
+
+
+def estado_civil_ai(texto) -> str:
+    """Opción de ActivityInfo para lo escrito en el ATA («» si no se reconoce)."""
+    return ESTADO_CIVIL_CODIGOS.get(normalizar_estado_civil(texto), "")
+
+
+def ocupacion_ai(texto) -> str:
+    """Sector de ocupación de ActivityInfo para lo escrito en el ATA: AM/O o el nombre de un sector («» si no se reconoce)."""
+    t = normalizar_profesion(texto)
+    if t in PROFESION_CODIGOS:
+        return PROFESION_CODIGOS[t]
+    from services.activityinfo import OCUPACIONES
+    n = _mayus_sin_acentos(t)
+    for o in OCUPACIONES:
+        if n and _mayus_sin_acentos(o) == n:
+            return o
+    return ""
+
+
+def parse_edad(texto):
+    """Edad escrita en una sola columna -> (años, meses, días) como texto. «34», «34a», «8 m», «10d», «2a 3m»…
+    Un número solo son años."""
+    import re as _re
+    t = _mayus_sin_acentos(texto)
+    if not t:
+        return "", "", ""
+    if t.isdigit():
+        return t, "", ""
+    out = {"a": "", "m": "", "d": ""}
+    for n, u in _re.findall(r"(\d+)\s*(ANOS|ANO|AÑOS|A|MESES|MES|M|DIAS|DIA|D)\b", t):
+        out[{"A": "a", "M": "m", "D": "d"}[u[0]]] = n
+    if any(out.values()):
+        return out["a"], out["m"], out["d"]
+    m = _re.match(r"\d+", t)
+    return (m.group(0), "", "") if m else ("", "", "")
 
 
 def is_ditto(value) -> bool:
@@ -86,6 +153,8 @@ def prepare_sheet(header: dict, rows: list):
         if sx and sx not in ("H", "M"):
             errors.append(f"{tag}: sexo debe ser H o M.")
         r["sexo"] = sx
+        r["estado_civil"] = normalizar_estado_civil(r["estado_civil"])
+        r["profesion"] = normalizar_profesion(r["profesion"])
         if r["fecha_nacimiento"]:
             try:
                 r["fecha_nacimiento"] = parse_date(r["fecha_nacimiento"], f"{tag}: fecha de nacimiento",
@@ -226,6 +295,9 @@ _SYN = {
     "dx3": ["diagnostico 3", "diagnóstico 3", "dx 3", "dx3"], "cie3": ["cie 3", "cie3"],
     "ref_enviada": ["referencia enviada", "enviada a", "enviada"],
     "ref_recibida": ["referencia recibida", "recibida de", "recibida"],
+    "estado_civil": ["estado civil", "est civil", "edo civil"],
+    "profesion": ["profesion", "ocupacion", "profesion ocupacion"],
+    "edad_txt": ["edad"],
     "telefono": ["telefono", "numero de telefono", "n de telefono", "n° de telefono", "celular", "numero de celular"],
     "obst": ["gestas partos cesareas abortos hv hm", "gestas, partos, cesareas, abortos, hv, hm", "historia ginecoobstetrica",
              "gestas partos cesareas abortos hijos vivos hijos muertos", "gpcahvhm", "g p c a hv hm"],
@@ -240,7 +312,8 @@ _SYN_JUNTOS = {
 _SUBENCABEZADOS = {"1", "2", "3", "anos", "meses", "dias", "departamento", "municipio", "localidad"}
 _ETIQUETAS_ENCABEZADO = [("establecimiento", "establecimiento"), ("codigo", "codigo"),
                          ("tipo de establecimiento", "tipo_establecimiento"), ("departamento", "departamento"),
-                         ("municipio", "municipio"), ("fecha", "fecha"), ("nombre", "profesional")]
+                         ("municipio", "municipio"), ("localidad", "localidad"), ("fecha", "fecha"),
+                         ("nombre", "profesional")]
 
 
 def _anio2(texto, nacimiento=False):
@@ -383,12 +456,14 @@ def import_excel(path):
                         break
                     val = w.strftime("%d/%m/%Y") if isinstance(w, (date, datetime)) else str(w).strip()
                     break
-            if val and not header[k]:
+            if val and not header.get(k):
                 header[k] = val
     header["fecha"] = _anio2(header["fecha"])
+    loc_hoja = header.pop("localidad", "")            # plantilla nueva: la localidad va en el encabezado, no en cada fila
     rows, warnings = [], []
     for row in grid[data_start:]:
         r = {k: "" for k in KEYS}
+        r["edad_txt"] = ""
         for j, k in colmap.items():
             v = row[j] if j < len(row) else None
             if v is None:
@@ -399,9 +474,17 @@ def import_excel(path):
                 v = int(v)
             r[k] = str(v).strip()
         r["fecha_nacimiento"] = _anio2(r["fecha_nacimiento"], nacimiento=True)
+        edad_txt = r.pop("edad_txt")                      # una sola columna «EDAD» (34, 8m, 10d…)
+        if edad_txt and not (r["edad_anios"] or r["edad_meses"] or r["edad_dias"]):
+            r["edad_anios"], r["edad_meses"], r["edad_dias"] = parse_edad(edad_txt)
+        r["estado_civil"] = normalizar_estado_civil(r["estado_civil"])
+        r["profesion"] = normalizar_profesion(r["profesion"])
         if r["obst"]:
             r["obst"] = fmt_obst(parse_obst(r["obst"]))         # «G=    P=   …» sin números = vacío
         if not row_is_empty(r):
+            for k, v in (("dep", header.get("departamento", "")), ("mun", header.get("municipio", "")), ("loc", loc_hoja)):
+                if not r[k] and v:                            # procedencia: la del encabezado si la fila no la trae
+                    r[k] = v
             rows.append(r)
     sx = {str(r.get("sexo") or "").strip().upper() for r in rows}
     cambios = normalizar_sexos(rows)
@@ -410,6 +493,14 @@ def import_excel(path):
     if cambios:
         warnings.append(f"Se corrigió el sexo de {cambios} fila(s) a H (hombre) o M (mujer) "
                         "(venía como masculino/femenino, F o palabras). Verifique el sexo.")
+    sin_ec = [r for r in rows if r["estado_civil"] and r["estado_civil"] not in ESTADO_CIVIL_CODIGOS]
+    if sin_ec:
+        warnings.append(f"Estado civil no reconocido en {len(sin_ec)} fila(s) (use S, C, UL, D o V): se propone el valor por defecto.")
+    sin_prof = [r for r in rows if r["profesion"] and not ocupacion_ai(r["profesion"])]
+    if sin_prof:
+        warnings.append(f"Profesión no reconocida en {len(sin_prof)} fila(s) (use AM u O): se propone el valor por defecto.")
+    if rows and not header.get("municipio"):
+        warnings.append("El encabezado no trae municipio: el lugar de atención se toma del establecimiento o de Configuración.")
     if not rows:
         warnings.append("El archivo no tiene filas de pacientes.")
     return header, rows, warnings
@@ -503,20 +594,21 @@ def export_excel(path, header: dict, rows: list):
     ws["A7"], ws["B7"], ws["C7"], ws["D7"] = "N°", "NOMBRES Y APELLIDOS", "NÚMERO DE TELEFONO", "SEXO (M/F)"
     ws["E7"], ws["F7"], ws["I7"], ws["J7"] = "FECHA DE NACIMIENTO (dd/mm/aa)", "EDAD", "PACIENTE", "PROCEDENCIA"
     ws["M7"], ws["P7"] = "DIAGNÓSTICO / ACTIVIDAD", "Gestas, partos, cesareas, abortos, HV, HM"
+    ws["R7"], ws["S7"] = "ESTADO CIVIL", "PROFESIÓN"
     ws["M8"], ws["N8"], ws["O8"] = "1", "2", "3"
     ws["F9"], ws["G9"], ws["H9"], ws["J9"], ws["K9"], ws["L9"] = "AÑOS", "MESES", "DÍAS", "DEPARTAMENTO", "MUNICIPIO", "LOCALIDAD"
     n = max(20, len(rows))
     for rng in ("A1:C1", "A2:C2", "A3:C3", "F1:N3", "O1:O3", "A5:B5", "D5:E5", "J5:K5", "P5:Q5", "A6:B6", "C6:L6",
                 "A7:A9", "B7:B9", "C7:C9", "D7:D9", "E7:E9", "F7:H8", "I7:I9", "J7:L8", "M7:O7", "M8:M9", "N8:N9",
-                "O8:O9", "P7:Q9") + tuple(f"P{10 + i}:Q{10 + i}" for i in range(n)):
+                "O8:O9", "P7:Q9", "R7:R9", "S7:S9") + tuple(f"P{10 + i}:Q{10 + i}" for i in range(n)):
         ws.merge_cells(rng)
     for r in range(7, 10):
-        for c in range(1, 18):
+        for c in range(1, 20):
             ws.cell(r, c).alignment = centro
             ws.cell(r, c).font = Font(bold=True, size=9)
     cols = {"numero": "A", "nombre": "B", "telefono": "C", "sexo": "D", "fecha_nacimiento": "E", "edad_anios": "F",
             "edad_meses": "G", "edad_dias": "H", "dep": "J", "mun": "K", "loc": "L", "dx1": "M", "dx2": "N", "dx3": "O",
-            "obst": "P"}
+            "obst": "P", "estado_civil": "R", "profesion": "S"}
     for i in range(n):
         r = 10 + i
         datos = rows[i] if i < len(rows) else {}
@@ -529,9 +621,9 @@ def export_excel(path, header: dict, rows: list):
             elif k == "obst" and not v:
                 v = "G=    P=    C=    A=    HV=    HM=   "
             ws[f"{col}{r}"] = v
-        for c in range(1, 18):
+        for c in range(1, 20):
             ws.cell(r, c).border = borde
     for col, w in {"A": 4, "B": 34, "C": 15, "D": 7, "E": 14, "F": 6, "G": 7, "H": 6, "I": 9, "J": 13, "K": 13, "L": 16,
-                   "M": 22, "N": 22, "O": 22, "P": 22, "Q": 16}.items():
+                   "M": 22, "N": 22, "O": 22, "P": 22, "Q": 16, "R": 9, "S": 9}.items():
         ws.column_dimensions[col].width = w
     wb.save(path)

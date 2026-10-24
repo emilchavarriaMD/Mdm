@@ -927,7 +927,8 @@ class ActivityInfoDialog(_Modal):
         if menor == self._soc_menor:
             return
         self._soc_menor = menor
-        nuevo = ai.defectos_ficha(menor=menor)
+        nuevo = ai.defectos_ficha(menor=menor, estado_civil=self.defaults.get("ata_estado_civil", ""),
+                                  ocupacion=self.defaults.get("ata_ocupacion", ""))
         for k in ("estado_civil", "escolaridad", "ocupacion"):
             if self.w[k].get_value() == self._soc_auto.get(k):
                 self.w[k].set_value(nuevo[k])

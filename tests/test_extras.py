@@ -307,3 +307,63 @@ class TestChromeCerrado(unittest.TestCase):
             self.assertEqual(llamadas, ["get"])
         finally:
             ai._get_driver, ai._fill_form_una_vez, ai._descartar_driver = guardados
+
+
+class TestATANuevo(unittest.TestCase):
+    """ATA nuevo: estado civil en letras, profesión AM/O, una sola columna EDAD y localidad en el encabezado."""
+    def _hoja(self):
+        import openpyxl
+        wb = openpyxl.load_workbook(Path(__file__).parent / "ata_nuevo_vacio.xlsx")
+        ws = wb.active
+        ws["C3"], ws["K3"], ws["D4"] = "Centro de Salud Sula", "Col. Las Brisas", "Fecha (dd/mm/aa): 23/10/26"
+        filas = [("Ana Pérez", "9999-1111", "F", "UL", "AM", "34", "Candidiasis", "Parasitosis"),
+                 ("Luis Gómez", "", "M", "s", "O", "8m", "Resfriado", ""),
+                 ("Pedro", "", "M", "x", "Estudiante", "5a 3m", "Gastritis", "")]
+        for i, f in enumerate(filas):
+            for col, v in zip("BCDEFGHI", f):
+                ws[f"{col}{8 + i}"] = v
+        p = Path(tempfile.mkdtemp(dir=_TMP)) / "n.xlsx"
+        wb.save(p)
+        return p
+
+    def test_importa_columnas_nuevas(self):
+        h, rows, w = A.import_excel(self._hoja())
+        self.assertEqual(len(rows), 3)
+        self.assertEqual(h["departamento"], "Cortes")
+        self.assertEqual(h["fecha"], "23/10/2026")
+        self.assertEqual({r["loc"] for r in rows}, {"Col. Las Brisas"})
+        self.assertEqual({r["dep"] for r in rows}, {"Cortes"})
+        self.assertEqual((rows[0]["estado_civil"], rows[0]["profesion"], rows[0]["edad_anios"]), ("UL", "AM", "34"))
+        self.assertEqual((rows[1]["estado_civil"], rows[1]["edad_meses"], rows[1]["edad_anios"]), ("S", "8", ""))
+        self.assertEqual((rows[2]["edad_anios"], rows[2]["edad_meses"]), ("5", "3"))
+        self.assertTrue(any("Estado civil no reconocido" in x for x in w))
+
+    def test_equivalencias(self):
+        self.assertEqual(A.estado_civil_ai("ul"), "Unión Libre")
+        self.assertEqual(A.estado_civil_ai("C"), "Casado/a")
+        self.assertEqual(A.estado_civil_ai("Soltera"), "Soltero/a")
+        self.assertEqual(A.estado_civil_ai("zz"), "")
+        self.assertEqual(A.ocupacion_ai("am"), "Trabajo doméstico NO remunerado")
+        self.assertEqual(A.ocupacion_ai("O"), "Otro")
+        self.assertEqual(A.ocupacion_ai("Estudiante"), "Estudiante")
+        self.assertEqual(A.parse_edad("34"), ("34", "", ""))
+        self.assertEqual(A.parse_edad("10 d"), ("", "", "10"))
+
+    def test_guarda_y_llena_la_ficha(self):
+        from services import activityinfo as ai
+        db = Database(Path(tempfile.mkdtemp(dir=_TMP)) / "t.db")
+        h, rows, _ = A.import_excel(self._hoja())
+        h2, clean, errs = A.prepare_sheet(h, rows)
+        self.assertEqual(errs, [])
+        A.save_sheet(db, h2, clean)
+        recs = {r["nombre"]: r for r in A.list_records(db)}
+        d = ai.build_defaults(db, recs["Ana Pérez"])
+        self.assertEqual((d["estado_civil"], d["ocupacion"]), ("Unión Libre", "Trabajo doméstico NO remunerado"))
+        self.assertEqual(d["punto_especifico"], "Col. Las Brisas")
+        d = ai.build_defaults(db, recs["Luis Gómez"])        # menor: «No aplica» manda
+        self.assertEqual((d["estado_civil"], d["ocupacion"]), ("No aplica", "No aplica"))
+        # exportar y volver a leer conserva estado civil y profesión
+        out = Path(tempfile.mkdtemp(dir=_TMP)) / "e.xlsx"
+        A.export_excel(out, h2, clean)
+        _h, r2, _w = A.import_excel(out)
+        self.assertEqual([(r["estado_civil"], r["profesion"]) for r in r2][:2], [("UL", "AM"), ("S", "O")])

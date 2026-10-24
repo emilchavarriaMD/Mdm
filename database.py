@@ -335,7 +335,7 @@ class Database:
         if "ai_estado" not in acols:
             self.conn.execute("ALTER TABLE ata_rows ADD COLUMN ai_estado TEXT NOT NULL DEFAULT 'Pendiente'")
             self.conn.execute("ALTER TABLE ata_rows ADD COLUMN ai_fecha TEXT")
-        for col in ("telefono", "obst"):   # plantilla ATA-2023: teléfono y gestas/partos/cesáreas/abortos/HV/HM
+        for col in ("telefono", "obst", "estado_civil", "profesion"):   # plantilla ATA-2023: teléfono y gestas/partos/cesáreas/abortos/HV/HM
             if col not in acols:
                 self.conn.execute(f"ALTER TABLE ata_rows ADD COLUMN {col} TEXT")
         if "ai_datos" not in acols:        # lo que se llenó en ActivityInfo (para volver a ver el registro)

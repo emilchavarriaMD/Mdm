@@ -15,6 +15,7 @@ from pathlib import Path
 import config
 from services import cie11_catalog as cat
 from services import cie11_ssr
+from services import ata as _ata
 from services import hea_banco
 from services.hea import generate_hea
 
@@ -260,7 +261,7 @@ def es_menor_de_edad(edad, unidad="años"):
     return e.isdigit() and int(e) < 18
 
 
-def defectos_ficha(rng=None, menor=False):
+def defectos_ficha(rng=None, menor=False, estado_civil="", ocupacion=""):
     """Valores que se proponen en la ficha cuando el ATA no los trae (la persona los cambia en la ventana).
     Escolaridad y sector de ocupación se eligen al azar entre dos opciones. En menores de 18 años:
     estado civil «No aplica», escolaridad «Ninguno» y sector de ocupación «No aplica»."""
@@ -271,6 +272,8 @@ def defectos_ficha(rng=None, menor=False):
          "discapacidad": "No", "derivado": "No"}
     if menor:
         d.update(estado_civil="No aplica", escolaridad="Ninguno", ocupacion="No aplica")
+    else:                                   # lo que dice el ATA (estado civil, profesión) manda sobre el valor por defecto
+        d.update({k: v for k, v in (("estado_civil", estado_civil), ("ocupacion", ocupacion)) if v})
     return d
 
 
@@ -400,7 +403,10 @@ def build_defaults(db, rec: dict) -> dict:
         "nacionalidad": st["ai_nacionalidad"], "idioma": st["ai_idioma"],
         "nombres": nombres, "apellidos": apellidos, "telefono": telefono_internacional(rec.get("telefono")),
         "tiene_fecha_nac": "No", "edad": edad,
-        **defectos_ficha(menor=es_menor_de_edad(persona["edad"], persona["unidad"])), "perfil": PERFIL_FIJO,
+        **defectos_ficha(menor=es_menor_de_edad(persona["edad"], persona["unidad"]),
+                         estado_civil=_ata.estado_civil_ai(rec.get("estado_civil")),
+                         ocupacion=_ata.ocupacion_ai(rec.get("profesion"))), "perfil": PERFIL_FIJO,
+        "ata_estado_civil": _ata.estado_civil_ai(rec.get("estado_civil")), "ata_ocupacion": _ata.ocupacion_ai(rec.get("profesion")),
         "consultas": [CONSULTA_APS], "profesional": st["ai_profesional"],
         "tipo_consulta": "Primera", "dx": dxs,
     }
