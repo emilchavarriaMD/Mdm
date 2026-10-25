@@ -367,3 +367,45 @@ class TestATANuevo(unittest.TestCase):
         A.export_excel(out, h2, clean)
         _h, r2, _w = A.import_excel(out)
         self.assertEqual([(r["estado_civil"], r["profesion"]) for r in r2][:2], [("UL", "AM"), ("S", "O")])
+
+
+class TestRevision(unittest.TestCase):
+    def setUp(self):
+        self.db = Database(Path(tempfile.mkdtemp(dir=_TMP)) / "t.db")
+
+    def _hoja(self, nombre="Jose Lopes"):
+        return A.save_sheet(self.db, HEADER, [fila(nombre, "H", 30, "HTA")])
+
+    def test_corregir_nombre_conserva_registrado(self):
+        sid = self._hoja()
+        rid = A.list_records(self.db)[0]["id"]
+        A.set_registered(self.db, rid, True)
+        _s, rows = A.get_sheet(self.db, sid)
+        nuevo = dict(fila("José López", "H", 30, "HTA"), _id=str(rows[0]["id"]))
+        _h, clean, _e = A.prepare_sheet(HEADER, [nuevo])
+        A.save_sheet(self.db, _h, clean, sid)
+        self.assertEqual(A.list_records(self.db)[0]["ai_estado"], "Registrado")
+
+    def test_busqueda_con_tildes(self):
+        self._hoja("María GARCÍA")
+        for q in ("garcía", "garcia", "MARIA", "maría garcía"):
+            self.assertEqual(len(A.list_records(self.db, q)), 1, q)
+        self.assertEqual(len(A.list_records(self.db, "peña")), 0)
+
+    def test_edad_sin_dato_usa_fecha_nacimiento_y_cero_anios(self):
+        from services import activityinfo as ai
+        self._hoja()
+        rec = dict(A.list_records(self.db)[0])
+        rec.update(edad_anios="", fecha_nacimiento="2018-03-10", fecha="2026-10-23")
+        self.assertEqual(ai.build_defaults(self.db, rec)["hea_persona"], {"sexo": "H", "edad": "8", "unidad": "años"})
+        rec.update(edad_anios="0", fecha_nacimiento="")
+        d = ai.build_defaults(self.db, rec)
+        self.assertEqual(d["hea_persona"]["edad"], "0")
+        self.assertEqual(d["estado_civil"], "No aplica")
+
+    def test_edad_absurda_y_cervicalgia(self):
+        _h, _c, errs = A.prepare_sheet(HEADER, [dict(fila("X", "H", 340, "HTA"))])
+        self.assertTrue(any("no es válida" in e for e in errs))
+        from services import coherencia
+        self.assertFalse(coherencia._SOLO_MUJER.search("cervicalgia"))
+        self.assertTrue(coherencia._SOLO_MUJER.search("cervicitis"))

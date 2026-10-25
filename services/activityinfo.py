@@ -359,8 +359,17 @@ def build_defaults(db, rec: dict) -> dict:
         persona = {"sexo": sexo, "edad": meses, "unidad": "meses"}
     elif dias:
         persona = {"sexo": sexo, "edad": dias, "unidad": "días"}
+    elif anios == "0":
+        persona = {"sexo": sexo, "edad": "0", "unidad": "años"}      # «0 años» es un menor de un año, no una edad vacía
     else:
-        persona = {"sexo": sexo, "edad": "", "unidad": "años"}
+        from services.patients import calc_age
+        nac = calc_age((rec.get("fecha_nacimiento") or "")[:10], (rec.get("fecha") or "")[:10] or None)
+        if nac:                                                       # sin edad escrita: se calcula con la fecha de nacimiento
+            persona = {"sexo": sexo, "edad": str(nac[0]), "unidad": nac[1]}
+            if not edad:
+                edad = str(nac[0]) if nac[1] == "años" else "0"
+        else:
+            persona = {"sexo": sexo, "edad": "", "unidad": "años"}
     descs = []
     for x in dxs:
         d = cat.from_label(x["descripcion"])[0] if x["descripcion"] else ""
@@ -578,8 +587,13 @@ def _fill_form_una_vez(drv, data, wait_login_seconds):
     drv.set_script_timeout(180)
     t0 = time.time()
     while time.time() - t0 < wait_login_seconds:
-        found = drv.execute_script(
-            "return !!document.querySelector('label.forminput__lookup__key, .forminput__field')")
+        try:
+            found = drv.execute_script(
+                "return !!document.querySelector('label.forminput__lookup__key, .forminput__field')")
+        except Exception as exc:  # noqa: BLE001
+            if _ventana_muerta(exc):
+                raise
+            found = False             # la página está cambiando (inicio de sesión, redirecciones): se sigue esperando
         if found:
             break
         time.sleep(1)

@@ -3,7 +3,7 @@ import re
 
 from services import cie11_catalog as cat
 
-_SOLO_MUJER = re.compile(r"embaraz|gestaci|gestante|puerper|parto|aborto|amenorrea|vagin|vulv|cervic|cuello uterino|"
+_SOLO_MUJER = re.compile(r"embaraz|gestaci|gestante|puerper|parto|aborto|amenorrea|vagin|vulv|cervicitis|cervical uterin|cuello uterino|"
                          r"leucorrea|dismenorrea|menopaus|mastitis|lactanc|anticoncepci|planificaci[oó]n familiar|"
                          r"\bpf\b|\baco\b|acos|\bdiu\b|prenatal|ovari|uter|candidiasis vulvo|menstru|sangrado uterino", re.I)
 _SOLO_HOMBRE = re.compile(r"pr[oó]stat|\bhpb\b|escrot|test[ií]cul|balan|fimosis|prepucio|hidrocele|varicocele|epid[ií]dim", re.I)

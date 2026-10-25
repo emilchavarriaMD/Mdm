@@ -154,5 +154,10 @@ class App:
                 backup.auto_backup(self.db)
             except Exception:  # noqa: BLE001
                 pass
+        try:
+            from services import activityinfo
+            activityinfo._descartar_driver()      # no dejar el controlador de Chrome abierto
+        except Exception:  # noqa: BLE001
+            pass
         self.db.close()
         self.root.destroy()

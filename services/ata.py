@@ -143,7 +143,7 @@ def prepare_sheet(header: dict, rows: list):
     except ValidationError as exc:
         errors.append(str(exc))
     clean = []
-    filas = [{k: (r.get(k) or "").strip() for k in KEYS} for r in expand_ditto(rows)]
+    filas = [{**{k: (r.get(k) or "").strip() for k in KEYS}, "_id": str(r.get("_id") or "")} for r in expand_ditto(rows)]
     normalizar_sexos(filas)                       # masculino/femenino, F, palabras… -> H o M
     for i, r in enumerate(filas, 1):
         if row_is_empty(r):
@@ -164,6 +164,8 @@ def prepare_sheet(header: dict, rows: list):
         for k in ("edad_anios", "edad_meses", "edad_dias"):
             if r[k] and not r[k].isdigit():
                 errors.append(f"{tag}: {dict((c[0], c[1]) for c in COLUMNS)[k].lower()} debe ser un número entero.")
+        if r["edad_anios"].isdigit() and int(r["edad_anios"]) > 120:
+            errors.append(f"{tag}: la edad en años ({r['edad_anios']}) no es válida.")
         if not r["nombre"]:
             errors.append(f"{tag}: falta el nombre.")
         clean.append(r)
@@ -172,7 +174,7 @@ def prepare_sheet(header: dict, rows: list):
 
 def save_sheet(db, header: dict, rows: list, sheet_id=None, imagen=None, brigade_id=None) -> int:
     ts = now_iso()
-    prev = {}
+    prev, prev_id = {}, {}
     with db.transaction():
         if sheet_id is None:
             cur = db.execute(
@@ -193,14 +195,17 @@ def save_sheet(db, header: dict, rows: list, sheet_id=None, imagen=None, brigade
                  header["tipo_establecimiento"], header["departamento"], header["municipio"],
                  brigade_id, imagen, ts, sheet_id))
             # se conserva el estado de ActivityInfo de lo ya registrado (se compara nombre + fecha nac.)
+            antes = db.query("SELECT * FROM ata_rows WHERE sheet_id=? AND borrado_en IS NULL", (sheet_id,))
             prev = {(x["nombre"].lower(), x["fecha_nacimiento"] or "", x["numero"] or ""):
-                    (x["ai_estado"], x["ai_fecha"], x.get("ai_datos"))
-                    for x in db.query("SELECT * FROM ata_rows WHERE sheet_id=? AND borrado_en IS NULL", (sheet_id,))}
+                    (x["ai_estado"], x["ai_fecha"], x.get("ai_datos")) for x in antes}
+            prev_id = {str(x["id"]): (x["ai_estado"], x["ai_fecha"], x.get("ai_datos")) for x in antes}
             db.execute("DELETE FROM ata_rows WHERE sheet_id=? AND borrado_en IS NULL", (sheet_id,))
             db.audit("ata", sheet_id, "modificación", f"Hoja ATA {header['fecha']}")
         for n, r in enumerate(rows):
-            est = prev.get((r["nombre"].lower(), r["fecha_nacimiento"] or "", r["numero"] or ""),
-                           ("Pendiente", None, None))
+            # el estado de ActivityInfo se conserva por la fila (id) y, si no, por nombre + fecha + número:
+            # así corregir una letra del nombre no devuelve a «Pendiente» a quien ya está registrado
+            est = prev_id.get(str(r.get("_id") or "")) or prev.get(
+                (r["nombre"].lower(), r["fecha_nacimiento"] or "", r["numero"] or ""), ("Pendiente", None, None))
             db.execute(
                 f"INSERT INTO ata_rows (sheet_id, orden, {', '.join(KEYS)}, ai_estado, ai_fecha, ai_datos) "
                 f"VALUES (?, ?, {', '.join('?' * len(KEYS))}, ?, ?, ?)",
@@ -211,10 +216,6 @@ def save_sheet(db, header: dict, rows: list, sheet_id=None, imagen=None, brigade
 def list_records(db, texto="", estado="Todos"):
     """Un renglón por paciente/atención, con los datos de su hoja."""
     where, params = ["r.borrado_en IS NULL"], []
-    for tok in texto.lower().split():
-        where.append("(LOWER(r.nombre) LIKE ? OR LOWER(r.hc) LIKE ? OR r.identidad LIKE ? OR LOWER(r.dx1) LIKE ? "
-                     "OR LOWER(r.dx2) LIKE ? OR LOWER(r.dx3) LIKE ?)")
-        params += [f"%{tok}%"] * 6
     if estado in ("Pendiente", "Llenado", "Registrado"):
         where.append("r.ai_estado = ?")
         params.append(estado)
@@ -223,7 +224,14 @@ def list_records(db, texto="", estado="Todos"):
            "FROM ata_rows r JOIN ata_sheets s ON s.id = r.sheet_id")
     if where:
         sql += " WHERE " + " AND ".join(where)
-    return db.query(sql + " ORDER BY COALESCE(s.fecha,'') DESC, r.sheet_id DESC, r.orden", params)
+    filas = db.query(sql + " ORDER BY COALESCE(s.fecha,'') DESC, r.sheet_id DESC, r.orden", params)
+    toks = _norm(texto).split()
+    if toks:                         # búsqueda sin importar tildes ni mayúsculas (SQLite no las cambia fuera de ASCII)
+        def coincide(r):
+            pajar = _norm(" ".join(str(r.get(k) or "") for k in ("nombre", "hc", "identidad", "dx1", "dx2", "dx3")))
+            return all(t in pajar for t in toks)
+        filas = [r for r in filas if coincide(r)]
+    return filas
 
 
 def get_record(db, rid):
@@ -589,7 +597,7 @@ def export_excel(path, header: dict, rows: list):
     ws["N5"], ws["P5"] = header.get("departamento") or "", header.get("municipio") or ""
     f = header.get("fecha") or ""
     ws["N6"] = fmt_date(f) if f else ""
-    ws["A7"], ws["B7"], ws["C7"], ws["D7"] = "N°", "NOMBRES Y APELLIDOS", "NÚMERO DE TELEFONO", "SEXO (M/F)"
+    ws["A7"], ws["B7"], ws["C7"], ws["D7"] = "N°", "NOMBRES Y APELLIDOS", "NÚMERO DE TELEFONO", "SEXO (H/M)"
     ws["E7"], ws["F7"], ws["I7"], ws["J7"] = "FECHA DE NACIMIENTO (dd/mm/aa)", "EDAD", "PACIENTE", "PROCEDENCIA"
     ws["M7"], ws["P7"] = "DIAGNÓSTICO / ACTIVIDAD", "Gestas, partos, cesareas, abortos, HV, HM"
     ws["R7"], ws["S7"] = "ESTADO CIVIL", "PROFESIÓN"

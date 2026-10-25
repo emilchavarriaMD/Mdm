@@ -257,6 +257,9 @@ class PacientesPage(Page):
         self._abrir_dialogo(rid, rec, d, titulo=f"Registro guardado — {rec['nombre']}")
 
     def _abrir_dialogo(self, rid, rec, defaults, titulo=None):
+        if self._busy:                       # un solo llenado a la vez: Chrome y el resultado son compartidos
+            dialogs.info(self, "Todavía se está llenando el formulario anterior en Chrome. Espere a que termine.")
+            return
         dlg = ActivityInfoDialog(self, defaults, db=self.db, **({"title": titulo} if titulo else {}))
         data = dlg.run()
         if not data:
@@ -282,6 +285,7 @@ class PacientesPage(Page):
             return
         rid, nombre, data, report, exc = self._result
         self._result = None
+        self._busy = False
         fill_log.registrar(nombre, report, exc, data.get("consultas"))
         if exc is None:
             ata_svc.set_llenado(self.db, rid)

@@ -4,6 +4,7 @@ import tkinter as tk
 from datetime import date
 from tkinter import ttk
 
+import backup
 from services import ata as ata_svc
 from services.validators import fmt_date
 from ui import common, dialogs, theme, widgets
@@ -96,6 +97,14 @@ class AtaPage(Page):
 
     # ------------------------------------------------------------------
     def on_show(self, **kw):
+        # si no hay cambios sin guardar, se vuelve a leer la hoja (pudo cambiar en «Pacientes»: papelera, restaurar copia…)
+        if self.sheet_id is not None and self._clean is not None and not self.is_dirty():
+            sheet, _rows = ata_svc.get_sheet(self.db, self.sheet_id)
+            if sheet:
+                self._open(self.sheet_id)
+            else:
+                self.sheet_id = None
+                self.new(force=True)
         self.refresh()
         if self.sheet_id is None and not self.cells:
             self.new(force=True)
@@ -148,6 +157,7 @@ class AtaPage(Page):
         vars_ = {}
         for k, _lbl, _w in ata_svc.COLUMNS:          # lo que ya no se pide (HC, identidad, CIE…) se conserva sin mostrarse
             vars_[k] = tk.StringVar(value=(values or {}).get(k, "") or "")
+        vars_["_id"] = tk.StringVar(value=str((values or {}).get("_id") or (values or {}).get("id") or ""))   # fila de la base (no se ve)
         for c, (k, _, w) in enumerate(ata_svc.UI_COLUMNS):
             e = ttk.Entry(self.grid_frame, textvariable=vars_[k], width=w)
             e.grid(row=r, column=c, padx=1, pady=1)
@@ -208,7 +218,7 @@ class AtaPage(Page):
             dialogs.info(self, "Haga clic en una celda de la línea que quiere duplicar y vuelva a pulsar «Duplicar línea».")
             return
         filas = self._valores()
-        filas.insert(i + 1, dict(filas[i]))
+        filas.insert(i + 1, {**filas[i], "_id": ""})   # la copia es una fila nueva
         self._rehacer(filas)
 
     def remove_empty(self):
@@ -313,10 +323,14 @@ class AtaPage(Page):
     def delete(self):
         if self.sheet_id is None:
             return
-        if not dialogs.confirm(self, "Eliminar hoja", "¿Eliminar esta hoja ATA y sus filas? "
-                               "Las fichas de pacientes no se tocan.", yes="Eliminar", no="Cancelar",
+        if not dialogs.confirm(self, "Eliminar hoja", "¿Eliminar esta hoja ATA y todas sus filas "
+                               "(también las registradas y las de la papelera)? Antes se guarda una copia de seguridad.", yes="Eliminar", no="Cancelar",
                                danger=True):
             return
+        try:
+            backup.auto_backup(self.db, prefix="previa_borrado")   # la hoja se borra de forma definitiva: copia antes
+        except Exception:  # noqa: BLE001
+            pass
         ata_svc.delete_sheet(self.db, self.sheet_id)
         self.sheet_id = None
         self.new(force=True)
