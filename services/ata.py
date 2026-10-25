@@ -428,8 +428,6 @@ def import_excel(path):
             or (syn.get(_norm(" ".join(partes))) if partes else None)
         if k and k not in colmap.values():
             colmap[j] = k
-    sexo_mf = any("m/f" in str(grid[hdr_row][j] or "").lower().replace(" ", "")
-                  for j, k in colmap.items() if k == "sexo")
     header = {k: "" for k, _ in HEADER_FIELDS}
     labels = {_norm(lbl): k for k, lbl in HEADER_FIELDS}
     for row in grid[:hdr_row]:                                  # formato simple: etiqueta en la columna A, valor en la B
