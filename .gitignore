@@ -7,3 +7,7 @@ dist/
 *.log
 exportaciones/
 respaldos/
+# Datos de pacientes: hojas ATA llenadas y perfil de Chrome con la sesión de ActivityInfo
+ATA_*.xlsx
+chrome_activityinfo/
+.idea/
