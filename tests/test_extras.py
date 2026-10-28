@@ -170,6 +170,38 @@ class T22_ExportarEnPlantilla(unittest.TestCase):
         self.assertEqual((vuelta[0]["telefono"], vuelta[0]["fecha_nacimiento"], vuelta[1]["edad_meses"]), ("9988-7766", "", "6"))
         self.assertEqual(warns, [])
 
+    def test_hoja_sin_fecha_avisa(self):
+        import openpyxl
+        wb = openpyxl.Workbook()
+        ws = wb.active
+        ws["A1"], ws["B1"], ws["C1"], ws["D1"] = "Nombre completo", "Sexo", "Edad años", "Diagnóstico 1"
+        ws["A2"], ws["B2"], ws["C2"], ws["D2"] = "Ana", "M", 30, "HTA"
+        p = Path(tempfile.mkdtemp(dir=_TMP)) / "sinfecha.xlsx"
+        wb.save(p)
+        h, rows, warns = A.import_excel(p)
+        self.assertEqual(h["fecha"], "")
+        self.assertTrue(any("fecha de la hoja" in w for w in warns), warns)
+
+    def test_resumen_de_fechas_del_llenado(self):
+        from services import fill_log
+        ok = {"fechas": {"esperada": "2026-10-24", "ficha": "2026-10-24", "aps": "2026-10-24", "ssr": "2026-10-24"}}
+        r = fill_log.resumen_fechas(ok, hoy="2026-10-28")
+        self.assertIn("2026-10-24", r[0])
+        self.assertIn("APS 2026-10-24", r[0])
+        self.assertEqual(len(r), 1)                                                   # todo bien: sin advertencias
+        mala = {"fechas": {"esperada": "2026-10-24", "ficha": "2026-10-24", "aps": "2026-10-28"}}
+        r = fill_log.resumen_fechas(mala, hoy="2026-10-28")
+        self.assertTrue(any("⚠" in x and "corríjala" in x for x in r), r)
+        sin = fill_log.resumen_fechas({"fechas": {"esperada": "", "ficha": "2026-10-28"}}, hoy="2026-10-28")
+        self.assertIn("SIN FECHA", sin[0])
+        self.assertTrue(any("no trae fecha" in x for x in sin), sin)
+        hoy = fill_log.resumen_fechas({"fechas": {"esperada": "2026-10-28", "ficha": "2026-10-28"}}, hoy="2026-10-28")
+        self.assertTrue(any("HOY" in x for x in hoy), hoy)                           # coincide con hoy: se avisa
+        self.assertEqual(fill_log.resumen_fechas({}), [])
+        e = {"fecha": "x", "paciente": "Ana", "error": "", "no_llenados": [], "verificacion": [], **{
+            "fechas": ok["fechas"], "version_programa": "2.5", "version_llenado": 30}}
+        self.assertIn("programa 2.5, llenado v30", fill_log.texto(e))
+
     def test_fecha_de_nacimiento_se_ignora_y_la_edad_solo_se_calcula_si_falta(self):
         import openpyxl
         wb = openpyxl.Workbook()

@@ -1,6 +1,6 @@
 /* Llena el formulario de ActivityInfo. NUNCA pulsa Guardar registro ni Guardar como borrador. */
 (function () {
-  const VERSION = 29;
+  const VERSION = 30;
   if (window.__mdm && window.__mdm.version === VERSION) return;   // una versión vieja en la pestaña se reemplaza
   const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
   const norm = (s) => (s || "").replace(/\s+/g, " ").replace(/\*/g, "").replace(/OBLIGATORIO/g, "").trim().toLowerCase();
@@ -44,6 +44,15 @@
     inp.dispatchEvent(new Event("change", { bubbles: true })); inp.blur();
     if (!/fecha/i.test(label)) CHK.push({ label, el: inp, esperado: String(value) });
   }
+  // «Fecha consulta»: el último campo visible con ese nombre (la ficha principal y cada subformulario tienen el suyo, y el
+  // subformulario es lo último que se abrió). FECHAS guarda lo que quedó escrito en cada uno, para informarlo al terminar.
+  const FECHAS = {};
+  const campoFecha = () => {
+    const ls = [...document.querySelectorAll("label")].filter((l) => visible(l) && norm(l.textContent).startsWith("fecha consulta"));
+    const l = ls[ls.length - 1];
+    return l ? inputFor(l) : null;
+  };
+  const leerFecha = () => { const i = campoFecha(); return i ? i.value : ""; };
   // Verificación: vuelve a leer lo escrito en los cuadros de texto y avisa si quedó vacío o distinto.
   const CHK = [];
   const compacto = (t) => plain(t).replace(/[^a-z0-9]+/g, "");
@@ -142,6 +151,7 @@
     if (d.perfin) await S("Proyecto: PERFIN", () => lk("PROYECTOS PERFIN", d.perfin));
     // 3) Datos de la persona, en el orden de la página
     if (d.fecha) await S("Fecha consulta", () => setText("Fecha consulta", d.fecha));
+    else log.push(`Fecha consulta: el ATA no trae fecha; en ActivityInfo quedó la de HOY (${leerFecha() || "?"}). Corríjala a mano.`);
     if (d.genero) await S("Género", () => setRadio("Género", d.genero));
     if (d.lgtbiq) await S("¿Se identifica como persona LGTBIQ+?", () => setLookup("¿Se identifica como persona LGTBIQ+?", d.lgtbiq));
     if (d.pueblo) {
@@ -201,6 +211,10 @@
       if (d.derivado_codigo) await S("Código de referencia", () => poner("Código de referencia", "Procedencia de la derivación", "Código de referencia", d.derivado_codigo));
     }
     if ((d.consultas || []).length) await S("Consulta a realizar", () => setChecks("Consulta a realizar", d.consultas));
+    // La ficha principal también propone la fecha de HOY: al terminar se comprueba que sigue siendo la del ATA.
+    await sleep(400);
+    FECHAS.ficha = leerFecha();
+    if (d.fecha && FECHAS.ficha !== String(d.fecha)) log.push(`Fecha consulta: quedó «${FECHAS.ficha}» en vez de «${d.fecha}» (la fecha del ATA); corríjala a mano`);
     return log;
   }
 
@@ -217,23 +231,23 @@
   // de la consulta es la del ATA, así que se escribe en cada uno y se comprueba que se quedó (por si el formulario vuelve a
   // poner la de hoy). Se toma el último «Fecha consulta» visible: el subformulario es lo último que se abrió.
   async function fijarFecha(d, nombre, log) {
-    if (!d.fecha) return;
+    const clave = nombre.toLowerCase();
+    if (!d.fecha) {
+      await sleep(300); FECHAS[clave] = leerFecha();
+      log.push(`${nombre}: Fecha consulta: el ATA no trae fecha; quedó la de HOY (${FECHAS[clave] || "?"}). Corríjala a mano.`);
+      return;
+    }
     const f = String(d.fecha);
     await step(log, nombre + ": Fecha consulta", async () => {
-      const campo = () => {
-        const ls = [...document.querySelectorAll("label")].filter((l) => visible(l) && norm(l.textContent).startsWith("fecha consulta"));
-        const l = ls[ls.length - 1];
-        return l ? inputFor(l) : null;
-      };
       const poner = () => {
-        const inp = campo(); if (!inp) throw new Error("no encontré el campo");
+        const inp = campoFecha(); if (!inp) throw new Error("no encontré el campo");
         if (inp.value === f) return;
         inp.scrollIntoView({ block: "center" }); inp.focus(); setNative(inp, f);
         inp.dispatchEvent(new Event("change", { bubbles: true })); inp.blur();
       };
       poner(); await sleep(600); poner(); await sleep(300);
-      const inp = campo();
-      if (!inp || inp.value !== f) throw new Error(`quedó «${inp ? inp.value : ""}» en vez de «${f}» (la fecha del ATA); corríjala a mano`);
+      FECHAS[clave] = leerFecha();
+      if (FECHAS[clave] !== f) throw new Error(`quedó «${FECHAS[clave]}» en vez de «${f}» (la fecha del ATA); corríjala a mano`);
     });
   }
   const openAps = () => openSub(/Nuevo registro en Atención primaria de salud/i, "Atención primaria");
@@ -519,6 +533,7 @@
   }
   async function run(d) {
     CHK.length = 0;
+    Object.keys(FECHAS).forEach((k) => delete FECHAS[k]);
     const falla = await fillFicha(d);
     const verif = verificar();
     const info = [];
@@ -536,7 +551,8 @@
       }
       if (!ssr.length) { ssr = await fillSsr(d, info); verif.push(...verificar()); }
     }
-    return { ficha: falla, aps: aps, ssr: ssr, info: info, verif: verif };
+    return { ficha: falla, aps: aps, ssr: ssr, info: info, verif: verif, version: VERSION,
+             fechas: Object.assign({ esperada: d.fecha ? String(d.fecha) : "" }, FECHAS) };
   }
   window.__mdm = { fillSsr, openSsr, terminarAps, findLabel, setText, setLookup, setRadio, setChecks, setAuto, fillFicha, fillAps, run, verificar, sleep, version: VERSION };
 })();

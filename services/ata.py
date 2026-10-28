@@ -536,6 +536,9 @@ def import_excel(path):
     sin_prof = [r for r in rows if r["profesion"] and not ocupacion_ai(r["profesion"])]
     if sin_prof:
         warnings.append(f"Profesión no reconocida en {len(sin_prof)} fila(s) (use AM u O): se propone el valor por defecto.")
+    if rows and not header.get("fecha"):
+        warnings.append("El encabezado no trae la fecha de la hoja: escríbala (DD/MM/AAAA) antes de guardar, porque es la "
+                        "fecha de la consulta que se escribe en ActivityInfo.")
     if rows and not header.get("municipio"):
         warnings.append("El encabezado no trae municipio: el lugar de atención se toma del establecimiento o de Configuración.")
     if not rows:

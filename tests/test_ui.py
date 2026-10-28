@@ -318,6 +318,32 @@ class UITests(unittest.TestCase):
         self.assertEqual(dlg.result["edad"], "30")
         self.assertEqual(ai.payload(dlg.result)["consultas"], [ai.CONSULTA_APS, "Nutrición"])
 
+    def test_04b2_sin_fecha_de_consulta_valida_no_se_abre_chrome(self):
+        """Sin fecha (o mal escrita) ActivityInfo dejaría la de HOY en todo el registro: la ventana no deja continuar."""
+        from services import activityinfo as ai
+        from ui.dialog_activityinfo import ActivityInfoDialog
+        for mala in ("", "24/10/2026", "2026-13-40", "ayer"):
+            d = ai.build_defaults(self.db, {"nombre": "Ana Pérez López", "sexo": "M", "fecha": "2026-10-15", "edad_anios": "30"})
+            dlg = ActivityInfoDialog(self.root, d)
+            for k, v in {"estado_civil": "Soltero/a", "escolaridad": "Primaria", "ocupacion": "Estudiante",
+                         "discapacidad": "No", "derivado": "No", "tipo_consulta": "Primera"}.items():
+                dlg.w[k].set_value(v)
+            dlg.w["fecha"].set_value(mala)
+            antes = len(self.log)
+            dlg._ok()
+            self.assertIsNone(getattr(dlg, "result", None), repr(mala))
+            self.assertTrue(any("fecha de la consulta" in str(m[1]).lower() and "hoy" in str(m[1]).lower()
+                                for m in self.log[antes:]), (mala, self.log[antes:]))
+            dlg.destroy()
+        d = ai.build_defaults(self.db, {"nombre": "Ana Pérez López", "sexo": "M", "fecha": "2026-10-24", "edad_anios": "30"})
+        dlg = ActivityInfoDialog(self.root, d)
+        for k, v in {"estado_civil": "Soltero/a", "escolaridad": "Primaria", "ocupacion": "Estudiante",
+                     "discapacidad": "No", "derivado": "No", "tipo_consulta": "Primera"}.items():
+            dlg.w[k].set_value(v)
+        dlg._ok()
+        self.assertEqual(dlg.result["fecha"], "2026-10-24")             # con fecha válida sigue adelante
+        self.assertEqual(ai.payload(dlg.result)["fecha"], "2026-10-24")
+
     def test_04c_diagnosticos_lista_activityinfo(self):
         from services import activityinfo as ai
         from services import cie11_catalog as cat

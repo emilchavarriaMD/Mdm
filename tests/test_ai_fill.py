@@ -208,6 +208,18 @@ class T08_LlenadoSimulado(unittest.TestCase):
             page.close()
             self.assertEqual((rep["aps"], rep["ssr"]), ([], []), (tardia, rep))
             self.assertEqual(vals["ssr"]["fecha"], "2026-10-19", tardia)
+            # el reporte dice qué fecha quedó en cada lugar (la ficha, APS y SSR)
+            self.assertEqual(rep["fechas"], {"esperada": "2026-10-19", "ficha": "2026-10-19", "aps": "2026-10-19",
+                                             "ssr": "2026-10-19"}, (tardia, rep))
+
+    def test_ata_sin_fecha_avisa_que_quedo_la_de_hoy(self):
+        from datetime import date
+        rep, v = self._run(dict(PAYLOAD, fecha="", dx=PAYLOAD["dx"][:1], n_dx=1))
+        hoy = date.today().isoformat()
+        self.assertEqual(rep["fechas"]["esperada"], "")
+        self.assertEqual(rep["fechas"]["aps"], hoy)                       # el subformulario deja la de hoy…
+        self.assertTrue(any("Fecha consulta" in x and "HOY" in x for x in rep["aps"]), rep)   # …y se avisa
+        self.assertTrue(any("Fecha consulta" in x and "HOY" in x for x in rep["ficha"]), rep)
 
     def test_fecha_de_aps_con_el_formulario_que_repone_la_de_hoy(self):
         page = self.browser.new_page()

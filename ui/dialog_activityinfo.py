@@ -1084,6 +1084,15 @@ class ActivityInfoDialog(_Modal):
         if not data["consultas"]:
             dialogs.info(self, "Marque al menos una consulta a realizar.")
             return
+        # Sin una fecha válida ActivityInfo dejaría la de HOY en la ficha, en APS y en SSR sin avisar: no se abre Chrome.
+        from datetime import datetime
+        try:
+            datetime.strptime(data.get("fecha", ""), "%Y-%m-%d")
+        except ValueError:
+            dialogs.info(self, "Falta la fecha de la consulta, o no está bien escrita. Escríbala como AAAA-MM-DD "
+                         "(por ejemplo 2026-10-24); es la fecha del ATA.\n\nSin ella, ActivityInfo pondría la fecha de HOY.")
+            self._ir("datos")
+            return
         falta = [t for k, t in self.CLAVES if not data.get(k)]
         if "Atención Primaria de Salud" in data["consultas"] and not data.get("tipo_consulta"):
             falta.append("Tipo de consulta (APS)")
