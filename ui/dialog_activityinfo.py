@@ -413,7 +413,10 @@ class ActivityInfoDialog(_Modal):
             por_sec = {}
             for s_, _t, _k in falt:
                 por_sec[s_] = por_sec.get(s_, 0) + 1
-            vit = all(self._valor(k) for k in ("sistolica", "diastolica", "fc", "fr", "temperatura", "peso"))
+            medidas = ("fc", "fr", "temperatura", "peso")        # menores de 12 años: sin presión arterial
+            if anios is None or anios >= ai.PA_DESDE_MESES / 12:
+                medidas = ("sistolica", "diastolica") + medidas
+            vit = all(self._valor(k) for k in medidas)
             estado = {
                 "datos": (not por_sec.get("datos"), f"faltan {por_sec.get('datos', 0)}"),
                 "hea": (bool(self._texto(self.hea)), "vacía"),
@@ -494,6 +497,27 @@ class ActivityInfoDialog(_Modal):
             return todos
         # los diagnósticos que pasan a SSR no entran en la HEA de APS, esté o no marcada la consulta de SSR
         # (igual que al abrir la ventana); si no, «Otra versión» los volvía a meter
+        a_ssr = {i for i, cb in enumerate(self.ssr_rows) if ssr_cat.from_label(cb.get_value())[0]}
+        aps = [d for i, d in enumerate(todos) if i not in a_ssr]
+        return aps if any(aps) else todos
+
+    def _dx_para_plan(self):
+        """Un nombre por fila que el banco de planes reconozca. El banco de planes está escrito con las descripciones de la
+        lista de ActivityInfo («Trastornos de cefalea, sin especificación»), mientras que la HEA usa el texto del ATA
+        («Cefalea»): con ese texto el plan quedaba vacío. Se usa primero lo elegido en la lista y, si no tiene plan, el texto
+        de la HEA o el del ATA."""
+        out = []
+        for a, cb in self.dx_rows:
+            desc = cat.from_label(cb.get_value())[0]
+            fuente = hea_banco.fuente_hea(a, desc)
+            out.append(next((t for t in (desc, fuente, a) if t and plan_banco.tiene_plan(t)), desc or fuente))
+        return out
+
+    def _dx_aps_plan(self):
+        """Diagnósticos del plan de APS: los mismos de la HEA de APS (sin los que pasan a SSR), con nombres del banco de planes."""
+        todos = self._dx_para_plan()
+        if not hasattr(self, "ssr_rows"):
+            return todos
         a_ssr = {i for i, cb in enumerate(self.ssr_rows) if ssr_cat.from_label(cb.get_value())[0]}
         aps = [d for i, d in enumerate(todos) if i not in a_ssr]
         return aps if any(aps) else todos
@@ -955,9 +979,9 @@ class ActivityInfoDialog(_Modal):
             setattr(self, auto_attr, texto)
         rng = random.Random()
         if cual in (None, "aps"):
-            poner(self.plan, plan_banco.compose([d for d in self._dx_aps_hea() if d], rng=rng), "_plan_auto")
+            poner(self.plan, plan_banco.compose([d for d in self._dx_aps_plan() if d], rng=rng), "_plan_auto")
         if cual in (None, "ssr") and hasattr(self, "ssr_plan"):
-            cuerpo = plan_banco.compose([d for d in (self._dx_ssr() or self._dx_hea()) if d], rng=rng, ssr=True)
+            cuerpo = plan_banco.compose([d for d in (self._dx_ssr() or self._dx_para_plan()) if d], rng=rng, ssr=True)
             poner(self.ssr_plan, (ai.PLAN_SSR_INICIO + " " + cuerpo).strip(), "_ssr_plan_auto")
 
     def _regen_examen(self, forzar=False):

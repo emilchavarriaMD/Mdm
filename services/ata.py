@@ -376,6 +376,26 @@ def fmt_obst(d):
     return " ".join(f"{k}={d[k]}" for k in ("G", "P", "C", "A", "HV", "HM") if k in d)
 
 
+def _edad_desde_nacimiento(nacimiento, fecha_hoja):
+    """Edad (años, meses, días) como textos desde una fecha de nacimiento dd/mm/aaaa, a la fecha de la hoja (o a hoy si la
+    hoja no la trae). None si no se puede calcular."""
+    from datetime import datetime
+
+    from services.patients import calc_age
+
+    def iso(texto):
+        try:
+            return datetime.strptime(str(texto).strip()[:10], "%d/%m/%Y").strftime("%Y-%m-%d")
+        except ValueError:
+            return None
+    nac = iso(nacimiento)
+    r = calc_age(nac, iso(fecha_hoja)) if nac else None
+    if not r:
+        return None
+    valor, unidad = str(r[0]), r[1]
+    return (valor, "", "") if unidad == "años" else ("", valor, "") if unidad == "meses" else ("", "", valor)
+
+
 def import_excel(path):
     """Lee un Excel con el formato del ATA (el de columnas simples o la plantilla ATA-2023 con encabezados de varias
     filas, teléfono y gestas/partos/cesáreas/abortos). Devuelve (encabezado, filas, avisos).
@@ -467,6 +487,7 @@ def import_excel(path):
     header["fecha"] = _anio2(header["fecha"])
     loc_hoja = header.pop("localidad", "")            # plantilla nueva: la localidad va en el encabezado, no en cada fila
     rows, warnings = [], []
+    calculadas = []                                       # filas sin edad cuya edad salió de la fecha de nacimiento
     for row in grid[data_start:]:
         r = {k: "" for k in KEYS}
         r["edad_txt"] = ""
@@ -479,10 +500,16 @@ def import_excel(path):
             elif isinstance(v, float) and v == int(v):
                 v = int(v)
             r[k] = str(v).strip()
-        r["fecha_nacimiento"] = _anio2(r["fecha_nacimiento"], nacimiento=True)
+        nacimiento = _anio2(r["fecha_nacimiento"], nacimiento=True)
+        r["fecha_nacimiento"] = ""                        # la fecha de nacimiento ya no se usa: nunca se carga
         edad_txt = r.pop("edad_txt")                      # una sola columna «EDAD» (34, 8m, 10d…)
         if edad_txt and not (r["edad_anios"] or r["edad_meses"] or r["edad_dias"]):
             r["edad_anios"], r["edad_meses"], r["edad_dias"] = parse_edad(edad_txt)
+        if nacimiento and not (r["edad_anios"] or r["edad_meses"] or r["edad_dias"]):
+            edad = _edad_desde_nacimiento(nacimiento, header["fecha"])      # sin edad escrita: se calcula antes de descartarla
+            if edad:
+                r["edad_anios"], r["edad_meses"], r["edad_dias"] = edad
+                calculadas.append(r)
         r["estado_civil"] = normalizar_estado_civil(r["estado_civil"])
         r["profesion"] = normalizar_profesion(r["profesion"])
         if r["obst"]:
@@ -492,6 +519,10 @@ def import_excel(path):
                 if not r[k] and v:                            # procedencia: la del encabezado si la fila no la trae
                     r[k] = v
             rows.append(r)
+    calculadas = [r for r in calculadas if r in rows]
+    if calculadas:
+        warnings.append(f"{len(calculadas)} fila(s) no traían edad: se calculó con la fecha de nacimiento (la fecha en sí "
+                        "ya no se carga). Verifique la edad.")
     sx = {str(r.get("sexo") or "").strip().upper() for r in rows}
     cambios = normalizar_sexos(rows)
     if "F" in sx and "M" in sx and "H" not in sx:

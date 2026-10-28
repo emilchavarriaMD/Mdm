@@ -63,6 +63,9 @@ VITALES_PEDIATRIA = [
 ]
 
 
+PA_DESDE_MESES = 144          # 12 años: por debajo de esta edad no se propone presión arterial (sistólica ni diastólica)
+
+
 def edad_en_meses(edad, unidad="años"):
     """Edad en meses, o None si no se sabe. Los días cuentan como recién nacido (0 meses)."""
     try:
@@ -101,8 +104,10 @@ def vitales_defecto(sexo, edad, unidad="años", rng=None, hta=False):
     temp = str(rng.choice([36, 37]))
     g = grupo_vitales(sexo, edad, unidad)
     if g[0] == "ped":
-        _lo, _hi, sis, dia, fc, fr = VITALES_PEDIATRIA[g[1]]
-        return {"sistolica": str(rng.randint(*sis)), "diastolica": str(rng.randint(*dia)),
+        _lo, hi, sis, dia, fc, fr = VITALES_PEDIATRIA[g[1]]
+        con_pa = hi > PA_DESDE_MESES                # menores de 12 años: no se propone presión arterial
+        return {"sistolica": str(rng.randint(*sis)) if con_pa else "",
+                "diastolica": str(rng.randint(*dia)) if con_pa else "",
                 "fc": str(rng.randint(*fc)), "fr": str(rng.randint(*fr)), "temperatura": temp}
     sis, dia = ("120", "70" if sexo == "M" else "80")
     if hta:

@@ -276,7 +276,7 @@ class UITests(unittest.TestCase):
         pa.dialogs.ask_open_path = lambda *a, **k: str(out)
         pg.load_excel()
         self.assertEqual(pg.cells[0]["nombre"].get(), "Paciente Uno")
-        self.assertEqual(pg.cells[0]["fecha_nacimiento"].get(), "05/01/2020")
+        self.assertEqual(pg.cells[0]["fecha_nacimiento"].get(), "")      # la fecha de nacimiento ya no se carga
         self.assertEqual(pg.h["establecimiento"].get(), "Del Carmen")
         self.assertTrue(pg.is_dirty())  # aún sin confirmar
         self.assertTrue(pg.save())
@@ -607,16 +607,19 @@ class UITests(unittest.TestCase):
                                         "dx1": "Fiebre"})
         dlg = ActivityInfoDialog(self.root, d)
         self.upd()
-        sis, dia, fc, fr = (int(dlg.w[k].get_value()) for k in ("sistolica", "diastolica", "fc", "fr"))
-        self.assertTrue(95 <= sis <= 110 and 60 <= dia <= 75 and 70 <= fc <= 115 and 20 <= fr <= 25, (sis, dia, fc, fr))
+        fc, fr = (int(dlg.w[k].get_value()) for k in ("fc", "fr"))
+        self.assertTrue(70 <= fc <= 115 and 20 <= fr <= 25, (fc, fr))
+        self.assertEqual((dlg.w["sistolica"].get_value(), dlg.w["diastolica"].get_value()), ("", ""))   # menor de 12 años: sin PA
         dlg.w["edad"].set_value("8")                                  # pasa a la franja de 6 a 12 años
         dlg._ajustar_vitales()
-        sis, dia, fc, fr = (int(dlg.w[k].get_value()) for k in ("sistolica", "diastolica", "fc", "fr"))
-        self.assertTrue(100 <= sis <= 120 and 60 <= dia <= 75 and 60 <= fc <= 100 and 14 <= fr <= 22, (sis, dia, fc, fr))
+        fc, fr = (int(dlg.w[k].get_value()) for k in ("fc", "fr"))
+        self.assertTrue(60 <= fc <= 100 and 14 <= fr <= 22, (fc, fr))
+        self.assertEqual((dlg.w["sistolica"].get_value(), dlg.w["diastolica"].get_value()), ("", ""))   # sigue sin PA
         dlg.w["fc"].set_value("99")                                   # lo escrito a mano no se pisa
         dlg.w["edad"].set_value("14")
         dlg._ajustar_vitales()
         self.assertEqual(dlg.w["fc"].get_value(), "99")
+        self.assertTrue(100 <= int(dlg.w["sistolica"].get_value()) <= 120)       # a los 12 años o más vuelve la PA
         self.assertTrue(70 <= int(dlg.w["diastolica"].get_value()) <= 80)
         dlg.destroy()
 
@@ -639,6 +642,21 @@ class UITests(unittest.TestCase):
         dlg._regen_plan(True)
         self.assertNotEqual(dlg.plan.get("1.0", "end").strip(), "Mi plan escrito a mano")
         dlg.destroy()
+
+    def test_04h1_plan_de_cefalea_y_otros_con_nombre_distinto_en_el_banco(self):
+        """El ATA dice «Cefalea»; el banco de HEA lo llama igual pero el de planes usa la descripción de la lista
+        («Trastornos de cefalea…»). El plan debe salir igual, sin quedarse en «Plan»."""
+        from services import activityinfo as ai
+        from ui.dialog_activityinfo import ActivityInfoDialog
+        for dx in ("Cefalea", "cefalea tensional", "Cervicalgia", "Onicocriptosis", "Dermatitis seborreica"):
+            d = ai.build_defaults(self.db, {"nombre": "Ana Pérez López", "sexo": "M", "fecha": "2026-10-15",
+                                            "edad_anios": "30", "dx1": dx})
+            dlg = ActivityInfoDialog(self.root, d)
+            self.upd()
+            plan = dlg.plan.get("1.0", "end").strip()
+            self.assertNotEqual(plan, "Plan", dx)
+            self.assertRegex(plan, "alarma", dx)
+            dlg.destroy()
 
     def test_04h2_medicamentos_se_agregan_al_plan_de_aps_y_de_ssr(self):
         from services import activityinfo as ai, medicamentos
