@@ -15,6 +15,8 @@
 <script>
 window.__saved = false;
 window.__clicks = [];
+const HOY = new Date().toISOString().slice(0, 10);   // ActivityInfo propone la fecha de HOY en «Fecha consulta» de cada subformulario
+window.__fechaTardia = false;                         // true: el formulario vuelve a poner la de hoy 300 ms después de abrirse
 const $ = (h) => { const t = document.createElement("template"); t.innerHTML = h.trim(); return t.content.firstChild; };
 const plain = (s) => (s || "").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").trim();
 const form = document.getElementById("form");
@@ -67,6 +69,13 @@ function checks(id, title, options, onPick) {
     box.appendChild(l);
   });
   return box;
+}
+function fechaSub(id) {
+  const f = text(id, "Fecha consulta*");
+  const inp = f.querySelector("input");
+  inp.value = HOY;
+  setTimeout(() => { if (window.__fechaTardia) inp.value = HOY; }, 300);
+  return f;
 }
 function button(text, onClick) {
   const b = $(`<button type="button">${text}</button>`);
@@ -152,6 +161,7 @@ const CATALOGO = { "Hipertensión esencial, sin especificación": "BA00.Z", "Der
 function openAps() {
   if (document.getElementById("aps")) return;
   const aps = $(`<div id="aps"><h3>Nuevo registro en Atención primaria de salud</h3></div>`);
+  aps.appendChild(fechaSub("fecha_aps"));
   aps.appendChild(field("Profesional que atiende*", lookup("prof", "Nombre y Apellidos",
     ["Nadia Alejandra Chavarría López", "Otra Persona"]), lookup("prof_pais", "País", ["Honduras"])));
   aps.appendChild(radios("mismo_punto", "¿Mismo punto de atención registrado en la ficha integral?*", ["Sí", "No"]));
@@ -212,6 +222,7 @@ const CAT_SSR = { "Vaginosis bacteriana": "MF3A", "Candidiasis vulvovaginal": "1
 function openSsr() {
   if (document.getElementById("ssr") || document.getElementById("aps")) return;   // APS debe estar cerrado
   const ssr = $(`<div id="ssr"><h3>Nuevo registro en Salud Sexual y Reproductiva</h3></div>`);
+  ssr.appendChild(fechaSub("fecha_ssr"));
   ssr.appendChild(field("Profesional que atiende*", lookup("prof", "Nombre y Apellidos",
     ["Nadia Alejandra Chavarría López", "Otra Persona"]), lookup("prof_pais", "País", ["Honduras"])));
   ssr.appendChild(radios("mismo_punto", "¿Mismo punto de atención registrado en la ficha integral?*", ["Sí", "No"]));

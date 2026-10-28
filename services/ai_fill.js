@@ -1,6 +1,6 @@
 /* Llena el formulario de ActivityInfo. NUNCA pulsa Guardar registro ni Guardar como borrador. */
 (function () {
-  const VERSION = 28;
+  const VERSION = 29;
   if (window.__mdm && window.__mdm.version === VERSION) return;   // una versión vieja en la pestaña se reemplaza
   const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
   const norm = (s) => (s || "").replace(/\s+/g, " ").replace(/\*/g, "").replace(/OBLIGATORIO/g, "").trim().toLowerCase();
@@ -213,6 +213,29 @@
     await waitFor(() => findLabel("Profesional que atiende"), 6000);
     await sleep(500);
   }
+  // Cada subformulario (APS y SSR) trae su PROPIA «Fecha consulta», que ActivityInfo propone con la fecha de HOY. La fecha
+  // de la consulta es la del ATA, así que se escribe en cada uno y se comprueba que se quedó (por si el formulario vuelve a
+  // poner la de hoy). Se toma el último «Fecha consulta» visible: el subformulario es lo último que se abrió.
+  async function fijarFecha(d, nombre, log) {
+    if (!d.fecha) return;
+    const f = String(d.fecha);
+    await step(log, nombre + ": Fecha consulta", async () => {
+      const campo = () => {
+        const ls = [...document.querySelectorAll("label")].filter((l) => visible(l) && norm(l.textContent).startsWith("fecha consulta"));
+        const l = ls[ls.length - 1];
+        return l ? inputFor(l) : null;
+      };
+      const poner = () => {
+        const inp = campo(); if (!inp) throw new Error("no encontré el campo");
+        if (inp.value === f) return;
+        inp.scrollIntoView({ block: "center" }); inp.focus(); setNative(inp, f);
+        inp.dispatchEvent(new Event("change", { bubbles: true })); inp.blur();
+      };
+      poner(); await sleep(600); poner(); await sleep(300);
+      const inp = campo();
+      if (!inp || inp.value !== f) throw new Error(`quedó «${inp ? inp.value : ""}» en vez de «${f}» (la fecha del ATA); corríjala a mano`);
+    });
+  }
   const openAps = () => openSub(/Nuevo registro en Atención primaria de salud/i, "Atención primaria");
   const openSsr = () => openSub(/Nuevo registro en Salud Sexual y Reproductiva/i, "Salud Sexual y Reproductiva");
   // ÚNICO lugar donde se pulsa «Está hecho»: el de Atención primaria, y solo si hay que seguir con SSR y la persona lo
@@ -280,6 +303,7 @@
     const log = [];
     const S = (n, f) => step(log, n, f);
     try { await openAps(); } catch (e) { return ["Subformulario APS: " + e.message]; }
+    await fijarFecha(d, "APS", log);
     if (d.profesional) {
       await S("Profesional que atiende", () => {
         const g = findLabel("Profesional que atiende");
@@ -347,6 +371,7 @@
     const S = (n, f) => step(log, n, f);
     const x = d.ssr || {};
     try { await openSsr(); } catch (e) { return ["Subformulario SSR: " + e.message]; }
+    await fijarFecha(d, "SSR", log);
     if (d.profesional) {
       await S("SSR: Profesional que atiende", () => {
         const g = findLabel("Profesional que atiende");

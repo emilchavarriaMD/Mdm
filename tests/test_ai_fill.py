@@ -36,7 +36,7 @@ LEER = """() => {
   return {
     lugar: v('#lugar input'), pais: v('#pais input'), especifique: v('#especifique'),
     donante: v('#donante input'), titulo: v('#titulo input'), perfin: v('#perfin input'),
-    fecha: v('#fecha'), genero: r('genero'), lgtbiq: v('#lgtbiq input'), pueblo: v('#pueblo input'),
+    fecha: v('#fecha'), fecha_aps: v('#fecha_aps'), genero: r('genero'), lgtbiq: v('#lgtbiq input'), pueblo: v('#pueblo input'),
     nac: v('#nac input'), idioma: v('#idioma input'), nombre: v('#nombre'), apellidos: v('#apellidos'),
     fnac: r('fnac'), anios: v('#anios'), civil: r('civil'), escolaridad: r('escolaridad'),
     ocupacion: v('#ocupacion input'), discapacidad: r('discapacidad'), perfil: v('#perfil input'),
@@ -52,7 +52,7 @@ LEER = """() => {
     ssr: (() => { const q = (sel) => document.querySelector('#ssr ' + sel);
       const rr = (name) => { const e = document.querySelector(`#ssr input[name="${name}"]:checked`); return e ? e.value : null; };
       if (!document.getElementById('ssr')) return null;
-      return { prof: (q('#prof input') || {}).value, mismo_punto: rr('mismo_punto'), mismo_proy: rr('mismo_proy'), tipo: rr('tipo'),
+      return { fecha: (q('#fecha_ssr') || {}).value, prof: (q('#prof input') || {}).value, mismo_punto: rr('mismo_punto'), mismo_proy: rr('mismo_proy'), tipo: rr('tipo'),
         ficha: rr('ficha'), recibio_aps: (q('#recibio_aps input') || {}).value, hea: q('#hea').value, examen: q('#examen').value, ndx: rr('ndx'),
         desc1: (q('#desc1 input') || {}).value, code1: (q('#code1 input') || {}).value,
         desc2: (q('#desc2 input') || {}).value, code2: (q('#code2 input') || {}).value, plan: q('#plan').value,
@@ -109,7 +109,7 @@ class T08_LlenadoSimulado(unittest.TestCase):
         self.assertEqual(rep["verif"], [], rep)            # nada quedó vacío ni distinto de lo escrito
         esperado = {
             "lugar": "Cortes-otro", "pais": "Honduras", "especifique": "Brigada Brisas 1", "donante": "ECHO",
-            "titulo": "ECHO - COMPASS", "perfin": "F09010020", "fecha": "2026-10-19", "genero": "Mujer CIS",
+            "titulo": "ECHO - COMPASS", "perfin": "F09010020", "fecha": "2026-10-19", "fecha_aps": "2026-10-19", "genero": "Mujer CIS",
             "lgtbiq": "No", "pueblo": "Mestizo", "nac": "Honduras", "idioma": "Español", "nombre": "Ana",
             "apellidos": "Prueba", "fnac": "No", "anios": "34", "civil": "Soltero/a", "escolaridad": "Primaria",
             "ocupacion": "Estudiante", "discapacidad": "No", "perfil": "Persona en riesgo de desplazamiento",
@@ -172,6 +172,7 @@ class T08_LlenadoSimulado(unittest.TestCase):
         self.assertNotIn("Guardar como borrador", v["clicks"])
         self.assertFalse(v["aps_abierto"])
         s = v["ssr"]
+        self.assertEqual(s["fecha"], "2026-10-19")         # la fecha del ATA, no la de hoy que propone el subformulario
         self.assertEqual((s["prof"], s["mismo_punto"], s["mismo_proy"], s["tipo"], s["ficha"], s["recibio_aps"]),
                          ("Nadia Alejandra Chavarría López", "Sí", "Sí", "Primera", "Larga", "Sí"))
         self.assertEqual(s["hea"], "HEA de SSR")          # la HEA, el examen y el plan de SSR son cuadros propios
@@ -193,6 +194,39 @@ class T08_LlenadoSimulado(unittest.TestCase):
         self.assertEqual((s["obs"], s["obsdx"], s["conse"]), ("Obs gral", "Obs dx", "Si"))
         self.assertEqual((s["sder"], s["strans"], s["ssvc"], s["ssalud"], s["victima"]),
                          ("Sí", "No", "Salud", "MdM-Salud sexual y reproductiva", "No"))
+
+    def test_fecha_de_aps_y_ssr_es_la_del_ata_y_no_la_de_hoy(self):
+        from datetime import date
+        self.assertNotEqual(PAYLOAD["fecha"], date.today().isoformat())
+        for tardia in (False, True):                       # True: el formulario vuelve a poner la de hoy un instante después
+            page = self.browser.new_page()
+            page.goto((ROOT / "tests" / "mock_activityinfo.html").as_uri())
+            page.evaluate(f"() => {{ window.__fechaTardia = {str(tardia).lower()}; }}")
+            page.add_script_tag(content=(ROOT / "services" / "ai_fill.js").read_text(encoding="utf-8"))
+            rep = page.evaluate("d => window.__mdm.run(d)", self._ssr_payload())
+            vals = page.evaluate(LEER)
+            page.close()
+            self.assertEqual((rep["aps"], rep["ssr"]), ([], []), (tardia, rep))
+            self.assertEqual(vals["ssr"]["fecha"], "2026-10-19", tardia)
+
+    def test_fecha_de_aps_con_el_formulario_que_repone_la_de_hoy(self):
+        page = self.browser.new_page()
+        page.goto((ROOT / "tests" / "mock_activityinfo.html").as_uri())
+        page.evaluate("() => { window.__fechaTardia = true; }")
+        page.add_script_tag(content=(ROOT / "services" / "ai_fill.js").read_text(encoding="utf-8"))
+        rep = page.evaluate("d => window.__mdm.run(d)", dict(PAYLOAD, dx=PAYLOAD["dx"][:1], n_dx=1))
+        vals = page.evaluate(LEER)
+        page.close()
+        self.assertEqual(vals["fecha_aps"], "2026-10-19")
+        self.assertEqual(rep["aps"], [], rep)
+
+    def test_sin_fecha_del_ata_no_se_toca_la_del_subformulario(self):
+        page = self.browser.new_page()
+        page.goto((ROOT / "tests" / "mock_activityinfo.html").as_uri())
+        page.add_script_tag(content=(ROOT / "services" / "ai_fill.js").read_text(encoding="utf-8"))
+        rep = page.evaluate("d => window.__mdm.run(d)", dict(PAYLOAD, fecha="", dx=PAYLOAD["dx"][:1], n_dx=1))
+        page.close()
+        self.assertFalse(any("Fecha consulta" in x for x in rep["aps"]), rep)
 
     def test_ssr_sin_permiso_no_pulsa_esta_hecho(self):
         rep, v = self._run(self._ssr_payload(permitir_esta_hecho=False))
