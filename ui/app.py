@@ -45,7 +45,7 @@ class App:
         side.pack_propagate(False)
         ttk.Label(side, text="Expedientes MdM", style="SidebarTitle.TLabel").pack(
             anchor="w", padx=18, pady=(20, 0))
-        ttk.Label(side, text="Pacientes y ActivityInfo", style="SidebarSub.TLabel").pack(
+        ttk.Label(side, text=f"Pacientes y ActivityInfo · v{config.APP_VERSION}", style="SidebarSub.TLabel").pack(
             anchor="w", padx=18, pady=(0, 16))
         for key, text in NAV:
             b = ttk.Button(side, text=text, style="Nav.TButton", command=lambda k=key: self.show(k))

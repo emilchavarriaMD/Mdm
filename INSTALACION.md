@@ -34,5 +34,6 @@ Los pacientes y las copias de seguridad **no están dentro de la carpeta del pro
 5. Abra la carpeta descomprimida, seleccione **todo** su contenido y cópielo encima de la carpeta donde tiene instalado el programa. Cuando Windows pregunte, elija **Reemplazar los archivos en el destino**.
 6. **No borre** la carpeta oculta `.venv` de la carpeta instalada: ahí están los componentes ya instalados y evita esperar otra vez.
 7. Abra `iniciar_MDm.bat` como siempre.
+8. Compruebe la versión: debajo de «Expedientes MdM», arriba a la izquierda, dice **v2.6** (o la más nueva). Si dice otra más vieja, los archivos no se reemplazaron: repita desde el paso 2.
 
 Solo si alguna actualización indica que cambiaron los componentes (la lista `requirements.txt`), borre el archivo `.venv\listo.txt` y vuelva a abrir `iniciar_MDm.bat`: así descarga los componentes nuevos (necesita internet).
