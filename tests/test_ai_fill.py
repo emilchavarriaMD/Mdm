@@ -238,7 +238,9 @@ class T08_LlenadoSimulado(unittest.TestCase):
         page.add_script_tag(content=(ROOT / "services" / "ai_fill.js").read_text(encoding="utf-8"))
         rep = page.evaluate("d => window.__mdm.run(d)", dict(PAYLOAD, fecha="", dx=PAYLOAD["dx"][:1], n_dx=1))
         page.close()
-        self.assertFalse(any("Fecha consulta" in x for x in rep["aps"]), rep)
+        # no se escribe nada, pero desde la v30 se AVISA que quedó la fecha de HOY (en la ficha y en APS)
+        self.assertTrue(any("la de HOY" in x for x in rep["aps"]), rep)
+        self.assertEqual(rep["fechas"]["esperada"], "", rep)
 
     def test_ssr_sin_permiso_no_pulsa_esta_hecho(self):
         rep, v = self._run(self._ssr_payload(permitir_esta_hecho=False))
