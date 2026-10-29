@@ -298,6 +298,9 @@ class PacientesPage(Page):
               "(el programa no guarda nada)."
         if (data.get("ssr") or {}).get("dx") is not None and "Salud Sexual y Reproductiva" in (data.get("consultas") or []):
             msg += "\nEl subformulario de Salud Sexual y Reproductiva quedó abierto: revíselo y pulse «Está hecho» usted."
+        fechas = fill_log.resumen_fechas(report)
+        if fechas:
+            msg += "\n\n" + "\n".join(fechas)
         info = report.get("info") or []
         if info:
             msg += "\n\nDiagnósticos elegidos en ActivityInfo (verifíquelos):\n" + "\n".join(f"• {i}" for i in info)

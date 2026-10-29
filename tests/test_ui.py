@@ -276,7 +276,7 @@ class UITests(unittest.TestCase):
         pa.dialogs.ask_open_path = lambda *a, **k: str(out)
         pg.load_excel()
         self.assertEqual(pg.cells[0]["nombre"].get(), "Paciente Uno")
-        self.assertEqual(pg.cells[0]["fecha_nacimiento"].get(), "05/01/2020")
+        self.assertEqual(pg.cells[0]["fecha_nacimiento"].get(), "")      # la fecha de nacimiento ya no se carga
         self.assertEqual(pg.h["establecimiento"].get(), "Del Carmen")
         self.assertTrue(pg.is_dirty())  # aún sin confirmar
         self.assertTrue(pg.save())
@@ -317,6 +317,32 @@ class UITests(unittest.TestCase):
         self.assertEqual(dlg.result["tiene_fecha_nac"], "No")
         self.assertEqual(dlg.result["edad"], "30")
         self.assertEqual(ai.payload(dlg.result)["consultas"], [ai.CONSULTA_APS, "Nutrición"])
+
+    def test_04b2_sin_fecha_de_consulta_valida_no_se_abre_chrome(self):
+        """Sin fecha (o mal escrita) ActivityInfo dejaría la de HOY en todo el registro: la ventana no deja continuar."""
+        from services import activityinfo as ai
+        from ui.dialog_activityinfo import ActivityInfoDialog
+        for mala in ("", "24/10/2026", "2026-13-40", "ayer"):
+            d = ai.build_defaults(self.db, {"nombre": "Ana Pérez López", "sexo": "M", "fecha": "2026-10-15", "edad_anios": "30"})
+            dlg = ActivityInfoDialog(self.root, d)
+            for k, v in {"estado_civil": "Soltero/a", "escolaridad": "Primaria", "ocupacion": "Estudiante",
+                         "discapacidad": "No", "derivado": "No", "tipo_consulta": "Primera"}.items():
+                dlg.w[k].set_value(v)
+            dlg.w["fecha"].set_value(mala)
+            antes = len(self.log)
+            dlg._ok()
+            self.assertIsNone(getattr(dlg, "result", None), repr(mala))
+            self.assertTrue(any("fecha de la consulta" in str(m[1]).lower() and "hoy" in str(m[1]).lower()
+                                for m in self.log[antes:]), (mala, self.log[antes:]))
+            dlg.destroy()
+        d = ai.build_defaults(self.db, {"nombre": "Ana Pérez López", "sexo": "M", "fecha": "2026-10-24", "edad_anios": "30"})
+        dlg = ActivityInfoDialog(self.root, d)
+        for k, v in {"estado_civil": "Soltero/a", "escolaridad": "Primaria", "ocupacion": "Estudiante",
+                     "discapacidad": "No", "derivado": "No", "tipo_consulta": "Primera"}.items():
+            dlg.w[k].set_value(v)
+        dlg._ok()
+        self.assertEqual(dlg.result["fecha"], "2026-10-24")             # con fecha válida sigue adelante
+        self.assertEqual(ai.payload(dlg.result)["fecha"], "2026-10-24")
 
     def test_04c_diagnosticos_lista_activityinfo(self):
         from services import activityinfo as ai
@@ -607,16 +633,19 @@ class UITests(unittest.TestCase):
                                         "dx1": "Fiebre"})
         dlg = ActivityInfoDialog(self.root, d)
         self.upd()
-        sis, dia, fc, fr = (int(dlg.w[k].get_value()) for k in ("sistolica", "diastolica", "fc", "fr"))
-        self.assertTrue(95 <= sis <= 110 and 60 <= dia <= 75 and 70 <= fc <= 115 and 20 <= fr <= 25, (sis, dia, fc, fr))
+        fc, fr = (int(dlg.w[k].get_value()) for k in ("fc", "fr"))
+        self.assertTrue(70 <= fc <= 115 and 20 <= fr <= 25, (fc, fr))
+        self.assertEqual((dlg.w["sistolica"].get_value(), dlg.w["diastolica"].get_value()), ("", ""))   # menor de 12 años: sin PA
         dlg.w["edad"].set_value("8")                                  # pasa a la franja de 6 a 12 años
         dlg._ajustar_vitales()
-        sis, dia, fc, fr = (int(dlg.w[k].get_value()) for k in ("sistolica", "diastolica", "fc", "fr"))
-        self.assertTrue(100 <= sis <= 120 and 60 <= dia <= 75 and 60 <= fc <= 100 and 14 <= fr <= 22, (sis, dia, fc, fr))
+        fc, fr = (int(dlg.w[k].get_value()) for k in ("fc", "fr"))
+        self.assertTrue(60 <= fc <= 100 and 14 <= fr <= 22, (fc, fr))
+        self.assertEqual((dlg.w["sistolica"].get_value(), dlg.w["diastolica"].get_value()), ("", ""))   # sigue sin PA
         dlg.w["fc"].set_value("99")                                   # lo escrito a mano no se pisa
         dlg.w["edad"].set_value("14")
         dlg._ajustar_vitales()
         self.assertEqual(dlg.w["fc"].get_value(), "99")
+        self.assertTrue(100 <= int(dlg.w["sistolica"].get_value()) <= 120)       # a los 12 años o más vuelve la PA
         self.assertTrue(70 <= int(dlg.w["diastolica"].get_value()) <= 80)
         dlg.destroy()
 
@@ -639,6 +668,21 @@ class UITests(unittest.TestCase):
         dlg._regen_plan(True)
         self.assertNotEqual(dlg.plan.get("1.0", "end").strip(), "Mi plan escrito a mano")
         dlg.destroy()
+
+    def test_04h1_plan_de_cefalea_y_otros_con_nombre_distinto_en_el_banco(self):
+        """El ATA dice «Cefalea»; el banco de HEA lo llama igual pero el de planes usa la descripción de la lista
+        («Trastornos de cefalea…»). El plan debe salir igual, sin quedarse en «Plan»."""
+        from services import activityinfo as ai
+        from ui.dialog_activityinfo import ActivityInfoDialog
+        for dx in ("Cefalea", "cefalea tensional", "Cervicalgia", "Onicocriptosis", "Dermatitis seborreica"):
+            d = ai.build_defaults(self.db, {"nombre": "Ana Pérez López", "sexo": "M", "fecha": "2026-10-15",
+                                            "edad_anios": "30", "dx1": dx})
+            dlg = ActivityInfoDialog(self.root, d)
+            self.upd()
+            plan = dlg.plan.get("1.0", "end").strip()
+            self.assertNotEqual(plan, "Plan", dx)
+            self.assertRegex(plan, "alarma", dx)
+            dlg.destroy()
 
     def test_04h2_medicamentos_se_agregan_al_plan_de_aps_y_de_ssr(self):
         from services import activityinfo as ai, medicamentos

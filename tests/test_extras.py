@@ -3,6 +3,7 @@ import os
 import sys
 import tempfile
 import unittest
+from datetime import date
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -125,7 +126,7 @@ class T21_PlantillaATA2023(unittest.TestCase):
         self.assertEqual(h["profesional"], "Dra Prueba")
         self.assertEqual(len(rows), 2)                           # las 18 filas en blanco (con «G=  P=  …» vacío) no cuentan
         a, b = rows
-        self.assertEqual((a["nombre"], a["telefono"], a["fecha_nacimiento"], a["edad_anios"]), ("Ana Pérez", "9988-7766", "12/03/1990", "34"))
+        self.assertEqual((a["nombre"], a["telefono"], a["fecha_nacimiento"], a["edad_anios"]), ("Ana Pérez", "9988-7766", "", "34"))   # la fecha de nacimiento ya no se carga
         self.assertEqual((a["dep"], a["mun"], a["loc"], a["dx1"], a["dx2"]), ("Cortés", "Choloma", "Brisas 1", "HTA", "PF (ACOs)"))
         self.assertEqual(a["obst"], "G=2 P=1 C=1 A=0 HV=3 HM=0")
         self.assertEqual((a["sexo"], b["sexo"]), ("M", "H"))        # (M/F): F = mujer -> M, M = masculino -> H
@@ -166,8 +167,60 @@ class T22_ExportarEnPlantilla(unittest.TestCase):
         self.assertEqual(len(vuelta), 2)
         self.assertEqual(vuelta[0]["obst"], "G=2 P=1 C=1 A=0 HV=3 HM=0")
         self.assertEqual((vuelta[0]["sexo"], vuelta[1]["sexo"]), ("M", "H"))
-        self.assertEqual((vuelta[0]["telefono"], vuelta[0]["fecha_nacimiento"], vuelta[1]["edad_meses"]), ("9988-7766", "12/03/1990", "6"))
+        self.assertEqual((vuelta[0]["telefono"], vuelta[0]["fecha_nacimiento"], vuelta[1]["edad_meses"]), ("9988-7766", "", "6"))
         self.assertEqual(warns, [])
+
+    def test_hoja_sin_fecha_avisa(self):
+        import openpyxl
+        wb = openpyxl.Workbook()
+        ws = wb.active
+        ws["A1"], ws["B1"], ws["C1"], ws["D1"] = "Nombre completo", "Sexo", "Edad años", "Diagnóstico 1"
+        ws["A2"], ws["B2"], ws["C2"], ws["D2"] = "Ana", "M", 30, "HTA"
+        p = Path(tempfile.mkdtemp(dir=_TMP)) / "sinfecha.xlsx"
+        wb.save(p)
+        h, rows, warns = A.import_excel(p)
+        self.assertEqual(h["fecha"], "")
+        self.assertTrue(any("fecha de la hoja" in w for w in warns), warns)
+
+    def test_resumen_de_fechas_del_llenado(self):
+        from services import fill_log
+        ok = {"fechas": {"esperada": "2026-10-24", "ficha": "2026-10-24", "aps": "2026-10-24", "ssr": "2026-10-24"}}
+        r = fill_log.resumen_fechas(ok, hoy="2026-10-28")
+        self.assertIn("2026-10-24", r[0])
+        self.assertIn("APS 2026-10-24", r[0])
+        self.assertEqual(len(r), 1)                                                   # todo bien: sin advertencias
+        mala = {"fechas": {"esperada": "2026-10-24", "ficha": "2026-10-24", "aps": "2026-10-28"}}
+        r = fill_log.resumen_fechas(mala, hoy="2026-10-28")
+        self.assertTrue(any("⚠" in x and "corríjala" in x for x in r), r)
+        sin = fill_log.resumen_fechas({"fechas": {"esperada": "", "ficha": "2026-10-28"}}, hoy="2026-10-28")
+        self.assertIn("SIN FECHA", sin[0])
+        self.assertTrue(any("no trae fecha" in x for x in sin), sin)
+        hoy = fill_log.resumen_fechas({"fechas": {"esperada": "2026-10-28", "ficha": "2026-10-28"}}, hoy="2026-10-28")
+        self.assertTrue(any("HOY" in x for x in hoy), hoy)                           # coincide con hoy: se avisa
+        self.assertEqual(fill_log.resumen_fechas({}), [])
+        e = {"fecha": "x", "paciente": "Ana", "error": "", "no_llenados": [], "verificacion": [], **{
+            "fechas": ok["fechas"], "version_programa": "2.5", "version_llenado": 30}}
+        self.assertIn("programa 2.5, llenado v30", fill_log.texto(e))
+
+    def test_fecha_de_nacimiento_se_ignora_y_la_edad_solo_se_calcula_si_falta(self):
+        import openpyxl
+        wb = openpyxl.Workbook()
+        ws = wb.active
+        ws["A1"], ws["B1"], ws["C1"], ws["D1"], ws["E1"] = "Nombre completo", "Sexo", "Fecha de nacimiento", "Edad años", "Diagnóstico 1"
+        ws["A2"], ws["B2"], ws["C2"], ws["D2"], ws["E2"] = "Con edad", "M", "12/03/1990", 34, "HTA"          # trae edad: se respeta
+        ws["A3"], ws["B3"], ws["C3"], ws["D3"], ws["E3"] = "Sin edad", "H", "10/03/2018", None, "Diarrea"    # sin edad: se calcula
+        ws["A4"], ws["B4"], ws["C4"], ws["D4"], ws["E4"] = "Sin nada", "H", None, None, "Gripe"
+        ws["A5"], ws["B5"], ws["C5"], ws["D5"], ws["E5"] = "Fecha mala", "M", "99/99/9999", None, "Gripe"
+        p = Path(tempfile.mkdtemp(dir=_TMP)) / "dob.xlsx"
+        wb.save(p)
+        h, rows, warns = A.import_excel(p)
+        self.assertEqual([r["fecha_nacimiento"] for r in rows], ["", "", "", ""])
+        self.assertEqual(rows[0]["edad_anios"], "34")
+        hoy = date.today()
+        esperada = hoy.year - 2018 - ((hoy.month, hoy.day) < (3, 10))
+        self.assertEqual(rows[1]["edad_anios"], str(esperada))
+        self.assertEqual((rows[2]["edad_anios"], rows[3]["edad_anios"]), ("", ""))
+        self.assertTrue(any("1 fila" in w and "fecha de nacimiento" in w for w in warns), warns)
 
     def test_sexo_solo_se_convierte_si_la_hoja_usa_m_f(self):
         # en la hoja real el encabezado dice (M/F) pero se escribe H/M: no se cambia nada

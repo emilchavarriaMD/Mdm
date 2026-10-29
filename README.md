@@ -1,6 +1,6 @@
 # MDm – Expedientes MdM (Honduras)
 
-**Versión 1.2**
+**Versión:** ver el archivo `VERSION` (el historial de cambios está al final de este documento).
 
 Programa de escritorio para Windows (Python + **Tkinter** + SQLite) que registra pacientes de brigadas
 médicas con tres fichas vinculadas por un único expediente: **Ficha Integral**, **Atención Primaria
@@ -54,7 +54,6 @@ Menú **Configuración → Seguridad**. Se guarda cifrada (PBKDF2). Si se olvida
 
 ## Limitaciones conocidas
 - No incluye OCR de la hoja ATA (escritura manuscrita poco fiable); la importación desde foto sigue pendiente.
-- No hay campo "número de identidad" en la Ficha Integral.
 - Impresión: abre el PDF en el visor predeterminado para imprimir desde allí.
 - El .exe se probó construyendo y arrancando en Linux; la compilación en Windows debe hacerla `build.bat` en su PC.
 

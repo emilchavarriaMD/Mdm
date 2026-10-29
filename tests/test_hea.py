@@ -168,12 +168,22 @@ class T09_SignosVitales(unittest.TestCase):
         ]
         for edad, unidad, sis, dia, fc, fr in tabla:
             vistos = set()
+            menor_12 = ai.edad_en_meses(edad, unidad) < 144
             for _ in range(200):
                 v = ai.vitales_defecto("H", edad, unidad)
                 vistos.add(v["fc"])
-                for k, (lo, hi) in (("sistolica", sis), ("diastolica", dia), ("fc", fc), ("fr", fr)):
+                rangos = (("fc", fc), ("fr", fr)) if menor_12 else (("sistolica", sis), ("diastolica", dia), ("fc", fc), ("fr", fr))
+                for k, (lo, hi) in rangos:
                     self.assertTrue(lo <= int(v[k]) <= hi, (edad, unidad, k, v[k]))
+                if menor_12:                                               # menores de 12 años: sin presión arterial
+                    self.assertEqual((v["sistolica"], v["diastolica"]), ("", ""), (edad, unidad))
             self.assertGreater(len(vistos), 5, (edad, unidad))               # son aleatorios
+        for edad, unidad in (("11", "años"), ("11", "meses"), ("0", "días"), ("0", "años")):      # nunca PA antes de los 12 años
+            v = ai.vitales_defecto("M", edad, unidad, hta=True)
+            self.assertEqual((v["sistolica"], v["diastolica"]), ("", ""), (edad, unidad))
+            self.assertTrue(v["fc"] and v["fr"] and v["temperatura"], (edad, unidad))
+        v12 = ai.vitales_defecto("M", "12", "años")                            # a los 12 años sí hay presión arterial
+        self.assertTrue(v12["sistolica"] and v12["diastolica"])
         adulto = ai.vitales_defecto("M", "18", "años")                         # 18 años: ya es adulto
         self.assertEqual((adulto["sistolica"], adulto["diastolica"]), ("120", "70"))
         self.assertNotEqual(ai.grupo_vitales("H", "4", "años"), ai.grupo_vitales("H", "8", "años"))
